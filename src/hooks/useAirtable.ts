@@ -94,16 +94,31 @@ export const useAirtable = () => {
   };
 
   const updateTaskInAirtable = async (taskId: string, updates: Partial<Task>) => {
-    // Check if this is a task completion action that should trigger refresh
+    // Get current user info for assignment
+    const currentUserName = user?.user_metadata?.full_name || user?.email || 'Nieznany użytkownik';
+    
+    // Check if this is transfer to different user (should remove task)
+    const isTransferToOtherUser = (updates as any).airtableUpdates?.['User'] && 
+      updates.assignedTo && updates.assignedTo !== currentUserName;
+    
+    // Check if this is a task completion action that should remove task from list
     const isTaskCompletionAction = 
       updates.status === 'completed' || 
       updates.status === 'cancelled' || 
-      updates.dueDate || // postpone action
-      (updates as any).airtableUpdates?.['Status']; // any status change in Airtable
+      (updates as any).airtableUpdates?.['Status'] || // any status change in Airtable
+      isTransferToOtherUser; // only transfer to different user, not "take task"
+
+    console.log('🔍 updateTaskInAirtable debug:', {
+      taskId,
+      updates,
+      currentUserName,
+      assignedTo: updates.assignedTo,
+      isTransferToOtherUser,
+      isTaskCompletionAction,
+      airtableUpdates: (updates as any).airtableUpdates
+    });
 
     try {
-      // Get current user info for assignment
-      const currentUserName = user?.user_metadata?.full_name || user?.email || 'Nieznany użytkownik';
       console.log('🔍 Current user data:', {
         user_metadata: user?.user_metadata,
         email: user?.email,
@@ -182,22 +197,23 @@ export const useAirtable = () => {
       const cleanUpdates = { ...updates };
       delete (cleanUpdates as any).airtableUpdates;
       
-      // Aktualizuj lokalny stan - użyj funkcji callback dla lepszej synchronizacji
-      setTasks(prev => {
-        const newTasks = prev.map(t => 
-          t.id === taskId ? { ...t, ...cleanUpdates } : t
-        );
-        console.log('Updated tasks state:', newTasks.map(t => ({ id: t.id, title: t.title, status: t.status })));
-        return newTasks;
-      });
-    } catch (err) {
-      // Auto-refresh after task completion actions
+      // For completion actions - remove task, for others - update task
       if (isTaskCompletionAction) {
-        console.log('🔄 Task completion detected - refreshing contacts list...');
-        setTimeout(() => {
-          loadContacts();
-        }, 1000); // Small delay to ensure Airtable has processed the update
+        console.log('🔄 Task completion/transfer detected (SUCCESS) - removing task locally');
+        setTasks(prev => prev.filter(t => t.id !== taskId));
+      } else {
+        // Aktualizuj lokalny stan - użyj funkcji callback dla lepszej synchronizacji
+        setTasks(prev => {
+          const newTasks = prev.map(t => 
+            t.id === taskId ? { ...t, ...cleanUpdates } : t
+          );
+          console.log('Updated tasks state:', newTasks.map(t => ({ id: t.id, title: t.title, status: t.status })));
+          return newTasks;
+        });
       }
+    } catch (err) {
+      // Don't remove task on error - user should see what happened
+      console.log('❌ Task update failed, keeping task in list for user visibility');
       console.error('Błąd podczas aktualizacji w Airtable:', err);
       
       // If it's a conflict error, refresh and throw
