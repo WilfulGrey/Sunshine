@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, ExternalLink, Phone, X, Skull, XCircle, Eye } from 'lucide-react';
+import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, ExternalLink, Phone, X, Skull, XCircle, Eye, Plus, Trash2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTimezone } from '../contexts/TimezoneContext';
 import { useUsers } from '../hooks/useUsers';
@@ -28,8 +28,83 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   const taskActions = useTaskActions(tasks, onUpdateTask);
   const dialogState = useDialogState();
   const [showFutureTasks, setShowFutureTasks] = useState(false);
+  const [editingWklejka, setEditingWklejka] = useState<string | null>(null);
+  const [wklejkaInput, setWklejkaInput] = useState('');
 
   const { nextTask, upcomingTasks, hiddenFutureTasksCount } = getProcessedTasks(tasks, taskActions.currentUserName, taskActions.takenTasks, showFutureTasks);
+
+  const isWklejkaOld = (wklejkaDate?: Date): boolean => {
+    if (!wklejkaDate) return false;
+    const now = new Date();
+    const diffHours = (now.getTime() - wklejkaDate.getTime()) / (1000 * 60 * 60);
+    return diffHours > 24;
+  };
+
+  const handleStartEditingWklejka = (taskId: string, currentUrl?: string) => {
+    setEditingWklejka(taskId);
+    setWklejkaInput(currentUrl || '');
+  };
+
+  const handleSaveWklejka = async (taskId: string) => {
+    try {
+      const currentTask = tasks.find(t => t.id === taskId);
+      const now = new Date();
+      
+      await onUpdateTask(taskId, {
+        airtableUpdates: {
+          'Wklejka': wklejkaInput || null,
+          'Data wklejki': wklejkaInput ? now.toISOString() : null
+        },
+        airtableData: {
+          ...currentTask?.airtableData,
+          wklejkaUrl: wklejkaInput || undefined,
+          wklejkaDate: wklejkaInput ? now : undefined
+        }
+      } as any);
+      
+      setEditingWklejka(null);
+      setWklejkaInput('');
+    } catch (error) {
+      console.error('Failed to update wklejka:', error);
+    }
+  };
+
+  const handleCancelEditingWklejka = () => {
+    setEditingWklejka(null);
+    setWklejkaInput('');
+  };
+
+  const handleRemoveWklejka = async (taskId: string) => {
+    try {
+      const currentTask = tasks.find(t => t.id === taskId);
+      const currentFailedCount = currentTask?.airtableData?.nieudaneWklejki || 0;
+      const newFailedCount = currentFailedCount + 1;
+      
+      console.log('🗑️ Removing wklejka:', {
+        taskId,
+        currentFailedCount,
+        newFailedCount,
+        currentUrl: currentTask?.airtableData?.wklejkaUrl
+      });
+      
+      await onUpdateTask(taskId, {
+        airtableUpdates: {
+          'Wklejka': '', // Pusty string zamiast null
+          'Ile nieudanych wklejek': newFailedCount
+        },
+        airtableData: {
+          ...currentTask?.airtableData,
+          wklejkaUrl: undefined,
+          nieudaneWklejki: newFailedCount
+          // Data wklejki zostaje bez zmian
+        }
+      } as any);
+      
+      console.log('✅ Wklejka removed successfully');
+    } catch (error) {
+      console.error('❌ Failed to remove wklejka:', error);
+    }
+  };
 
 
 
@@ -228,8 +303,8 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
               </div>
             )}
 
-            {/* Linki z Airtable - widoczne tylko po wzięciu zadania */}
-            {nextTask.airtableData && (nextTask.airtableData.profileLink || nextTask.airtableData.retellLink || nextTask.airtableData.jobLink) && taskActions.isTaskAssignedToMe(nextTask) && (
+            {/* Linki z Airtable - widoczne zawsze do testów */}
+            {nextTask.airtableData && (nextTask.airtableData.profileLink || nextTask.airtableData.retellLink || nextTask.airtableData.jobLink || nextTask.airtableData.wklejkaUrl) && (
               <div className="flex items-center space-x-3 mb-6">
                 {nextTask.airtableData.profileLink && (
                   <a
@@ -263,6 +338,95 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                     <ExternalLink className="h-4 w-4" />
                     <span>Link do JOBa</span>
                   </a>
+                )}
+                {nextTask.airtableData.wklejkaUrl && (
+                  <a
+                    href={nextTask.airtableData.wklejkaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`inline-flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                      isWklejkaOld(nextTask.airtableData.wklejkaDate)
+                        ? 'bg-red-100 text-red-700 hover:bg-red-200 ring-2 ring-red-400'
+                        : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
+                    }`}
+                    title={
+                      isWklejkaOld(nextTask.airtableData.wklejkaDate)
+                        ? 'Wklejka starsza niż 24h - sprawdź czy przeszła'
+                        : 'Wklejka'
+                    }
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    <span>
+                      Wklejka
+                      {isWklejkaOld(nextTask.airtableData.wklejkaDate) && ' ⚠️'}
+                    </span>
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Edycja wklejki */}
+            {nextTask.airtableData && (
+              <div className="mb-6">
+                {/* Licznik nieudanych wklejek */}
+                {(nextTask.airtableData.nieudaneWklejki || 0) > 0 && (
+                  <div className="mb-3 text-sm text-gray-600">
+                    <span className="inline-flex items-center px-2 py-1 bg-gray-100 rounded-full">
+                      ⚠️ Nieudanych wklejek: {nextTask.airtableData.nieudaneWklejki}
+                    </span>
+                  </div>
+                )}
+                
+                {editingWklejka === nextTask.id ? (
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="url"
+                      value={wklejkaInput}
+                      onChange={(e) => setWklejkaInput(e.target.value)}
+                      placeholder="https://..."
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSaveWklejka(nextTask.id);
+                        } else if (e.key === 'Escape') {
+                          handleCancelEditingWklejka();
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={() => handleSaveWklejka(nextTask.id)}
+                      className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      onClick={handleCancelEditingWklejka}
+                      className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleStartEditingWklejka(nextTask.id, nextTask.airtableData?.wklejkaUrl)}
+                      className="inline-flex items-center space-x-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors text-sm"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>{nextTask.airtableData.wklejkaUrl ? 'Edytuj wklejkę' : 'Dodaj wklejkę'}</span>
+                    </button>
+                    
+                    {nextTask.airtableData.wklejkaUrl && (
+                      <button
+                        onClick={() => handleRemoveWklejka(nextTask.id)}
+                        className="inline-flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm"
+                        title="Usuń wklejkę (nieudana)"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}

@@ -11,12 +11,11 @@ import { filterActiveTasks } from '../utils/taskUtils';
 import { useTaskActions } from '../hooks/useTaskActions';
 
 interface HeaderProps {
-  onCreateTask: () => void;
   tasks: Task[];
   onConfigSaved?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onCreateTask, tasks, onConfigSaved }) => {
+export const Header: React.FC<HeaderProps> = ({ tasks, onConfigSaved }) => {
   const { t } = useLanguage();
   const { user, signOut } = useAuth();
   const taskActions = useTaskActions(tasks, () => {}); // Empty callback since we only need currentUserName

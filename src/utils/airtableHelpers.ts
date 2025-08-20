@@ -138,7 +138,10 @@ export const convertAirtableContactToTask = (contact: AirtableContact): Task => 
       previousRecommendation: contact.fields['Komentarz status n8n'],
       nextSteps: contact.fields['Następne kroki'],
       urgent: contact.fields['Urgent'],
-      user: contact.fields['User']
+      user: contact.fields['User'],
+      wklejkaUrl: contact.fields['Wklejka'],
+      wklejkaDate: contact.fields['Data wklejki'] ? new Date(contact.fields['Data wklejki']) : undefined,
+      nieudaneWklejki: contact.fields['Ile nieudanych wklejek'] || 0
     }
   };
 };

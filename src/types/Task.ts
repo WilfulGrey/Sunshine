@@ -32,6 +32,9 @@ export interface Task {
     nextSteps?: string;
     urgent?: boolean;
     user?: string | string[];
+    wklejkaUrl?: string;
+    wklejkaDate?: Date;
+    nieudaneWklejki?: number;
   };
 }
 

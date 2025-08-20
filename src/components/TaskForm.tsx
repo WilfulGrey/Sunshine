@@ -22,6 +22,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onSave, onCancel }) =>
     dueDate: '',
     assignedTo: '',
     trigger: '',
+    wklejkaUrl: '',
     voicebotConfig: {
       script: '',
       recipients: [] as string[],
@@ -40,6 +41,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onSave, onCancel }) =>
         dueDate: task.dueDate ? task.dueDate.toISOString().slice(0, 16) : '',
         assignedTo: task.assignedTo || '',
         trigger: task.trigger || '',
+        wklejkaUrl: task.airtableData?.wklejkaUrl || '',
         voicebotConfig: {
           script: task.voicebotConfig?.script || '',
           recipients: task.voicebotConfig?.recipients || [],
@@ -58,6 +60,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onSave, onCancel }) =>
         dueDate: '',
         assignedTo: '',
         trigger: '',
+        wklejkaUrl: '',
         voicebotConfig: {
           script: '',
           recipients: [],
@@ -92,6 +95,13 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onSave, onCancel }) =>
         scheduledFor: formData.voicebotConfig.scheduledFor ? new Date(formData.voicebotConfig.scheduledFor) : undefined
       } : undefined
     };
+
+    // Jeśli edytujemy zadanie z Airtable i zmienił się URL wklejki
+    if (task?.airtableData && formData.wklejkaUrl !== (task.airtableData.wklejkaUrl || '')) {
+      (taskData as any).airtableUpdates = {
+        'Wklejka': formData.wklejkaUrl || null
+      };
+    }
 
     onSave(taskData);
   };
@@ -235,6 +245,22 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onSave, onCancel }) =>
               )}
             </div>
           </div>
+
+          {/* URL Wklejki - tylko dla zadań z Airtable */}
+          {task?.airtableData && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                URL Wklejki
+              </label>
+              <input
+                type="url"
+                value={formData.wklejkaUrl}
+                onChange={(e) => setFormData(prev => ({ ...prev, wklejkaUrl: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                placeholder="https://..."
+              />
+            </div>
+          )}
 
           {formData.type === 'automatic' && (
             <div>

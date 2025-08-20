@@ -124,7 +124,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, on
             </div>
             
             {/* Linki z Airtable */}
-            {task.airtableData && (task.airtableData.profileLink || task.airtableData.retellLink || task.airtableData.jobLink) && (
+            {task.airtableData && (task.airtableData.profileLink || task.airtableData.retellLink || task.airtableData.jobLink || task.airtableData.wklejkaUrl) && (
               <div className="flex items-center space-x-2 mt-3">
                 {task.airtableData.profileLink && (
                   <a
@@ -157,6 +157,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, on
                   >
                     <ExternalLink className="h-3 w-3" />
                     <span>JOB</span>
+                  </a>
+                )}
+                {task.airtableData.wklejkaUrl && (
+                  <a
+                    href={task.airtableData.wklejkaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-1 px-2 py-1 bg-orange-50 text-orange-700 rounded-full text-xs hover:bg-orange-100 transition-colors"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    <span>Wklejka</span>
                   </a>
                 )}
               </div>

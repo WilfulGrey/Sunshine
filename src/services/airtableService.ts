@@ -18,6 +18,9 @@ export interface AirtableContact {
     'Status': string;
     'Urgent'?: boolean;
     'User'?: string;
+    'Wklejka'?: string;
+    'Data wklejki'?: string;
+    'Ile nieudanych wklejek'?: number;
   };
 }
 

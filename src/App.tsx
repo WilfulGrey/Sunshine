@@ -4,7 +4,6 @@ import { useAuth } from './contexts/AuthContext';
 import { AuthForm } from './components/Auth/AuthForm';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { Header } from './components/Header';
-import { TaskForm } from './components/TaskForm';
 import { TaskFocusedView } from './components/TaskFocusedView';
 import { TaskHistory } from './components/TaskHistory';
 import { useLanguage } from './contexts/LanguageContext';
@@ -27,8 +26,6 @@ function App() {
     deleteTask: deleteAirtableTask 
   } = useAirtable();
   
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [showTaskForm, setShowTaskForm] = useState(false);
   const [showSampleTasks, setShowSampleTasks] = useState(false);
 
   const createTestTasks = () => {
@@ -151,7 +148,6 @@ function App() {
 
   const addTask = async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
     await addAirtableTask(taskData);
-    setShowTaskForm(false);
   };
 
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
@@ -216,10 +212,6 @@ function App() {
         lastRefresh={lastRefresh}
         showSampleTasks={showSampleTasks}
         setShowSampleTasks={setShowSampleTasks}
-        showTaskForm={showTaskForm}
-        setShowTaskForm={setShowTaskForm}
-        selectedTask={selectedTask}
-        setSelectedTask={setSelectedTask}
         createTestTasks={createTestTasks}
         handleResetTasks={handleResetTasks}
         handleConfigSaved={handleConfigSaved}
@@ -238,10 +230,6 @@ interface MainAppProps {
   lastRefresh: Date;
   showSampleTasks: boolean;
   setShowSampleTasks: (show: boolean) => void;
-  showTaskForm: boolean;
-  setShowTaskForm: (show: boolean) => void;
-  selectedTask: Task | null;
-  setSelectedTask: (task: Task | null) => void;
   createTestTasks: () => void;
   handleResetTasks: () => void;
   handleConfigSaved: () => void;
@@ -257,10 +245,6 @@ const MainApp: React.FC<MainAppProps> = ({
   lastRefresh,
   showSampleTasks,
   setShowSampleTasks,
-  showTaskForm,
-  setShowTaskForm,
-  selectedTask,
-  setSelectedTask,
   createTestTasks,
   handleResetTasks,
   handleConfigSaved,
@@ -314,7 +298,6 @@ const MainApp: React.FC<MainAppProps> = ({
     <div className="min-h-screen bg-gray-50">
       <div className="flex flex-col">
         <Header 
-          onCreateTask={() => {}}
           tasks={tasks}
           onConfigSaved={handleConfigSaved}
         />
@@ -330,13 +313,6 @@ const MainApp: React.FC<MainAppProps> = ({
                   {t.workTasksInOrder}
                 </p>
               </div>
-              <button
-                onClick={() => setShowTaskForm(true)}
-                className="bg-white text-gray-700 px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors border border-gray-200 hover:bg-gray-50"
-              >
-                <Plus className="h-4 w-4" style={{ color: '#AB4D95' }} />
-                <span>{t.newTask}</span>
-              </button>
             </div>
 
             <div id="task-focused-view">
@@ -402,21 +378,6 @@ const MainApp: React.FC<MainAppProps> = ({
         </main>
       </div>
 
-      {(showTaskForm || selectedTask) && (
-        <TaskForm
-          task={selectedTask}
-          onSave={selectedTask ? 
-            (taskData) => {
-              updateTask(selectedTask.id, taskData);
-              setSelectedTask(null);
-            } : addTask
-          }
-          onCancel={() => {
-            setShowTaskForm(false);
-            setSelectedTask(null);
-          }}
-        />
-      )}
     </div>
   );
 };
