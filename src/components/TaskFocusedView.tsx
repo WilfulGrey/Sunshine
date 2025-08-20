@@ -426,15 +426,13 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                       </span>
                       
                       <div className="flex items-center space-x-1">
-                        {task.airtableData?.urgent && (
-                          <button
-                            onClick={() => taskActions.handleBoostUrgent(task.id)}
-                            className="p-1 text-red-500 hover:text-red-700 transition-colors"
-                            title="Pilny kontakt - przenieś na pierwszą pozycję"
-                          >
-                            <AlertTriangle className="h-4 w-4" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => taskActions.handleBoostUrgent(task.id)}
+                          className="p-1 text-red-500 hover:text-red-700 transition-colors"
+                          title="Przenieś zadanie na pierwszą pozycję"
+                        >
+                          <AlertTriangle className="h-4 w-4" />
+                        </button>
                         
                         <button
                           onClick={() => taskActions.handleBoostPriority(task.id)}

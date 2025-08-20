@@ -218,12 +218,25 @@ export const useTaskActions = (
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
     
+    // Reset current active task if exists
+    const currentActiveTask = tasks.find(t => t.status === 'in_progress');
+    if (currentActiveTask) {
+      const resetTask = addHistoryEntry(currentActiveTask, 'started', 'Zadanie wstrzymane - priorytet przejęła inna osoba');
+      
+      onUpdateTask(currentActiveTask.id, {
+        status: 'pending',
+        priority: currentActiveTask.priority === 'urgent' ? 'high' : currentActiveTask.priority,
+        history: resetTask.history
+      });
+    }
+    
     const now = new Date();
-    const updatedTask = addHistoryEntry(task, 'started', 'Pilny kontakt - przeniesiony na górę listy');
+    const updatedTask = addHistoryEntry(task, 'started', 'Zadanie przeniesione na pierwszą pozycję');
     
     onUpdateTask(taskId, {
       priority: 'urgent' as const,
       dueDate: now,
+      status: 'in_progress' as const,
       history: updatedTask.history,
       airtableUpdates: {
         'kiedy dzwonić': now.toISOString()
@@ -248,6 +261,7 @@ export const useTaskActions = (
       }
     });
   };
+
 
   const getTimezoneOffsetHours = (tz: string): number => {
     return getOffsetForTimezone(tz);
