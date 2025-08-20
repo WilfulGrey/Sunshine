@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, ExternalLink, Phone, X, Skull } from 'lucide-react';
+import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, ExternalLink, Phone, X, Skull, XCircle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTimezone } from '../contexts/TimezoneContext';
 import { useUsers } from '../hooks/useUsers';
@@ -105,6 +105,13 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       dialogState.transferToUser,
       dialogState.transferReason
     );
+    dialogState.closeTransferDialog();
+  };
+
+  const handleUnassignTask = () => {
+    if (!dialogState.showTransferDialog) return;
+    
+    taskActions.handleUnassignTask(dialogState.showTransferDialog);
     dialogState.closeTransferDialog();
   };
 
@@ -220,8 +227,8 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
               </div>
             )}
 
-            {/* Linki z Airtable */}
-            {nextTask.airtableData && (nextTask.airtableData.profileLink || nextTask.airtableData.retellLink || nextTask.airtableData.jobLink) && (
+            {/* Linki z Airtable - widoczne tylko po wzięciu zadania */}
+            {nextTask.airtableData && (nextTask.airtableData.profileLink || nextTask.airtableData.retellLink || nextTask.airtableData.jobLink) && taskActions.isTaskAssignedToMe(nextTask) && (
               <div className="flex items-center space-x-3 mb-6">
                 {nextTask.airtableData.profileLink && (
                   <a
@@ -331,6 +338,30 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                   >
                     <CheckCircle2 className="h-5 w-5" />
                     <span>{t.complete}</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => handlePostponeTask(nextTask.id)}
+                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center space-x-2"
+                  >
+                    <Pause className="h-5 w-5" />
+                    <span>{t.postpone}</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => handleTransferTask(nextTask.id)}
+                    className="px-6 py-3 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition-colors flex items-center space-x-2"
+                  >
+                    <ArrowRight className="h-5 w-5" />
+                    <span>Transfer</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => handleAbandonTask(nextTask.id)}
+                    className="px-6 py-3 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition-colors flex items-center space-x-2"
+                  >
+                    <Skull className="h-5 w-5" />
+                    <span>Porzuć kontakt</span>
                   </button>
                 </div>
               )}
@@ -499,6 +530,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
           setTransferReason={dialogState.setTransferReason}
           currentUserName={taskActions.currentUserName}
           onConfirm={handleTransferConfirm}
+          onUnassign={handleUnassignTask}
           onClose={dialogState.closeTransferDialog}
         />
       )}

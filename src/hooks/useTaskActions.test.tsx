@@ -149,14 +149,14 @@ describe('useTaskActions', () => {
       expect(result.current.isTaskAssignedToMe(mockTasks[1])).toBe(false);
     });
 
-    it('should return true for taken task', () => {
+    it('should return true for taken task', async () => {
       const { result } = renderHook(
         () => useTaskActions(mockTasks, mockOnUpdateTask),
         { wrapper: Wrapper }
       );
 
-      act(() => {
-        result.current.handleTakeTask('2');
+      await act(async () => {
+        await result.current.handleTakeTask('2');
       });
 
       expect(result.current.isTaskAssignedToMe(mockTasks[1])).toBe(true);

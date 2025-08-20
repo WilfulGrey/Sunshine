@@ -46,6 +46,14 @@ vi.mock('../hooks/useUsers', () => ({
   })
 }));
 
+vi.mock('../hooks/useAirtable', () => ({
+  useAirtable: () => ({
+    availableUsers: ['User One', 'User Two'],
+    updateAirtableRecord: vi.fn(),
+    isUpdating: false
+  })
+}));
+
 vi.mock('../utils/helpers', () => ({
   formatDate: vi.fn((date) => date.toLocaleDateString()),
   isOverdue: vi.fn((date) => date < new Date()),

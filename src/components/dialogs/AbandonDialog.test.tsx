@@ -30,7 +30,7 @@ describe('AbandonDialog', () => {
   it('should render dialog with task title', () => {
     render(<AbandonDialog {...defaultProps} />);
     
-    expect(screen.getByText('Porzuć kontakt')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Porzuć kontakt' })).toBeInTheDocument();
     expect(screen.getByText('Test Task')).toBeInTheDocument();
   });
 
@@ -72,7 +72,7 @@ describe('AbandonDialog', () => {
     const onConfirm = vi.fn();
     render(<AbandonDialog {...defaultProps} onConfirm={onConfirm} />);
     
-    const confirmButton = screen.getByText('Porzuć kontakt');
+    const confirmButton = screen.getByRole('button', { name: /Porzuć kontakt/ });
     fireEvent.click(confirmButton);
     
     expect(onConfirm).toHaveBeenCalledTimes(1);
@@ -122,7 +122,7 @@ describe('AbandonDialog', () => {
     // Check for skull icons (they should be present in the DOM)
     const skullElements = screen.getAllByTestId ? screen.queryAllByTestId('skull-icon') : [];
     // Since we're using Lucide icons, we can check for the presence of the component structure
-    expect(screen.getByText('Porzuć kontakt')).toBeInTheDocument();
+    expect(screen.getAllByText('Porzuć kontakt')).toHaveLength(2); // Title and button
   });
 
   it('should maintain focus management', () => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, UserX } from 'lucide-react';
 import { Task } from '../../types/Task';
 import { useUsers } from '../../hooks/useUsers';
 
@@ -12,6 +12,7 @@ interface TransferDialogProps {
   currentUserName: string;
   availableUsers?: string[];
   onConfirm: () => void;
+  onUnassign: () => void;
   onClose: () => void;
 }
 
@@ -24,6 +25,7 @@ export const TransferDialog: React.FC<TransferDialogProps> = ({
   currentUserName,
   availableUsers,
   onConfirm,
+  onUnassign,
   onClose
 }) => {
   const { users, getUserDisplayName } = useUsers();
@@ -105,6 +107,14 @@ export const TransferDialog: React.FC<TransferDialogProps> = ({
             className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
           >
             Anuluj
+          </button>
+          
+          <button
+            onClick={onUnassign}
+            className="flex-1 px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition-colors flex items-center justify-center space-x-2"
+          >
+            <UserX className="h-4 w-4" />
+            <span>Odpiąć się</span>
           </button>
           
           <button

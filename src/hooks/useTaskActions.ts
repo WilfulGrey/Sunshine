@@ -147,6 +147,24 @@ export const useTaskActions = (
     });
   };
 
+  const handleUnassignTask = (task: Task) => {
+    console.log('🔄 Unassigning task:', {
+      taskId: task.id,
+      from: task.assignedTo || 'unassigned'
+    });
+    
+    const updatedTask = addHistoryEntry(task, 'created', 'Zadanie odpisane - wraca do puli dostępnych');
+    
+    onUpdateTask(task.id, {
+      assignedTo: undefined,
+      status: 'pending',
+      history: updatedTask.history,
+      airtableUpdates: {
+        'User': null // Null oznacza brak przypisania
+      }
+    });
+  };
+
   const handlePostponeTask = (task: Task, postponeDate: string, postponeTime: string, postponeNotes: string) => {
     const [hours, minutes] = postponeTime.split(':').map(Number);
     const [year, month, day] = postponeDate.split('-').map(Number);
@@ -268,6 +286,7 @@ export const useTaskActions = (
     handleCompleteTask,
     handleAbandonTask,
     handleTransferTask,
+    handleUnassignTask,
     handlePostponeTask,
     handleBoostPriority,
     handleBoostUrgent,

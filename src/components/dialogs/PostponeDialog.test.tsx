@@ -168,8 +168,8 @@ describe('PostponeDialog', () => {
     render(
       <PostponeDialog 
         {...defaultProps} 
-        postponeDate=\"\"
-        postponeTime=\"\"
+        postponeDate=""
+        postponeTime=""
       />
     );
     
