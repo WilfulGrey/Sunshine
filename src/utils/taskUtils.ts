@@ -111,12 +111,33 @@ export const sortTasksByPriority = (tasks: Task[]) => {
   });
 };
 
-export const getProcessedTasks = (tasks: Task[], currentUserName: string, takenTasks: Set<string>) => {
+const isTaskFarInFuture = (task: Task, daysThreshold: number = 7): boolean => {
+  if (!task.dueDate) return false;
+  
+  // Never hide urgent tasks from Airtable
+  if (task.airtableData?.urgent) return false;
+  
+  const now = new Date();
+  const taskDate = new Date(task.dueDate);
+  const diffInDays = (taskDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+  
+  return diffInDays > daysThreshold;
+};
+
+export const getProcessedTasks = (tasks: Task[], currentUserName: string, takenTasks: Set<string>, showFutureTasks: boolean = false) => {
   const activeTasks = filterActiveTasks(tasks, currentUserName, takenTasks);
   const sortedTasks = sortTasksByPriority(activeTasks);
   
+  const upcomingTasks = sortedTasks.slice(1);
+  
+  // Filter out far future tasks unless showFutureTasks is true
+  const filteredUpcomingTasks = showFutureTasks 
+    ? upcomingTasks 
+    : upcomingTasks.filter(task => !isTaskFarInFuture(task));
+  
   return {
     nextTask: sortedTasks[0] || null,
-    upcomingTasks: sortedTasks.slice(1)
+    upcomingTasks: filteredUpcomingTasks,
+    hiddenFutureTasksCount: showFutureTasks ? 0 : upcomingTasks.filter(task => isTaskFarInFuture(task)).length
   };
 };

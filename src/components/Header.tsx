@@ -7,6 +7,8 @@ import { AirtableConfig } from './AirtableConfig';
 import { TwilioConfig } from './TwilioConfig';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Task } from '../types/Task';
+import { filterActiveTasks } from '../utils/taskUtils';
+import { useTaskActions } from '../hooks/useTaskActions';
 
 interface HeaderProps {
   onCreateTask: () => void;
@@ -17,13 +19,11 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onCreateTask, tasks, onConfigSaved }) => {
   const { t } = useLanguage();
   const { user, signOut } = useAuth();
+  const taskActions = useTaskActions(tasks, () => {}); // Empty callback since we only need currentUserName
 
-  // Count urgent tasks
-  const urgentTasks = tasks.filter(task => 
-    task.airtableData?.urgent === true && 
-    task.status !== 'completed' && 
-    task.status !== 'cancelled'
-  );
+  // Count urgent tasks - only those available to current user
+  const activeTasks = filterActiveTasks(tasks, taskActions.currentUserName, taskActions.takenTasks);
+  const urgentTasks = activeTasks.filter(task => task.airtableData?.urgent === true);
   const urgentCount = urgentTasks.length;
 
   const handleSignOut = async () => {

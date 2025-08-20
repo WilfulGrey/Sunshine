@@ -371,5 +371,57 @@ describe('taskUtils', () => {
       expect(result.nextTask).toBeDefined();
       expect(result.upcomingTasks).toHaveLength(0);
     });
+
+    it('should not hide urgent tasks even if they are far in future', () => {
+      const farFutureDate = new Date();
+      farFutureDate.setDate(farFutureDate.getDate() + 10); // 10 days in future
+
+      const urgentFutureTasks: Task[] = [
+        {
+          id: '1',
+          title: 'Current Task',
+          description: 'Description 1',
+          status: 'in_progress',
+          priority: 'medium',
+          type: 'manual',
+          assignedTo: 'John',
+          createdAt: new Date(),
+          history: [],
+          dueDate: new Date()
+        },
+        {
+          id: '2',
+          title: 'Urgent Future Task',
+          description: 'Description 2',
+          status: 'pending',
+          priority: 'high',
+          type: 'manual',
+          assignedTo: 'John',
+          createdAt: new Date(),
+          history: [],
+          dueDate: farFutureDate,
+          airtableData: { urgent: true }
+        },
+        {
+          id: '3',
+          title: 'Normal Future Task',
+          description: 'Description 3',
+          status: 'pending',
+          priority: 'medium',
+          type: 'manual',
+          assignedTo: 'John',
+          createdAt: new Date(),
+          history: [],
+          dueDate: farFutureDate
+        }
+      ];
+
+      const result = getProcessedTasks(urgentFutureTasks, 'John', new Set(), false);
+
+      expect(result.nextTask?.id).toBe('1');
+      expect(result.upcomingTasks).toHaveLength(1); // Only urgent task should be visible
+      expect(result.upcomingTasks[0].id).toBe('2'); // Urgent task
+      expect(result.hiddenFutureTasksCount).toBe(1); // Normal future task hidden
+    });
   });
 });

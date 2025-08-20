@@ -1,5 +1,5 @@
-import React from 'react';
-import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, ExternalLink, Phone, X, Skull, XCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, ExternalLink, Phone, X, Skull, XCircle, Eye } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTimezone } from '../contexts/TimezoneContext';
 import { useUsers } from '../hooks/useUsers';
@@ -27,8 +27,9 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   
   const taskActions = useTaskActions(tasks, onUpdateTask);
   const dialogState = useDialogState();
+  const [showFutureTasks, setShowFutureTasks] = useState(false);
 
-  const { nextTask, upcomingTasks } = getProcessedTasks(tasks, taskActions.currentUserName, taskActions.takenTasks);
+  const { nextTask, upcomingTasks, hiddenFutureTasksCount } = getProcessedTasks(tasks, taskActions.currentUserName, taskActions.takenTasks, showFutureTasks);
 
 
 
@@ -371,12 +372,34 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       </div>
 
       {/* Upcoming Tasks */}
-      {upcomingTasks.length > 0 && (
+      {(upcomingTasks.length > 0 || hiddenFutureTasksCount > 0) && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
-            <span>{t.upcomingTasks}</span>
-            <span className="text-sm font-normal text-gray-500">({upcomingTasks.length})</span>
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+              <span>{t.upcomingTasks}</span>
+              <span className="text-sm font-normal text-gray-500">({upcomingTasks.length})</span>
+            </h3>
+            
+            {hiddenFutureTasksCount > 0 && !showFutureTasks && (
+              <button
+                onClick={() => setShowFutureTasks(true)}
+                className="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-1"
+              >
+                <Eye className="h-4 w-4" />
+                <span>Pokaż {hiddenFutureTasksCount} starszych zadań</span>
+              </button>
+            )}
+            
+            {showFutureTasks && (
+              <button
+                onClick={() => setShowFutureTasks(false)}
+                className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors flex items-center space-x-1"
+              >
+                <X className="h-4 w-4" />
+                <span>Ukryj starsze zadania</span>
+              </button>
+            )}
+          </div>
           
           <div className="space-y-3">
             {upcomingTasks.map((task, index) => {
