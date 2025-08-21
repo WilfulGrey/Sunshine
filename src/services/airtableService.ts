@@ -169,41 +169,106 @@ export class AirtableService {
     }
   }
 
-  async getAvailableUsers(): Promise<string[]> {
+  async getTableSchema(): Promise<any> {
     this.ensureInitialized();
-
+    
     try {
-      // Pobierz wszystkie unikalne wartości z pola User
+      // Pobierz schemat tabeli używając Airtable Meta API
+      const response = await fetch(`https://api.airtable.com/v0/meta/bases/${this.config?.baseId}/tables`, {
+        headers: {
+          'Authorization': `Bearer ${this.config?.apiKey}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Błąd podczas pobierania schematu tabeli:', error);
+      return null;
+    }
+  }
+
+  async getMultiselectOptions(fieldName: string): Promise<string[]> {
+    try {
+      const schema = await this.getTableSchema();
+      
+      if (!schema || !schema.tables) {
+        console.warn('Nie udało się pobrać schematu tabeli');
+        return this.getAvailableUsersFromRecords(); // Fallback
+      }
+      
+      const table = schema.tables.find((t: any) => t.id === this.config?.tableId);
+      if (!table) {
+        console.warn('Nie znaleziono tabeli w schemacie');
+        return this.getAvailableUsersFromRecords(); // Fallback
+      }
+      
+      const field = table.fields.find((f: any) => f.name === fieldName);
+      if (!field) {
+        console.warn(`Nie znaleziono pola ${fieldName} w schemacie`);
+        return this.getAvailableUsersFromRecords(); // Fallback
+      }
+      
+      if (field.type === 'multipleSelects' && field.options && field.options.choices) {
+        const options = field.options.choices.map((choice: any) => choice.name);
+        console.log(`✅ Pobrano opcje multiselect dla pola ${fieldName}:`, options);
+        return options;
+      }
+      
+      console.warn(`Pole ${fieldName} nie jest typu multipleSelects`);
+      return this.getAvailableUsersFromRecords(); // Fallback
+    } catch (error) {
+      console.error('Błąd podczas pobierania opcji multiselect:', error);
+      return this.getAvailableUsersFromRecords(); // Fallback
+    }
+  }
+
+  async getAvailableUsersFromRecords(): Promise<string[]> {
+    // Stara metoda - jako fallback
+    try {
       const records = await this.table.select({
         fields: ['User']
       }).all();
 
       const users = new Set<string>();
       
-      console.log(`Processing ${records.length} records for User field...`);
-      
       records.forEach(record => {
         const userField = record.fields['User'];
-        console.log('User field value:', userField, 'Type:', typeof userField);
         
         if (Array.isArray(userField)) {
-          userField.forEach(user => {
-            console.log('Adding user from array:', user);
-            users.add(user);
-          });
+          userField.forEach(user => users.add(user));
         } else if (userField) {
-          console.log('Adding user as string:', userField);
           users.add(userField);
         }
       });
 
-      const availableUsers = Array.from(users).sort();
-      console.log('🔍 Available users in Airtable:', availableUsers);
-      return availableUsers;
+      return Array.from(users).sort();
     } catch (error) {
-      console.error('Błąd podczas pobierania dostępnych użytkowników:', error);
+      console.error('Błąd podczas pobierania użytkowników z rekordów:', error);
       return [];
     }
+  }
+
+  async getAvailableUsers(): Promise<string[]> {
+    this.ensureInitialized();
+    
+    console.log('🔍 Pobieranie dostępnych użytkowników z konfiguracji multiselect...');
+    
+    // Najpierw spróbuj pobrać z konfiguracji pola
+    const multiselectOptions = await this.getMultiselectOptions('User');
+    
+    if (multiselectOptions.length > 0) {
+      console.log('✅ Używam opcji z konfiguracji multiselect:', multiselectOptions);
+      return multiselectOptions;
+    }
+    
+    // Fallback do starej metody
+    console.log('⚠️ Fallback: używam opcji z istniejących rekordów');
+    return this.getAvailableUsersFromRecords();
   }
 }
 

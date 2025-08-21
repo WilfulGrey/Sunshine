@@ -98,6 +98,20 @@ npm run test:coverage # Testy z coverage
 
 **Pliki**: TaskFocusedView.tsx, airtableService.ts, airtableHelpers.ts, types/Task.ts, TaskFocusedView.wklejka.test.tsx
 
+**Deployment**: 
+- ✅ Commit: 69e4953 "Implement complete wklejka (URL paste) functionality"
+- ✅ Merged do master i pushed na GitHub origin
+- ✅ Render auto-deploy uruchomiony z najnowszymi zmianami
+
+## Git & Deploy Workflow
+**WAŻNE**: Zawsze po merge do master wykonuj:
+```bash
+git push origin master  # Wypchnij na GitHub dla Render
+```
+- Render automatycznie deployuje z GitHub master branch
+- Bez push do origin, zmiany pozostają tylko lokalnie
+- Sprawdzaj status: `git status` pokazuje "ahead of origin/master"
+
 ## Następne Sesje
 - Monitoring działania wklejka functionality w produkcji
 - Ewentualne ulepszenia UX (bulk operations, lepsze wizualne wskazówki)

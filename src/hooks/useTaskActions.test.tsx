@@ -442,4 +442,132 @@ describe('useTaskActions', () => {
     });
 
   });
+
+  describe('isTaskAssignedToSomeoneElse', () => {
+    it('should return false for unassigned task', () => {
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current.isTaskAssignedToSomeoneElse(mockTasks[1])).toBe(false);
+    });
+
+    it('should return true for task assigned to different user', () => {
+      const taskAssignedToOther = {
+        ...mockTasks[1],
+        assignedTo: 'Other User'
+      };
+
+      const { result } = renderHook(
+        () => useTaskActions([taskAssignedToOther], mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current.isTaskAssignedToSomeoneElse(taskAssignedToOther)).toBe(true);
+    });
+
+    it('should return false for task assigned to current user', () => {
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current.isTaskAssignedToSomeoneElse(mockTasks[0])).toBe(false);
+    });
+
+    it('should handle airtable user array with other users', () => {
+      const taskWithOtherUsers = {
+        ...mockTasks[1],
+        airtableData: {
+          user: ['Other User', 'Another User']
+        }
+      };
+
+      const { result } = renderHook(
+        () => useTaskActions([taskWithOtherUsers], mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current.isTaskAssignedToSomeoneElse(taskWithOtherUsers)).toBe(true);
+    });
+  });
+
+  describe('canTakeTask', () => {
+    it('should return true for unassigned task', () => {
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current.canTakeTask(mockTasks[1])).toBe(true);
+    });
+
+    it('should return false for task assigned to current user', () => {
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current.canTakeTask(mockTasks[0])).toBe(false);
+    });
+
+    it('should return false for task assigned to other user', () => {
+      const taskAssignedToOther = {
+        ...mockTasks[1],
+        assignedTo: 'Other User'
+      };
+
+      const { result } = renderHook(
+        () => useTaskActions([taskAssignedToOther], mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current.canTakeTask(taskAssignedToOther)).toBe(false);
+    });
+  });
+
+  describe('handleTakeTask validation', () => {
+    it('should prevent taking task assigned to someone else', async () => {
+      const taskAssignedToOther = {
+        ...mockTasks[1],
+        assignedTo: 'Other User'
+      };
+
+      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+      const { result } = renderHook(
+        () => useTaskActions([taskAssignedToOther], mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handleTakeTask('2');
+      });
+
+      expect(alertSpy).toHaveBeenCalledWith('To zadanie jest już przypisane do: Other User');
+      expect(mockOnUpdateTask).not.toHaveBeenCalled();
+
+      alertSpy.mockRestore();
+    });
+
+    it('should prevent taking task already assigned to current user', async () => {
+      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handleTakeTask('1');
+      });
+
+      expect(alertSpy).toHaveBeenCalledWith('To zadanie jest już przypisane do Ciebie.');
+      expect(mockOnUpdateTask).not.toHaveBeenCalled();
+
+      alertSpy.mockRestore();
+    });
+  });
+
 });

@@ -69,28 +69,96 @@ export const useAirtable = () => {
   const mapUserToAirtableOption = (userName: string): string => {
     if (!userName) return userName;
     
-    // Najpierw spróbuj znaleźć dokładne dopasowanie
-    if (availableUsers.includes(userName)) {
-      return userName;
+    // Agresywna normalizacja - usuń WSZYSTKIE niedrukowane znaki
+    const normalizeString = (str: string): string => {
+      return str
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // usuń kontrolne znaki
+        .replace(/[\u2000-\u200F\u2028-\u202F\u205F-\u206F]/g, '') // usuń Unicode spaces
+        .trim()
+        .replace(/\s+/g, ' ');
+    };
+    
+    const normalizedUserName = normalizeString(userName);
+    console.log(`🔍 DEBUGGING mapUserToAirtableOption:`);
+    console.log(`  - Looking for: "${userName}" -> normalized: "${normalizedUserName}" (length: ${normalizedUserName.length})`);
+    console.log(`  - Char codes:`, userName.split('').map(c => `${c}(${c.charCodeAt(0)})`).join(' '));
+    
+    const normalizedAvailableUsers = availableUsers.map(u => ({
+      original: u,
+      normalized: normalizeString(u),
+      charCodes: u.split('').map(c => `${c}(${c.charCodeAt(0)})`).join(' ')
+    }));
+    
+    console.log(`  - Available users:`, normalizedAvailableUsers.map(u => 
+      `"${u.original}" -> "${u.normalized}" (${u.original.length} -> ${u.normalized.length})`
+    ));
+    
+    // Sprawdź dopasowanie na agresywnie znormalizowanych stringach
+    const exactMatch = availableUsers.find(u => normalizeString(u) === normalizedUserName);
+    if (exactMatch) {
+      console.log(`✅ Found exact match in Airtable: "${exactMatch}" (aggressively normalized)`);
+      return exactMatch;
     }
     
-    // Jeśli nie ma dokładnego dopasowania, spróbuj znaleźć podobną opcję
-    const normalizedName = userName.toLowerCase().replace(/\s+/g, ' ').trim();
-    
-    const match = availableUsers.find(availableUser => {
-      const normalizedAvailable = availableUser.toLowerCase().replace(/\s+/g, ' ').trim();
-      return normalizedAvailable === normalizedName || 
-             normalizedAvailable.includes(normalizedName) ||
-             normalizedName.includes(normalizedAvailable);
+    // Debug: pokaż różnice w char codes
+    normalizedAvailableUsers.forEach(u => {
+      if (u.normalized === normalizedUserName) {
+        console.log(`🔍 MATCH FOUND BUT MISSED: "${u.original}"`);
+        console.log(`  User chars: ${userName.split('').map(c => `${c}(${c.charCodeAt(0)})`).join(' ')}`);
+        console.log(`  Available chars: ${u.charCodes}`);
+      }
     });
     
-    if (match) {
-      console.log(`🔄 Mapped user "${userName}" to existing option "${match}"`);
-      return match;
+    // Fuzzy matching dla podobnych nazw (błędy pisowni)
+    const normalizedName = normalizeString(userName).toLowerCase();
+    
+    // Funkcja podobieństwa stringów (Levenshtein distance)
+    const similarity = (a: string, b: string): number => {
+      const matrix = [];
+      for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+      for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+      
+      for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+          if (b.charAt(i - 1) === a.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
+            );
+          }
+        }
+      }
+      return 1 - (matrix[b.length][a.length] / Math.max(a.length, b.length));
+    };
+    
+    // Znajdź najbardziej podobną opcję (>85% podobieństwa)
+    let bestMatch = null;
+    let bestSimilarity = 0;
+    
+    for (const availableUser of availableUsers) {
+      const normalizedAvailable = normalizeString(availableUser).toLowerCase();
+      const sim = similarity(normalizedName, normalizedAvailable);
+      
+      console.log(`🔍 Similarity "${userName}" vs "${availableUser}": ${(sim * 100).toFixed(1)}%`);
+      
+      if (sim > bestSimilarity && sim > 0.85) {
+        bestMatch = availableUser;
+        bestSimilarity = sim;
+      }
     }
     
-    console.warn(`⚠️ No matching user option found for "${userName}". Available: ${availableUsers.join(', ')}`);
-    return userName; // Fallback to original name
+    if (bestMatch) {
+      console.log(`🔄 Fuzzy matched user "${userName}" to "${bestMatch}" (${(bestSimilarity * 100).toFixed(1)}% similarity)`);
+      return bestMatch;
+    }
+    
+    // Jeśli nie ma w Airtable, ale użytkownik istnieje w systemie - pozwól na dodanie
+    console.warn(`⚠️ User "${userName}" not found in Airtable options. Available: ${availableUsers.join(', ')}`);
+    console.log(`🆕 Will attempt to add new user "${userName}" to Airtable`);
+    return userName; // Airtable może automatycznie dodać nową opcję do multiselect
   };
 
   const updateTaskInAirtable = async (taskId: string, updates: Partial<Task>) => {
@@ -151,10 +219,13 @@ export const useAirtable = () => {
 
 
       // Use provided airtableUpdates or create default mapping
-      let airtableUpdates: any = (updates as any).airtableUpdates || {};
+      const airtableUpdates: any = (updates as any).airtableUpdates || {};
       
       // Map User field if present (for both explicit and default updates)
       if (airtableUpdates['User']) {
+        console.log('🔍 Original User field value:', airtableUpdates['User'], 'Type:', typeof airtableUpdates['User']);
+        console.log('🔍 Available users in Airtable:', availableUsers);
+        
         if (Array.isArray(airtableUpdates['User'])) {
           airtableUpdates['User'] = airtableUpdates['User'].map(mapUserToAirtableOption);
         } else {
@@ -191,6 +262,25 @@ export const useAirtable = () => {
         });
         await airtableService.updateContact(task.airtableData.recordId, airtableUpdates);
         console.log('✅ Successfully updated Airtable record');
+
+        // Weryfikacja przypisania dla "take task" operations
+        if (isTakingTask) {
+          console.log('🔍 Weryfikuję czy przypisanie się powiodło...');
+          await new Promise(resolve => setTimeout(resolve, 1500)); // Poczekaj na propagację
+
+          const verificationContacts = await airtableService.getContacts();
+          const verifiedContact = verificationContacts.find(c => c.id === task.airtableData?.recordId);
+          
+          if (!verifiedContact?.fields['User'] || 
+              (Array.isArray(verifiedContact.fields['User']) && !verifiedContact.fields['User'].includes(currentUserName)) ||
+              (!Array.isArray(verifiedContact.fields['User']) && verifiedContact.fields['User'] !== currentUserName)) {
+            console.log('❌ Weryfikacja nie powiodła się - zadanie nie przypisało się poprawnie');
+            console.log('Oczekiwano:', currentUserName, 'Otrzymano:', verifiedContact?.fields['User']);
+            throw new Error(`Zadanie nie przypisało się poprawnie. Spróbuj ponownie lub skontaktuj się z administratorem.`);
+          }
+          
+          console.log('✅ Weryfikacja przypisania udana - zadanie przypisane do:', verifiedContact.fields['User']);
+        }
       }
 
       // Clean up airtableUpdates from local state update

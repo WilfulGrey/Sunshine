@@ -14,6 +14,8 @@ export const useTaskActions = (
   const { user } = useAuth();
   const [takenTasks, setTakenTasks] = useState<Set<string>>(new Set());
   const [takingTask, setTakingTask] = useState<string | null>(null);
+  const [verifyingTasks, setVerifyingTasks] = useState<Set<string>>(new Set());
+  const [failedTasks, setFailedTasks] = useState<Set<string>>(new Set());
 
   const currentUserName = user?.user_metadata?.full_name || user?.email || 'Nieznany użytkownik';
 
@@ -36,15 +38,53 @@ export const useTaskActions = (
     );
   };
 
+  const isTaskAssignedToSomeoneElse = (task: Task): boolean => {
+    const assignedUser = task.assignedTo || task.airtableData?.user;
+    
+    if (!assignedUser) return false; // Nikt nie przypisany
+    
+    if (Array.isArray(assignedUser)) {
+      return assignedUser.length > 0 && !assignedUser.includes(currentUserName);
+    }
+    
+    return assignedUser !== currentUserName;
+  };
+
+  const canTakeTask = (task: Task): boolean => {
+    return !isTaskAssignedToMe(task) && !isTaskAssignedToSomeoneElse(task) && !verifyingTasks.has(task.id) && !failedTasks.has(task.id);
+  };
+
+  const isTaskVerifying = (task: Task): boolean => {
+    return verifyingTasks.has(task.id);
+  };
+
+  const isTaskFailed = (task: Task): boolean => {
+    return failedTasks.has(task.id);
+  };
+
   const handleTakeTask = async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task || takingTask === taskId) return;
+    
+    // Sprawdź czy możemy wziąć to zadanie
+    if (!canTakeTask(task)) {
+      if (isTaskAssignedToSomeoneElse(task)) {
+        const assignedUser = task.assignedTo || task.airtableData?.user;
+        alert(`To zadanie jest już przypisane do: ${Array.isArray(assignedUser) ? assignedUser.join(', ') : assignedUser}`);
+      } else {
+        alert('To zadanie jest już przypisane do Ciebie.');
+      }
+      return;
+    }
     
     setTakingTask(taskId);
     const userName = user?.user_metadata?.full_name || user?.email || 'Nieznany użytkownik';
     
     try {
+      // Oznacz zadanie jako weryfikowane
+      setVerifyingTasks(prev => new Set([...prev, taskId]));
       setTakenTasks(prev => new Set([...prev, taskId]));
+      
       const updatedTask = addHistoryEntry(task, 'created', `Zadanie przypisane do: ${userName}`);
       
       await onUpdateTask(taskId, {
@@ -55,7 +95,26 @@ export const useTaskActions = (
           'User': [userName] // Mapowanie będzie wykonane w useAirtable
         }
       });
+
+      console.log('✅ Zadanie pomyślnie przypisane i zweryfikowane');
+      
+      // Usuń z weryfikacji - sukces
+      setVerifyingTasks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(taskId);
+        return newSet;
+      });
+      
     } catch (error) {
+      // Błąd - oznacz zadanie jako nieudane
+      setVerifyingTasks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(taskId);
+        return newSet;
+      });
+      
+      setFailedTasks(prev => new Set([...prev, taskId]));
+      
       setTakenTasks(prev => {
         const newSet = new Set(prev);
         newSet.delete(taskId);
@@ -67,6 +126,15 @@ export const useTaskActions = (
       } else {
         alert('Nie udało się przypisać zadania. Spróbuj ponownie.');
       }
+      
+      // Wyczyść błąd po 10 sekundach
+      setTimeout(() => {
+        setFailedTasks(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(taskId);
+          return newSet;
+        });
+      }, 10000);
     } finally {
       setTakingTask(null);
     }
@@ -293,8 +361,14 @@ export const useTaskActions = (
     currentUserName,
     takenTasks,
     takingTask,
+    verifyingTasks,
+    failedTasks,
     extractPhoneNumber,
     isTaskAssignedToMe,
+    isTaskAssignedToSomeoneElse,
+    canTakeTask,
+    isTaskVerifying,
+    isTaskFailed,
     handleTakeTask,
     handlePhoneCall,
     handleCompleteTask,

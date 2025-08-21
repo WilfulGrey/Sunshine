@@ -442,7 +442,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
             <div className="flex space-x-3">
               {nextTask.status === 'pending' && (
                 <>
-                  {!taskActions.isTaskAssignedToMe(nextTask) ? (
+                  {taskActions.canTakeTask(nextTask) ? (
                     <button
                       disabled={taskActions.takingTask === nextTask.id}
                       onClick={() => taskActions.handleTakeTask(nextTask.id)}
@@ -454,6 +454,21 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                       <User className="h-5 w-5" />
                       <span>{taskActions.takingTask === nextTask.id ? 'Przypisuję...' : 'Biorę'}</span>
                     </button>
+                  ) : taskActions.isTaskVerifying(nextTask) ? (
+                    <div className="px-6 py-3 bg-yellow-100 text-yellow-800 rounded-lg font-medium flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-600"></div>
+                      <span>Weryfikuję przypisanie...</span>
+                    </div>
+                  ) : taskActions.isTaskFailed(nextTask) ? (
+                    <div className="px-6 py-3 bg-red-100 text-red-800 rounded-lg font-medium flex items-center space-x-2">
+                      <XCircle className="h-5 w-5" />
+                      <span>Błąd przypisania - spróbuj ponownie za chwilę</span>
+                    </div>
+                  ) : taskActions.isTaskAssignedToSomeoneElse(nextTask) ? (
+                    <div className="px-6 py-3 bg-gray-100 text-gray-600 rounded-lg font-medium flex items-center space-x-2">
+                      <User className="h-5 w-5" />
+                      <span>Przypisane do: {Array.isArray(nextTask.airtableData?.user) ? nextTask.airtableData.user.join(', ') : (nextTask.assignedTo || nextTask.airtableData?.user)}</span>
+                    </div>
                   ) : (
                     <>
                       <button

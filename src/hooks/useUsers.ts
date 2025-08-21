@@ -21,7 +21,7 @@ export const useUsers = () => {
       console.log('Attempting to load users from Supabase...');
       
       // Najpierw spróbuj pobrać z tabeli profiles
-      let { data: profilesData, error: profilesError } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name, email, created_at')
         .order('full_name', { ascending: true });
