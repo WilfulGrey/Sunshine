@@ -3,6 +3,8 @@ import { Plus } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
 import { AuthForm } from './components/Auth/AuthForm';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
+import { ResetPasswordForm } from './components/Auth/ResetPasswordForm';
+import { AccountSettings } from './components/Auth/AccountSettings';
 import { Header } from './components/Header';
 import { TaskFocusedView } from './components/TaskFocusedView';
 import { TaskHistory } from './components/TaskHistory';
@@ -15,6 +17,7 @@ function App() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>('signin');
+  const [currentView, setCurrentView] = useState<'main' | 'settings'>('main');
   const { 
     tasks, 
     loading, 
@@ -203,22 +206,35 @@ function App() {
     }
   };
 
+  // Routing logic
+  const urlParams = new URLSearchParams(window.location.search);
+  const isResetPassword = window.location.pathname === '/reset-password';
+  
+  if (isResetPassword) {
+    return <ResetPasswordForm />;
+  }
+
   return (
     <ProtectedRoute fallback={<AuthForm mode={authMode} onModeChange={setAuthMode} />}>
-      <MainApp 
-        tasks={tasks}
-        loading={loading}
-        error={error}
-        lastRefresh={lastRefresh}
-        showSampleTasks={showSampleTasks}
-        setShowSampleTasks={setShowSampleTasks}
-        createTestTasks={createTestTasks}
-        handleResetTasks={handleResetTasks}
-        handleConfigSaved={handleConfigSaved}
-        updateTask={updateTask}
-        addTask={addTask}
-        handleUndoAction={handleUndoAction}
-      />
+      {currentView === 'settings' ? (
+        <AccountSettings onBack={() => setCurrentView('main')} />
+      ) : (
+        <MainApp 
+          tasks={tasks}
+          loading={loading}
+          error={error}
+          lastRefresh={lastRefresh}
+          showSampleTasks={showSampleTasks}
+          setShowSampleTasks={setShowSampleTasks}
+          createTestTasks={createTestTasks}
+          handleResetTasks={handleResetTasks}
+          handleConfigSaved={handleConfigSaved}
+          updateTask={updateTask}
+          addTask={addTask}
+          handleUndoAction={handleUndoAction}
+          onShowSettings={() => setCurrentView('settings')}
+        />
+      )}
     </ProtectedRoute>
   );
 }
@@ -236,6 +252,7 @@ interface MainAppProps {
   updateTask: (taskId: string, updates: Partial<Task>) => void;
   addTask: (taskData: Omit<Task, 'id' | 'createdAt'>) => void;
   handleUndoAction: (taskId: string, historyEntryId: string) => void;
+  onShowSettings: () => void;
 }
 
 const MainApp: React.FC<MainAppProps> = ({
@@ -250,7 +267,8 @@ const MainApp: React.FC<MainAppProps> = ({
   handleConfigSaved,
   updateTask,
   addTask,
-  handleUndoAction
+  handleUndoAction,
+  onShowSettings
 }) => {
   const { t } = useLanguage();
 
@@ -300,6 +318,7 @@ const MainApp: React.FC<MainAppProps> = ({
         <Header 
           tasks={tasks}
           onConfigSaved={handleConfigSaved}
+          onShowSettings={onShowSettings}
         />
 
         <main className="flex-1 p-6">

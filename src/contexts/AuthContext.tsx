@@ -10,6 +10,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<{ error: AuthError | null }>
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>
+  updatePassword: (newPassword: string) => Promise<{ error: AuthError | null }>
+  updateProfile: (updates: { full_name?: string }) => Promise<{ error: AuthError | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -84,6 +86,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { error }
   }
 
+  const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    })
+    return { error }
+  }
+
+  const updateProfile = async (updates: { full_name?: string }) => {
+    const { error } = await supabase.auth.updateUser({
+      data: updates
+    })
+    return { error }
+  }
+
   const value = {
     user,
     session,
@@ -92,6 +108,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signOut,
     resetPassword,
+    updatePassword,
+    updateProfile,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -13,9 +13,10 @@ import { useTaskActions } from '../hooks/useTaskActions';
 interface HeaderProps {
   tasks: Task[];
   onConfigSaved?: () => void;
+  onShowSettings?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ tasks, onConfigSaved }) => {
+export const Header: React.FC<HeaderProps> = ({ tasks, onConfigSaved, onShowSettings }) => {
   const { t } = useLanguage();
   const { user, signOut } = useAuth();
   const taskActions = useTaskActions(tasks, () => {}); // Empty callback since we only need currentUserName
@@ -68,6 +69,15 @@ export const Header: React.FC<HeaderProps> = ({ tasks, onConfigSaved }) => {
             </div>
             
             <button
+              onClick={onShowSettings}
+              className="flex items-center space-x-2 px-3 py-2 bg-white/20 rounded-lg text-white/90 hover:bg-white/30 transition-colors"
+              title="Ustawienia konta"
+            >
+              <Settings className="h-4 w-4" />
+              <span className="text-sm font-medium">Konto</span>
+            </button>
+            
+            <button
               onClick={handleSignOut}
               className="flex items-center space-x-2 px-3 py-2 bg-white/20 rounded-lg text-white/90 hover:bg-white/30 transition-colors"
               title="Wyloguj się"
@@ -75,13 +85,6 @@ export const Header: React.FC<HeaderProps> = ({ tasks, onConfigSaved }) => {
               <LogOut className="h-4 w-4" />
               <span className="text-sm font-medium">Wyloguj</span>
             </button>
-            
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                <Settings className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-sm font-medium text-white">{t.manage}</span>
-            </div>
           </div>
         </div>
       </div>
