@@ -25,6 +25,7 @@ export const getPriorityColor = (priority: string) => {
     case 'medium': return 'bg-yellow-100 text-yellow-700';
     case 'high': return 'bg-orange-100 text-orange-700';
     case 'urgent': return 'bg-red-100 text-red-700';
+    case 'boosted': return 'bg-purple-100 text-purple-700';
     default: return 'bg-gray-100 text-gray-700';
   }
 };
@@ -72,25 +73,13 @@ export const filterActiveTasks = (tasks: Task[], currentUserName: string, takenT
 
 export const sortTasksByPriority = (tasks: Task[]) => {
   return [...tasks].sort((a, b) => {
-    // Sort by status - in_progress tasks ALWAYS come first
+    // Boosted tasks come FIRST - above everything
+    if (a.priority === 'boosted' && b.priority !== 'boosted') return -1;
+    if (a.priority !== 'boosted' && b.priority === 'boosted') return 1;
+    
+    // In_progress tasks come SECOND
     if (a.status === 'in_progress' && b.status !== 'in_progress') return -1;
     if (a.status !== 'in_progress' && b.status === 'in_progress') return 1;
-    
-    // Check for recently boosted tasks (last 5 minutes with urgent flag)
-    const now = new Date();
-    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-    
-    const aRecentlyBoosted = a.dueDate && 
-      a.dueDate >= fiveMinutesAgo && 
-      a.dueDate <= now && 
-      a.airtableData?.urgent;
-    const bRecentlyBoosted = b.dueDate && 
-      b.dueDate >= fiveMinutesAgo && 
-      b.dueDate <= now && 
-      b.airtableData?.urgent;
-    
-    if (aRecentlyBoosted && !bRecentlyBoosted) return -1;
-    if (!aRecentlyBoosted && bRecentlyBoosted) return 1;
     
     // Main sorting by due date
     if (a.dueDate && b.dueDate) {
@@ -103,7 +92,7 @@ export const sortTasksByPriority = (tasks: Task[]) => {
     
     // If both have no date, sort by priority
     if (!a.dueDate && !b.dueDate) {
-      const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
+      const priorityOrder = { boosted: 5, urgent: 4, high: 3, medium: 2, low: 1 };
       return priorityOrder[b.priority] - priorityOrder[a.priority];
     }
     

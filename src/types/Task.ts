@@ -1,5 +1,5 @@
 export type TaskType = 'manual' | 'automatic' | 'voicebot';
-export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent' | 'boosted';
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
 
 export interface Task {

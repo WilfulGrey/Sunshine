@@ -76,6 +76,7 @@ vi.mock('../hooks/useTaskActions', () => ({
     isTaskFailed: vi.fn(() => false),
     verifyingTasks: new Set(),
     failedTasks: new Set(),
+    boostingTask: null,
     handleTakeTask: vi.fn(),
     handlePhoneCall: vi.fn(),
     handleCompleteTask: vi.fn(),

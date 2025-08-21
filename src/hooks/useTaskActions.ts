@@ -16,6 +16,7 @@ export const useTaskActions = (
   const [takingTask, setTakingTask] = useState<string | null>(null);
   const [verifyingTasks, setVerifyingTasks] = useState<Set<string>>(new Set());
   const [failedTasks, setFailedTasks] = useState<Set<string>>(new Set());
+  const [boostingTask, setBoostingTask] = useState<string | null>(null);
 
   const currentUserName = user?.user_metadata?.full_name || user?.email || 'Nieznany użytkownik';
 
@@ -253,63 +254,103 @@ export const useTaskActions = (
     });
   };
 
-  const handleBoostPriority = (taskId: string) => {
+  const handleBoostPriority = async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
+    if (!task || boostingTask) return;
     
-    const currentActiveTask = tasks.find(t => t.status === 'in_progress');
-    if (currentActiveTask) {
-      const resetTask = addHistoryEntry(currentActiveTask, 'started', 'Zadanie wstrzymane - priorytet przejęła inna osoba');
-      
-      onUpdateTask(currentActiveTask.id, {
-        status: 'pending',
-        priority: currentActiveTask.priority === 'urgent' ? 'high' : currentActiveTask.priority,
-        history: resetTask.history
-      });
-    }
+    setBoostingTask(taskId);
     
-    const now = new Date();
-    const updatedTask = addHistoryEntry(task, 'started', 'Zadanie rozpoczęte - osoba dzwoni');
-    
-    onUpdateTask(taskId, {
-      priority: 'urgent' as const,
-      dueDate: now,
-      status: 'in_progress' as const,
-      history: updatedTask.history,
-      airtableUpdates: {
-        'kiedy dzwonić': now.toISOString()
+    try {
+      const currentActiveTask = tasks.find(t => t.status === 'in_progress');
+      if (currentActiveTask) {
+        const resetTask = addHistoryEntry(currentActiveTask, 'started', 'Zadanie wstrzymane - priorytet przejęła inna osoba');
+        
+        await onUpdateTask(currentActiveTask.id, {
+          status: 'pending',
+          priority: currentActiveTask.priority === 'urgent' ? 'high' : currentActiveTask.priority,
+          history: resetTask.history
+        });
       }
-    });
+      
+      // Reset current boosted task if exists
+      const currentBoostedTask = tasks.find(t => t.priority === 'boosted');
+      if (currentBoostedTask && currentBoostedTask.id !== taskId) {
+        const resetBoostedTask = addHistoryEntry(currentBoostedTask, 'started', 'Boost usunięty - nowe zadanie przejęło pozycję');
+        
+        await onUpdateTask(currentBoostedTask.id, {
+          priority: 'high' as const, // Wróć do normalnego priority
+          history: resetBoostedTask.history
+        });
+      }
+      
+      const now = new Date();
+      const userName = user?.user_metadata?.full_name || user?.email || 'Nieznany użytkownik';
+      const updatedTask = addHistoryEntry(task, 'started', `Zadanie przeniesione na pierwszą pozycję - przypisane do: ${userName}`);
+      
+      await onUpdateTask(taskId, {
+        priority: 'boosted' as const, // Specjalny priority dla boost
+        dueDate: now,
+        status: 'in_progress' as const, // Phone boost - zadanie od razu w trakcie
+        assignedTo: userName,
+        history: updatedTask.history,
+        airtableUpdates: {
+          'kiedy dzwonić': now.toISOString(),
+          'User': [userName] // Mapowanie będzie wykonane w useAirtable
+        }
+      });
+    } finally {
+      setBoostingTask(null);
+    }
   };
 
-  const handleBoostUrgent = (taskId: string) => {
+  const handleBoostUrgent = async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
+    if (!task || boostingTask) return;
     
-    // Reset current active task if exists
-    const currentActiveTask = tasks.find(t => t.status === 'in_progress');
-    if (currentActiveTask) {
-      const resetTask = addHistoryEntry(currentActiveTask, 'started', 'Zadanie wstrzymane - priorytet przejęła inna osoba');
-      
-      onUpdateTask(currentActiveTask.id, {
-        status: 'pending',
-        priority: currentActiveTask.priority === 'urgent' ? 'high' : currentActiveTask.priority,
-        history: resetTask.history
-      });
-    }
+    setBoostingTask(taskId);
     
-    const now = new Date();
-    const updatedTask = addHistoryEntry(task, 'started', 'Zadanie przeniesione na pierwszą pozycję');
-    
-    onUpdateTask(taskId, {
-      priority: 'urgent' as const,
-      dueDate: now,
-      status: 'in_progress' as const,
-      history: updatedTask.history,
-      airtableUpdates: {
-        'kiedy dzwonić': now.toISOString()
+    try {
+      // Reset current active task if exists
+      const currentActiveTask = tasks.find(t => t.status === 'in_progress');
+      if (currentActiveTask) {
+        const resetTask = addHistoryEntry(currentActiveTask, 'started', 'Zadanie wstrzymane - priorytet przejęła inna osoba');
+        
+        await onUpdateTask(currentActiveTask.id, {
+          status: 'pending',
+          priority: currentActiveTask.priority === 'urgent' ? 'high' : currentActiveTask.priority,
+          history: resetTask.history
+        });
       }
-    });
+      
+      // Reset current boosted task if exists
+      const currentBoostedTask = tasks.find(t => t.priority === 'boosted');
+      if (currentBoostedTask && currentBoostedTask.id !== taskId) {
+        const resetBoostedTask = addHistoryEntry(currentBoostedTask, 'started', 'Boost usunięty - nowe zadanie przejęło pozycję');
+        
+        await onUpdateTask(currentBoostedTask.id, {
+          priority: 'high' as const, // Wróć do normalnego priority
+          history: resetBoostedTask.history
+        });
+      }
+      
+      const now = new Date();
+      const userName = user?.user_metadata?.full_name || user?.email || 'Nieznany użytkownik';
+      const updatedTask = addHistoryEntry(task, 'started', `Zadanie przeniesione na pierwszą pozycję - przypisane do: ${userName}`);
+      
+      await onUpdateTask(taskId, {
+        priority: 'boosted' as const, // Specjalny priority dla boost
+        dueDate: now,
+        status: 'pending' as const,
+        assignedTo: userName,
+        history: updatedTask.history,
+        airtableUpdates: {
+          'kiedy dzwonić': now.toISOString(),
+          'User': [userName] // Mapowanie będzie wykonane w useAirtable
+        }
+      });
+    } finally {
+      setBoostingTask(null);
+    }
   };
 
   const handleRemoveUrgent = (taskId: string) => {
@@ -363,6 +404,7 @@ export const useTaskActions = (
     takingTask,
     verifyingTasks,
     failedTasks,
+    boostingTask,
     extractPhoneNumber,
     isTaskAssignedToMe,
     isTaskAssignedToSomeoneElse,

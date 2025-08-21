@@ -376,14 +376,14 @@ describe('useTaskActions', () => {
   });
 
   describe('boost functions', () => {
-    it('should boost task priority and reset current active task', () => {
+    it('should boost task priority and reset current active task', async () => {
       const { result } = renderHook(
         () => useTaskActions(mockTasks, mockOnUpdateTask),
         { wrapper: Wrapper }
       );
 
-      act(() => {
-        result.current.handleBoostPriority('1');
+      await act(async () => {
+        await result.current.handleBoostPriority('1');
       });
 
       // Should update the active task first, then boost the selected task
@@ -394,25 +394,34 @@ describe('useTaskActions', () => {
         status: 'pending'
       }));
 
-      // Second call boosts the selected task
+      // Second call boosts the selected task and assigns user
       expect(mockOnUpdateTask).toHaveBeenNthCalledWith(2, '1', expect.objectContaining({
-        priority: 'urgent',
-        status: 'in_progress'
+        priority: 'boosted',
+        status: 'in_progress', // Phone boost - od razu w trakcie
+        assignedTo: 'Test User',
+        airtableUpdates: expect.objectContaining({
+          'User': ['Test User']
+        })
       }));
     });
 
-    it('should boost urgent task', () => {
+    it('should boost urgent task and assign user', async () => {
       const { result } = renderHook(
         () => useTaskActions(mockTasks, mockOnUpdateTask),
         { wrapper: Wrapper }
       );
 
-      act(() => {
-        result.current.handleBoostUrgent('1');
+      await act(async () => {
+        await result.current.handleBoostUrgent('1');
       });
 
       expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        priority: 'urgent'
+        priority: 'boosted',
+        status: 'pending', // Zmienione z 'in_progress' na 'pending'
+        assignedTo: 'Test User',
+        airtableUpdates: expect.objectContaining({
+          'User': ['Test User']
+        })
       }));
     });
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, ExternalLink, Phone, X, Skull, XCircle, Eye, Plus, Trash2 } from 'lucide-react';
+import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, ExternalLink, Phone, X, Skull, XCircle, Eye, Plus, Trash2, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTimezone } from '../contexts/TimezoneContext';
 import { useUsers } from '../hooks/useUsers';
@@ -630,18 +630,28 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                       <div className="flex items-center space-x-1">
                         <button
                           onClick={() => taskActions.handleBoostUrgent(task.id)}
-                          className="p-1 text-red-500 hover:text-red-700 transition-colors"
+                          disabled={taskActions.boostingTask === task.id}
+                          className="p-1 text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
                           title="Przenieś zadanie na pierwszą pozycję"
                         >
-                          <AlertTriangle className="h-4 w-4" />
+                          {taskActions.boostingTask === task.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <AlertTriangle className="h-4 w-4" />
+                          )}
                         </button>
                         
                         <button
                           onClick={() => taskActions.handleBoostPriority(task.id)}
-                          className="p-1 text-gray-400 hover:text-purple-600 transition-colors"
+                          disabled={taskActions.boostingTask === task.id}
+                          className="p-1 text-gray-400 hover:text-purple-600 transition-colors disabled:opacity-50"
                           title="Osoba dzwoni - przenieś na pierwszą pozycję"
                         >
-                          <Phone className="h-4 w-4" />
+                          {taskActions.boostingTask === task.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Phone className="h-4 w-4" />
+                          )}
                         </button>
                       </div>
                     </div>
