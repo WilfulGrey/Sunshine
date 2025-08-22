@@ -7,6 +7,19 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { LanguageProvider } from '../contexts/LanguageContext';
 import { TimezoneProvider } from '../contexts/TimezoneContext';
 
+// Mock window methods
+vi.stubGlobal('alert', vi.fn());
+vi.stubGlobal('location', {
+  reload: vi.fn()
+});
+
+// Mock AirtableService
+vi.mock('../services/airtableService', () => ({
+  AirtableService: vi.fn().mockImplementation(() => ({
+    getContactById: vi.fn().mockResolvedValue(null) // Default mock returns null
+  }))
+}));
+
 // Mock the contexts
 vi.mock('../contexts/AuthContext', () => ({
   AuthProvider: ({ children }: { children: ReactNode }) => children,
@@ -156,7 +169,7 @@ describe('useTaskActions', () => {
       );
 
       await act(async () => {
-        await result.current.handleTakeTask('2');
+        await result.current.handleTakeTask('2', true); // skip Airtable check for tests
       });
 
       expect(result.current.isTaskAssignedToMe(mockTasks[1])).toBe(true);
@@ -203,7 +216,7 @@ describe('useTaskActions', () => {
       );
 
       await act(async () => {
-        await result.current.handleTakeTask('2');
+        await result.current.handleTakeTask('2', true); // skip Airtable check for tests
       });
 
       expect(result.current.takenTasks.has('2')).toBe(true);
@@ -224,7 +237,7 @@ describe('useTaskActions', () => {
 
       // Start taking task
       await act(async () => {
-        await result.current.handleTakeTask('2');
+        await result.current.handleTakeTask('2', true); // skip Airtable check for tests
       });
 
       // At this point, takingTask should be null again, so we need to mock the state
@@ -240,7 +253,7 @@ describe('useTaskActions', () => {
       );
 
       await act(async () => {
-        await result.current.handleTakeTask('nonexistent');
+        await result.current.handleTakeTask('nonexistent', true); // skip Airtable check for tests
       });
 
       expect(mockOnUpdateTask).not.toHaveBeenCalled();
@@ -551,7 +564,7 @@ describe('useTaskActions', () => {
       );
 
       await act(async () => {
-        await result.current.handleTakeTask('2');
+        await result.current.handleTakeTask('2', true); // skip Airtable check for tests
       });
 
       expect(alertSpy).toHaveBeenCalledWith('To zadanie jest już przypisane do: Other User');

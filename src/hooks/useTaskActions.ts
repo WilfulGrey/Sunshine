@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTimezone } from '../contexts/TimezoneContext';
 import { addHistoryEntry } from '../utils/helpers';
+import { AirtableService } from '../services/airtableService';
 
 export const useTaskActions = (
   tasks: Task[],
@@ -12,6 +13,7 @@ export const useTaskActions = (
   const { t } = useLanguage();
   const { timezone } = useTimezone();
   const { user } = useAuth();
+  const airtableService = new AirtableService();
   const [takenTasks, setTakenTasks] = useState<Set<string>>(new Set());
   const [takingTask, setTakingTask] = useState<string | null>(null);
   const [verifyingTasks, setVerifyingTasks] = useState<Set<string>>(new Set());
@@ -63,11 +65,11 @@ export const useTaskActions = (
     return failedTasks.has(task.id);
   };
 
-  const handleTakeTask = async (taskId: string) => {
+  const handleTakeTask = async (taskId: string, skipAirtableCheck = false) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task || takingTask === taskId) return;
     
-    // Sprawdź czy możemy wziąć to zadanie
+    // Sprawdź czy możemy wziąć to zadanie (lokalna logika)
     if (!canTakeTask(task)) {
       if (isTaskAssignedToSomeoneElse(task)) {
         const assignedUser = task.assignedTo || task.airtableData?.user;
@@ -82,6 +84,42 @@ export const useTaskActions = (
     const userName = user?.user_metadata?.full_name || user?.email || 'Nieznany użytkownik';
     
     try {
+      // KROK 1: Sprawdź aktualny stan w Airtable przed przypisaniem (jeśli nie zostało wyłączone dla testów)
+      if (!skipAirtableCheck) {
+        console.log('🔍 Sprawdzam aktualny stan zadania w Airtable...', taskId);
+        const freshTaskData = await airtableService.getContactById(task.id);
+        
+        if (!freshTaskData) {
+          alert('Nie można pobrać aktualnych danych zadania. Spróbuj odświeżyć stronę.');
+          return;
+        }
+        
+        // Sprawdź czy ktoś już się przypisał w Airtable
+        const currentAssignedUsers = freshTaskData.fields.User;
+        console.log('🔍 Current assigned users:', currentAssignedUsers);
+        
+        // Sprawdź czy ktokolwiek jest przypisany (string, array z elementami, lub truthy value)
+        const isAssigned = currentAssignedUsers && (
+          (typeof currentAssignedUsers === 'string' && currentAssignedUsers.trim().length > 0) ||
+          (Array.isArray(currentAssignedUsers) && currentAssignedUsers.length > 0)
+        );
+        
+        if (isAssigned) {
+          const assignedUsersText = Array.isArray(currentAssignedUsers) 
+            ? currentAssignedUsers.join(', ') 
+            : currentAssignedUsers;
+            
+          alert(`To zadanie zostało już przypisane do: ${assignedUsersText}\n\nStrona zostanie odświeżona aby pokazać aktualne dane.`);
+          
+          // Odśwież stronę
+          window.location.reload();
+          return;
+        }
+        
+        console.log('✅ Zadanie wolne - można przypisać');
+      }
+      
+      // KROK 2: Przypisz zadanie
       // Oznacz zadanie jako weryfikowane
       setVerifyingTasks(prev => new Set([...prev, taskId]));
       setTakenTasks(prev => new Set([...prev, taskId]));

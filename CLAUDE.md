@@ -68,9 +68,9 @@ npm run test:coverage # Testy z coverage
 **Pliki**: TaskFocusedView.tsx, dialogi, useTaskActions.ts
 
 ## Status Techniczny
-- **Testy**: 151 unit tests ✅ (po naprawie users table bug)
+- **Testy**: 169 unit tests ✅ (po naprawie boost functionality)
 - **Deploy**: Render.com skonfigurowany
-- **Funkcjonalności**: Task filtering, urgent boost, UI stability, task assignment
+- **Funkcjonalności**: Task filtering, smart boost system, UI stability, task assignment, loading states
 
 ### Wklejka Functionality (Nowy Feature - 2025-08-20)
 ✅ **Zaimplementowano kompletną funkcjonalność "wklejka" (URL paste)**:
@@ -137,13 +137,51 @@ git push origin master  # Wypchnij na GitHub dla Render
 - ✅ Merged do master, pushed na GitHub origin
 - ✅ Render auto-deploy completed
 
+### Enhanced Boost Functionality (2025-08-21)
+✅ **Zaimplementowano zaawansowaną funkcjonalność boost z exclusive behavior**:
+
+**Problem**: Boost functionality miała migotanie UI i nie działała exclusive (mogło być wiele boosted naraz)
+
+**Rozwiązanie**:
+- **Exclusive Boost**: Tylko jeden task może być boosted w danym momencie
+- **Dwa tryby boost**:
+  - 🔺 **AlertTriangle button**: boost → `pending` status (pokazuje "Jetzt starten")
+  - 📞 **Phone button**: boost → `in_progress` status (pokazuje "Abschließen")
+- **Loading States**: Spinner ikony podczas operacji boost z disabled buttons
+- **Async Operations**: Sekwencyjne update'y żeby uniknąć migotania UI
+- **Nowy Priority Type**: `'boosted'` oddzielny od `'urgent'`
+- **Enhanced Sorting**: Boosted tasks zawsze na pierwszej pozycji
+- **Purple Styling**: Fioletowy kolor dla boosted priority
+
+**Zmiany w kodzie**:
+- `TaskPriority` type: dodano `'boosted'`
+- `useTaskActions.ts`: async boost functions z exclusive logic i loading states
+- `TaskFocusedView.tsx`: loading UI z Loader2 spinnerami
+- `taskUtils.ts`: zaktualizowane sortowanie i priority colors
+- Kompletne testy dla nowej funkcjonalności
+
+**Testy**: 169 testów (wszystkie przechodzą) ✅
+- Async boost operations testing
+- Exclusive behavior verification
+- Loading states UI testing
+- Priority sorting validation
+
+**Pliki**: useTaskActions.ts, TaskFocusedView.tsx, taskUtils.ts, Task.ts, wszystkie test files
+
+**Deployment**: 
+- ✅ Branch: `bugfix/boost-user-assignment`
+- ✅ Commit: "Fix boost functionality with exclusive behavior and loading states"
+- ✅ Merged do master, pushed na GitHub origin (769de7a)
+- ✅ Render auto-deploy completed
+
 ## Szczegółowa Mapa Plików
 
 ### 🎯 Core Hooks (src/hooks/)
 - **useTaskActions.ts**: Główna logika akcji na zadaniach
   - Task assignment (take/transfer/unassign)
   - Status changes (complete/abandon/postpone)
-  - Priority management (boost urgent)
+  - **Enhanced Boost System**: Exclusive boost z dwoma trybami (pending/in_progress)
+  - **Loading States**: boostingTask state dla UI feedback
   - Verification states dla UI feedback
   - Phone call handling
 - **useAirtable.ts**: Integracja z Airtable
@@ -167,6 +205,7 @@ git push origin master  # Wypchnij na GitHub dla Render
 ### 🎨 Components (src/components/)
 - **TaskFocusedView.tsx**: Główny widok zadania
   - Action buttons (biorę/telefon/zakończ)
+  - **Boost Buttons**: AlertTriangle i Phone z loading spinnerami
   - Wklejka functionality (inline editing)
   - Verification states UI
   - External links management
@@ -176,16 +215,17 @@ git push origin master  # Wypchnij na GitHub dla Render
 - **dialogs/**: Modalne dialogi (complete/abandon/transfer)
 
 ### 📊 Types & Utils (src/types/, src/utils/)
-- **Task.ts**: Główny interface zadania z airtableData
+- **Task.ts**: Główny interface zadania z airtableData, **TaskPriority** z 'boosted' type
 - **airtableHelpers.ts**: Mapowanie danych Airtable ↔ Task
-- **taskUtils.ts**: Utility functions (filtering, sorting)
+- **taskUtils.ts**: Utility functions (filtering, **enhanced sorting** z boosted priority, purple colors)
 - **helpers.ts**: History entries, date formatting
 
 ### 🧪 Tests
-- **useTaskActions.test.tsx**: 9 testów dla assignment logic
+- **useTaskActions.test.tsx**: Assignment logic + **async boost operations testing**
+- **TaskFocusedView.test.tsx**: UI components + **boost button loading states**
 - **TaskFocusedView.wklejka.test.tsx**: 18 testów wklejka functionality
-- **taskUtils.test.ts**: Task filtering i sorting
-- Wszystkie pozostałe z pełnym coverage
+- **taskUtils.test.ts**: Task filtering, **enhanced sorting** z boosted priority
+- Wszystkie pozostałe z pełnym coverage (169 testów total)
 
 ### ⚙️ Config Files
 - **vite.config.ts**: Vite + Vitest setup
@@ -194,6 +234,7 @@ git push origin master  # Wypchnij na GitHub dla Render
 - **.env**: Environment variables (Airtable, Supabase keys)
 
 ## Następne Sesje
+- Monitoring działania enhanced boost functionality w produkcji
 - Monitoring działania users table fix w produkcji
 - Monitoring działania wklejka functionality w produkcji
 - Ewentualne ulepszenia UX (bulk operations, lepsze wizualne wskazówki)
@@ -201,5 +242,36 @@ git push origin master  # Wypchnij na GitHub dla Render
 - Bug fixes
 - Performance improvements
 
+## Kluczowe Techniczne Insights
+
+### Boost System Architecture
+- **Exclusive State Management**: `boostingTask` state zapobiega równoczesnym operacjom
+- **Priority Hierarchy**: `boosted > in_progress > dueDate > priority`
+- **Async Flow**: Reset previous → Boost new → Update UI (sekwencyjnie)
+- **UI States**: Loading spinners + disabled buttons during operations
+
+### Loading States Pattern
+```typescript
+const [boostingTask, setBoostingTask] = useState<string | null>(null);
+
+// Usage in components:
+{boostingTask === task.id ? (
+  <Loader2 className="animate-spin" />
+) : (
+  <AlertTriangle />
+)}
+```
+
+### Exclusive Boost Logic
+```typescript
+// Reset previous boosted task
+const currentBoostedTask = tasks.find(t => t.priority === 'boosted');
+if (currentBoostedTask && currentBoostedTask.id !== taskId) {
+  await onUpdateTask(currentBoostedTask.id, { priority: 'high' });
+}
+// Then boost new task
+await onUpdateTask(taskId, { priority: 'boosted' });
+```
+
 ---
-*Ostatnia aktualizacja: 2025-08-21 - Users table assignment bug fix deployed*
+*Ostatnia aktualizacja: 2025-08-21 - Enhanced boost functionality deployed*

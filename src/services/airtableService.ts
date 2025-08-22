@@ -17,7 +17,7 @@ export interface AirtableContact {
     'Następne kroki'?: string;
     'Status': string;
     'Urgent'?: boolean;
-    'User'?: string;
+    'User'?: string | string[];
     'Wklejka'?: string;
     'Data wklejki'?: string;
     'Ile nieudanych wklejek'?: number;
@@ -140,6 +140,21 @@ export class AirtableService {
       }
       
       throw error;
+    }
+  }
+
+  async getContactById(recordId: string): Promise<AirtableContact | null> {
+    this.ensureInitialized();
+
+    try {
+      const record = await this.table.find(recordId);
+      return {
+        id: record.id,
+        fields: record.fields as AirtableContact['fields']
+      };
+    } catch (error) {
+      console.error('Błąd podczas pobierania kontaktu z Airtable:', error);
+      return null;
     }
   }
 
