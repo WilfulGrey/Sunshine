@@ -315,6 +315,43 @@ describe('useTaskActions', () => {
         }
       }));
     });
+
+    it('should clear boosted priority when completing task', () => {
+      const boostedTask = { ...mockTasks[0], priority: 'boosted' as const };
+      const { result } = renderHook(
+        () => useTaskActions([boostedTask], mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      act(() => {
+        result.current.handleCompleteTask(boostedTask, 'Task completed');
+      });
+
+      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        status: 'completed',
+        priority: 'high', // Boosted should be cleared to high
+        airtableUpdates: {
+          'Status': 'kontakt udany',
+          'Następne kroki': 'Task completed'
+        }
+      }));
+    });
+
+    it('should not change priority for non-boosted task', () => {
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      act(() => {
+        result.current.handleCompleteTask(mockTasks[0], 'Task completed');
+      });
+
+      // Should not include priority in update object
+      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.not.objectContaining({
+        priority: expect.anything()
+      }));
+    });
   });
 
   describe('handleAbandonTask', () => {
@@ -330,6 +367,27 @@ describe('useTaskActions', () => {
 
       expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
         status: 'cancelled',
+        airtableUpdates: {
+          'Status': 'porzucony',
+          'Następne kroki': 'Wrong contact'
+        }
+      }));
+    });
+
+    it('should clear boosted priority when abandoning task', () => {
+      const boostedTask = { ...mockTasks[0], priority: 'boosted' as const };
+      const { result } = renderHook(
+        () => useTaskActions([boostedTask], mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      act(() => {
+        result.current.handleAbandonTask(boostedTask, 'Wrong contact');
+      });
+
+      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        status: 'cancelled',
+        priority: 'high', // Boosted should be cleared to high
         airtableUpdates: {
           'Status': 'porzucony',
           'Następne kroki': 'Wrong contact'
@@ -352,6 +410,28 @@ describe('useTaskActions', () => {
       expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
         assignedTo: 'Another User',
         status: 'pending',
+        airtableUpdates: {
+          'User': ['Another User'],
+          'Następne kroki': 'Expertise needed'
+        }
+      }));
+    });
+
+    it('should clear boosted priority when transferring task', () => {
+      const boostedTask = { ...mockTasks[0], priority: 'boosted' as const };
+      const { result } = renderHook(
+        () => useTaskActions([boostedTask], mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      act(() => {
+        result.current.handleTransferTask(boostedTask, 'Another User', 'Expertise needed');
+      });
+
+      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        assignedTo: 'Another User',
+        status: 'pending',
+        priority: 'high', // Boosted should be cleared to high
         airtableUpdates: {
           'User': ['Another User'],
           'Następne kroki': 'Expertise needed'
@@ -385,6 +465,73 @@ describe('useTaskActions', () => {
 
       const updateCall = mockOnUpdateTask.mock.calls[0][1];
       expect(updateCall.dueDate).toBeInstanceOf(Date);
+    });
+
+    it('should clear boosted priority when postponing task', () => {
+      const boostedTask = { ...mockTasks[0], priority: 'boosted' as const };
+      const { result } = renderHook(
+        () => useTaskActions([boostedTask], mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      act(() => {
+        result.current.handlePostponeTask(
+          boostedTask, 
+          '2024-01-15', 
+          '14:30', 
+          'Need more time'
+        );
+      });
+
+      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        status: 'pending',
+        priority: 'high', // Boosted should be cleared to high
+        airtableUpdates: {
+          'Następne kroki': 'Need more time'
+        }
+      }));
+    });
+  });
+
+  describe('handleUnassignTask', () => {
+    it('should unassign task', () => {
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      act(() => {
+        result.current.handleUnassignTask(mockTasks[0]);
+      });
+
+      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        assignedTo: undefined,
+        status: 'pending',
+        airtableUpdates: {
+          'User': null
+        }
+      }));
+    });
+
+    it('should clear boosted priority when unassigning task', () => {
+      const boostedTask = { ...mockTasks[0], priority: 'boosted' as const };
+      const { result } = renderHook(
+        () => useTaskActions([boostedTask], mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      act(() => {
+        result.current.handleUnassignTask(boostedTask);
+      });
+
+      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        assignedTo: undefined,
+        status: 'pending',
+        priority: 'high', // Boosted should be cleared to high
+        airtableUpdates: {
+          'User': null
+        }
+      }));
     });
   });
 

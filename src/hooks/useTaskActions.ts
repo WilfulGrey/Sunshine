@@ -210,27 +210,43 @@ export const useTaskActions = (
   const handleCompleteTask = (task: Task, completionSummary: string) => {
     const updatedTask = addHistoryEntry(task, 'completed', `Zadanie zakończone: ${completionSummary || 'Brak dodatkowych uwag'}`);
     
-    onUpdateTask(task.id, {
+    // Clear boosted status when completing task
+    const updates: any = {
       status: 'completed',
       history: updatedTask.history,
       airtableUpdates: {
         'Status': 'kontakt udany',
         'Następne kroki': completionSummary
       }
-    });
+    };
+
+    // Remove boosted priority if present
+    if (task.priority === 'boosted') {
+      updates.priority = 'high';
+    }
+    
+    onUpdateTask(task.id, updates);
   };
 
   const handleAbandonTask = (task: Task, abandonReason: string) => {
     const updatedTask = addHistoryEntry(task, 'cancelled', `Kontakt porzucony: ${abandonReason || 'Brak dodatkowych uwag'}`);
     
-    onUpdateTask(task.id, {
+    // Clear boosted status when abandoning task
+    const updates: any = {
       status: 'cancelled',
       history: updatedTask.history,
       airtableUpdates: {
         'Status': 'porzucony',
         'Następne kroki': abandonReason
       }
-    });
+    };
+
+    // Remove boosted priority if present
+    if (task.priority === 'boosted') {
+      updates.priority = 'high';
+    }
+    
+    onUpdateTask(task.id, updates);
   };
 
   const handleTransferTask = (task: Task, transferToUser: string, transferReason: string) => {
@@ -243,7 +259,8 @@ export const useTaskActions = (
     
     const updatedTask = addHistoryEntry(task, 'created', `Zadanie przekazane do: ${transferToUser}. Powód: ${transferReason || 'Brak dodatkowych uwag'}`);
     
-    onUpdateTask(task.id, {
+    // Clear boosted status when transferring task
+    const updates: any = {
       assignedTo: transferToUser,
       status: 'pending',
       history: updatedTask.history,
@@ -251,7 +268,14 @@ export const useTaskActions = (
         'User': [transferToUser], // Mapowanie będzie wykonane w useAirtable
         'Następne kroki': transferReason
       }
-    });
+    };
+
+    // Remove boosted priority if present
+    if (task.priority === 'boosted') {
+      updates.priority = 'high';
+    }
+    
+    onUpdateTask(task.id, updates);
   };
 
   const handleUnassignTask = (task: Task) => {
@@ -262,14 +286,22 @@ export const useTaskActions = (
     
     const updatedTask = addHistoryEntry(task, 'created', 'Zadanie odpisane - wraca do puli dostępnych');
     
-    onUpdateTask(task.id, {
+    // Clear boosted status when unassigning task
+    const updates: any = {
       assignedTo: undefined,
       status: 'pending',
       history: updatedTask.history,
       airtableUpdates: {
         'User': null // Null oznacza brak przypisania
       }
-    });
+    };
+
+    // Remove boosted priority if present
+    if (task.priority === 'boosted') {
+      updates.priority = 'high';
+    }
+    
+    onUpdateTask(task.id, updates);
   };
 
   const handlePostponeTask = (task: Task, postponeDate: string, postponeTime: string, postponeNotes: string) => {
@@ -282,14 +314,22 @@ export const useTaskActions = (
     
     const updatedTask = addHistoryEntry(task, 'postponed', t.postponeDetails.replace('{date}', utcDateTime.toLocaleString('de-DE', { timeZone: timezone })));
     
-    onUpdateTask(task.id, {
+    // Clear boosted status when postponing task
+    const updates: any = {
       status: 'pending',
       dueDate: utcDateTime,
       history: updatedTask.history,
       airtableUpdates: postponeNotes ? {
         'Następne kroki': postponeNotes
       } : undefined
-    });
+    };
+
+    // Remove boosted priority if present
+    if (task.priority === 'boosted') {
+      updates.priority = 'high';
+    }
+    
+    onUpdateTask(task.id, updates);
   };
 
   const handleBoostPriority = async (taskId: string) => {
