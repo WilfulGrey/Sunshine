@@ -231,6 +231,8 @@ export class AirtableService {
       if (field.type === 'multipleSelects' && field.options && field.options.choices) {
         const options = field.options.choices.map((choice: any) => choice.name);
         console.log(`✅ Pobrano opcje multiselect dla pola ${fieldName}:`, options);
+        console.log('🔍 Raw field data:', JSON.stringify(field, null, 2));
+        console.log('🔍 Raw choices:', field.options.choices);
         return options;
       }
       
@@ -245,14 +247,17 @@ export class AirtableService {
   async getAvailableUsersFromRecords(): Promise<string[]> {
     // Stara metoda - jako fallback
     try {
+      console.log('🔍 FALLBACK: Pobieranie użytkowników z istniejących rekordów...');
       const records = await this.table.select({
         fields: ['User']
       }).all();
 
+      console.log(`🔍 FALLBACK: Znaleziono ${records.length} rekordów`);
       const users = new Set<string>();
       
       records.forEach(record => {
         const userField = record.fields['User'];
+        console.log('🔍 FALLBACK: User field w rekordzie:', userField);
         
         if (Array.isArray(userField)) {
           userField.forEach(user => users.add(user));
@@ -261,7 +266,9 @@ export class AirtableService {
         }
       });
 
-      return Array.from(users).sort();
+      const result = Array.from(users).sort();
+      console.log('🔍 FALLBACK: Final users list:', result);
+      return result;
     } catch (error) {
       console.error('Błąd podczas pobierania użytkowników z rekordów:', error);
       return [];

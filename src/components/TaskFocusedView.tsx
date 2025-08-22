@@ -739,6 +739,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
           transferReason={dialogState.transferReason}
           setTransferReason={dialogState.setTransferReason}
           currentUserName={taskActions.currentUserName}
+          availableUsers={availableUsers}
           onConfirm={handleTransferConfirm}
           onUnassign={handleUnassignTask}
           onClose={dialogState.closeTransferDialog}
