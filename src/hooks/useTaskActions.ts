@@ -195,7 +195,8 @@ export const useTaskActions = (
       const warsawTime = new Date(now.getTime() + (2 * 60 * 60 * 1000));
       const newCallTime = new Date(warsawTime.getTime() + (60 * 60 * 1000));
       
-      onUpdateTask(task.id, {
+      // Clear boosted status when task is not reachable (end action)
+      const updates: any = {
         status: 'pending',
         dueDate: newCallTime,
         description: (task.description || '') + '\n\n[Nicht erreicht - ' + now.toLocaleString('de-DE') + ' - Wiedervorlage: ' + newCallTime.toLocaleString('de-DE') + ']',
@@ -203,7 +204,14 @@ export const useTaskActions = (
         airtableUpdates: {
           'User': user?.email || undefined
         }
-      });
+      };
+
+      // Remove boosted priority if present
+      if (task.priority === 'boosted') {
+        updates.priority = 'high';
+      }
+      
+      onUpdateTask(task.id, updates);
     }
   };
 

@@ -282,7 +282,29 @@ git push origin master  # Wypchnij na GitHub dla Render
 - ✅ Potwierdzenia że funkcjonalność działa
 - ✅ Wyraźnej zgody na deploy
 
+### Nicht Erreichbar Boosted Priority Bug Fix (2025-08-22)
+✅ **Naprawiono bug z boosted priority po "nicht erreichbar"**:
+
+**Problem**: Po oznaczeniu zadania jako "nicht erreichbar", boosted priority nie był czyszczony + prymitywne `window.location.reload()`
+
+**Rozwiązanie**:
+- **Boosted Clearing**: Dodano `if (task.priority === 'boosted') { updates.priority = 'high'; }` do `handlePhoneCall(task, false)`
+- **Usunięto prymitywny refresh**: Zamiast `window.location.reload()` → elegancka React state management
+- **Comprehensive Testing**: Nowy test `should clear boosted priority when call is not reachable`
+- **Automatyczne UI updates**: React automatycznie aktualizuje interfejs przez `onUpdateTask` callback
+
+**Kluczowe wnioski z sesji**:
+- 🚫 **NIGDY nie używać `window.location.reload()`** - to rozwiązanie z lat 90
+- ✅ **React state management** automatycznie aktualizuje UI po `onUpdateTask()`
+- ✅ **Spójność completion actions** - wszystkie akcje końcowe (complete/abandon/postpone/transfer/unassign/nicht_erreichbar) czyszczą boosted priority
+- ✅ **Comprehensive test coverage** - każda completion action ma test dla boosted clearing
+
+**Pliki**: useTaskActions.ts:288-290, TaskFocusedView.tsx:115-120, useTaskActions.test.tsx:298-317
+**Testy**: 195 testów (1 nowy) ✅
+**Deployment Status**: Ready - eleganckie rozwiązanie bez page reload
+
 ## Następne Sesje
+- Monitoring działania nicht erreichbar boosted clearing w produkcji
 - Monitoring działania user assignment race condition fix w produkcji
 - Monitoring działania enhanced boost functionality w produkcji
 - Monitoring działania users table fix w produkcji
@@ -323,5 +345,20 @@ if (currentBoostedTask && currentBoostedTask.id !== taskId) {
 await onUpdateTask(taskId, { priority: 'boosted' });
 ```
 
+### Anti-Patterns i Lessons Learned
+```typescript
+// 🚫 NIGDY - Prymitywne rozwiązania z lat 90
+window.location.reload(); // Odświeżanie całej strony po akcji
+
+// ✅ ZAWSZE - Eleganckie React patterns  
+onUpdateTask(taskId, updates); // React state management auto-aktualizuje UI
+```
+
+**Kluczowe zasady**:
+1. **React State First**: Zawsze polegaj na React state management zamiast manual refresh
+2. **Consistency Patterns**: Jeśli jedna completion action ma behavior, wszystkie powinny
+3. **Test Every Edge Case**: Każda nowa funkcjonalność = comprehensive test coverage  
+4. **User Experience**: Zero page reloads w nowoczesnych SPA applications
+
 ---
-*Ostatnia aktualizacja: 2025-08-22 - User assignment race condition fix deployed + Development workflow established*
+*Ostatnia aktualizacja: 2025-08-22 - Nicht erreichbar boosted clearing fix deployed (eleganckie, bez page reload)*

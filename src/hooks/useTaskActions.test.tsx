@@ -294,6 +294,27 @@ describe('useTaskActions', () => {
       expect(updateCall.dueDate).toBeInstanceOf(Date);
       expect(updateCall.description).toContain('Nicht erreicht');
     });
+
+    it('should clear boosted priority when call is not reachable', () => {
+      const boostedTask = { ...mockTasks[0], priority: 'boosted' as const };
+      const { result } = renderHook(
+        () => useTaskActions([boostedTask], mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      act(() => {
+        result.current.handlePhoneCall(boostedTask, false);
+      });
+
+      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        status: 'pending',
+        priority: 'high', // Boosted should be cleared to high
+      }));
+
+      const updateCall = mockOnUpdateTask.mock.calls[0][1];
+      expect(updateCall.dueDate).toBeInstanceOf(Date);
+      expect(updateCall.description).toContain('Nicht erreicht');
+    });
   });
 
   describe('handleCompleteTask', () => {
