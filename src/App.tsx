@@ -360,7 +360,7 @@ const MainApp: React.FC<MainAppProps> = ({
                   onClick={() => setShowSampleTasks(!showSampleTasks)}
                   className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
                 >
-                  {showSampleTasks ? 'Ukryj' : 'Pokaż'} przykładowe zadania
+                  {showSampleTasks ? t.hideSampleTasks : t.showSampleTasks}
                 </button>
               </div>
               

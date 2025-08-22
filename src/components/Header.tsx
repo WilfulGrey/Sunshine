@@ -71,19 +71,19 @@ export const Header: React.FC<HeaderProps> = ({ tasks, onConfigSaved, onShowSett
             <button
               onClick={onShowSettings}
               className="flex items-center space-x-2 px-3 py-2 bg-white/20 rounded-lg text-white/90 hover:bg-white/30 transition-colors"
-              title="Ustawienia konta"
+              title={t.accountSettings}
             >
               <Settings className="h-4 w-4" />
-              <span className="text-sm font-medium">Konto</span>
+              <span className="text-sm font-medium">{t.account}</span>
             </button>
             
             <button
               onClick={handleSignOut}
               className="flex items-center space-x-2 px-3 py-2 bg-white/20 rounded-lg text-white/90 hover:bg-white/30 transition-colors"
-              title="Wyloguj się"
+              title={t.signOutTitle}
             >
               <LogOut className="h-4 w-4" />
-              <span className="text-sm font-medium">Wyloguj</span>
+              <span className="text-sm font-medium">{t.signOut}</span>
             </button>
           </div>
         </div>

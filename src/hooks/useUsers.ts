@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { Language } from '../utils/translations';
 
 export interface User {
   id: string;
   full_name: string | null;
   email: string;
+  preferred_language?: Language;
   created_at?: string;
 }
 
@@ -23,7 +25,7 @@ export const useUsers = () => {
       // Najpierw spróbuj pobrać z tabeli profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, email, created_at')
+        .select('id, full_name, email, preferred_language, created_at')
         .order('full_name', { ascending: true });
 
       // Jeśli tabela profiles nie istnieje lub jest pusta, spróbuj użyć istniejących danych
@@ -125,11 +127,34 @@ export const useUsers = () => {
     return user.full_name || user.email || 'Nieznany użytkownik';
   };
 
+  const updateUserLanguage = async (userId: string, language: Language): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ preferred_language: language })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error updating user language preference:', error);
+        throw error;
+      }
+
+      // Update local state
+      setUsers(prev => prev.map(user => 
+        user.id === userId ? { ...user, preferred_language: language } : user
+      ));
+    } catch (err) {
+      console.error('Failed to update user language preference:', err);
+      throw err;
+    }
+  };
+
   return {
     users,
     loading,
     error,
     loadUsers,
-    getUserDisplayName
+    getUserDisplayName,
+    updateUserLanguage
   };
 };

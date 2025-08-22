@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { Eye, EyeOff, Lock, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import { useLanguage } from '../../contexts/LanguageContext'
 
 export const ResetPasswordForm: React.FC = () => {
   const { updatePassword } = useAuth()
+  const { t } = useLanguage()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -32,13 +34,13 @@ export const ResetPasswordForm: React.FC = () => {
     setSuccess(null)
 
     if (password !== confirmPassword) {
-      setError('Hasła nie są identyczne')
+      setError(t.passwordsNotIdentical)
       setLoading(false)
       return
     }
 
     if (password.length < 6) {
-      setError('Hasło musi mieć co najmniej 6 znaków')
+      setError(t.passwordMinLength)
       setLoading(false)
       return
     }
@@ -48,14 +50,14 @@ export const ResetPasswordForm: React.FC = () => {
       if (error) {
         setError(error.message)
       } else {
-        setSuccess('Hasło zostało zmienione pomyślnie! Możesz się teraz zalogować.')
+        setSuccess(t.passwordResetSuccess)
         // Przekieruj do logowania po 3 sekundach
         setTimeout(() => {
           window.location.href = '/'
         }, 3000)
       }
     } catch (err) {
-      setError('Wystąpił nieoczekiwany błąd')
+      setError(t.unexpectedError)
     } finally {
       setLoading(false)
     }
@@ -172,7 +174,7 @@ export const ResetPasswordForm: React.FC = () => {
               onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = '#9A3D85')}
               onMouseLeave={(e) => !loading && (e.currentTarget.style.backgroundColor = '#AB4D95')}
             >
-              {loading ? 'Aktualizowanie...' : 'Zmień hasło'}
+              {loading ? t.changing : t.changePassword}
             </button>
 
             <div className="text-center">
@@ -181,7 +183,7 @@ export const ResetPasswordForm: React.FC = () => {
                 onClick={handleBackToLogin}
                 className="text-sm text-purple-600 hover:text-purple-800 transition-colors"
               >
-                Powrót do logowania
+                {t.backToLogin}
               </button>
             </div>
           </form>

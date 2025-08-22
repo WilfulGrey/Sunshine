@@ -29,7 +29,6 @@ export interface Translations {
   priorityRequired: string;
   status: string;
   dueDate: string;
-  assignedTo: string;
   notAssigned: string;
   triggerEvent: string;
   triggerPlaceholder: string;
@@ -152,6 +151,62 @@ export interface Translations {
   sampleTask9Title: string;
   sampleTask9Description: string;
 
+  // Action buttons
+  take: string;
+  taking: string;
+  abandon: string;
+  phone: string;
+  finish: string;
+  transfer: string;
+  
+  // Phone call related
+  reachable: string;
+  unreachable: string;
+  callResult: string;
+  
+  // Assignment related
+  assigned: string;
+  unassigned: string;
+  assignedTo: string;
+  assigningInProgress: string;
+  verifyingAssignment: string;
+  assignmentFailed: string;
+  
+  // Account Settings
+  accountSettings: string;
+  manageProfile: string;
+  profile: string;
+  password: string;
+  language: string;
+  backToApp: string;
+  loggedInAs: string;
+  fullName: string;
+  emailAddress: string;
+  emailCannotBeChanged: string;
+  updateProfile: string;
+  updating: string;
+  newPassword: string;
+  confirmPassword: string;
+  changePassword: string;
+  changing: string;
+  passwordsDoNotMatch: string;
+  passwordTooShort: string;
+  profileUpdatedSuccess: string;
+  passwordChangedSuccess: string;
+  logOut: string;
+  endSession: string;
+  languagePreferences: string;
+  selectLanguageInterface: string;
+  changeAppliedImmediately: string;
+  active: string;
+  polish: string;
+  german: string;
+  polishLanguage: string;
+  germanLanguage: string;
+  languageInfo: string;
+  languageChangedSuccess: string;
+  failedToChangeLanguage: string;
+  
   // Common
   edit: string;
   delete: string;
@@ -196,7 +251,6 @@ export const translations: Record<Language, Translations> = {
     priorityRequired: 'Priorität *',
     status: 'Status',
     dueDate: 'Fälligkeitsdatum',
-    assignedTo: 'Zugewiesen an',
     notAssigned: 'Nicht zugewiesen',
     triggerEvent: 'Trigger-Event',
     triggerPlaceholder: 'z.B. Successful Match Event',
@@ -295,6 +349,40 @@ export const translations: Record<Language, Translations> = {
     postponeDetails: 'Wiedervorlage gesetzt - Aufgabe wird am {date} erneut vorgelegt. Grund: Zeitpunkt nicht passend oder weitere Informationen erforderlich.',
     completedDetails: 'Aufgabe erfolgreich abgeschlossen - alle erforderlichen Schritte wurden durchgeführt',
 
+    // Account Settings
+    unexpectedError: 'Ein unerwarteter Fehler ist aufgetreten',
+    passwordChangeWarning: 'Passwort wurde möglicherweise geändert. Bitte prüfen Sie, ob das neue Passwort funktioniert.',
+
+    // Sample tasks
+    hideSampleTasks: 'Beispielaufgaben ausblenden',
+    showSampleTasks: 'Beispielaufgaben anzeigen',
+
+    // Reset Password Form
+    passwordsNotIdentical: 'Passwörter sind nicht identisch',
+    passwordMinLength: 'Passwort muss mindestens 6 Zeichen haben',
+    passwordResetSuccess: 'Passwort wurde erfolgreich geändert! Sie können sich jetzt anmelden.',
+    backToLogin: 'Zurück zur Anmeldung',
+
+    // External Links
+    profilePortalLink: 'Profil im MM-Portal',
+    dashboardRetellLink: 'Retell Dashboard',
+    jobLink: 'Job-Link',
+    addWklejka: 'Wklejka hinzufügen',
+    editWklejka: 'Wklejka bearbeiten',
+    removeWklejka: 'Wklejka entfernen (fehlgeschlagen)',
+    agentNote: 'Agent-Notiz:',
+    nextSteps: 'Nächste Schritte:',
+    urgent: 'DRINGEND',
+    removeUrgentStatus: 'Dringend-Status entfernen',
+    failedWklejka: 'Fehlgeschlagene Wklejka:',
+    wklejkaOldWarning: 'Wklejka älter als 24h - prüfen Sie, ob sie verarbeitet wurde',
+    
+    // Header Navigation
+    account: 'Konto',
+    accountSettings: 'Kontoeinstellungen',
+    signOut: 'Abmelden',
+    signOutTitle: 'Abmelden',
+
     // Status overview
     total: 'Gesamt',
     overdueStatus: 'Überfällig',
@@ -319,6 +407,62 @@ export const translations: Record<Language, Translations> = {
     sampleTask9Title: 'Sandra Hoffmann - Bekannt, ohne Einsatz',
     sampleTask9Description: 'Regelmäßiger Check-in mit bekannter CG ohne aktuellen Einsatz. Situation erfragen, Unterstützungsbedarf klären und neue Jobmöglichkeiten anbieten.',
 
+    // Action buttons
+    take: 'Übernehmen',
+    taking: 'Zuweisen...',
+    abandon: 'Kontakt abbrechen',
+    phone: 'Telefon',
+    finish: 'Abschließen',
+    transfer: 'Übertragen',
+    
+    // Phone call related
+    reachable: 'Erreichbar',
+    unreachable: 'Nicht erreichbar',
+    callResult: 'Anrufergebnis',
+    
+    // Assignment related
+    assigned: 'Zugewiesen',
+    unassigned: 'Nicht zugewiesen',
+    assignedTo: 'Zugewiesen an: {name}',
+    assigningInProgress: 'Zuweisen...',
+    verifyingAssignment: 'Zuweisung wird überprüft...',
+    assignmentFailed: 'Zuweisungsfehler - bitte erneut versuchen',
+    
+    // Account Settings
+    accountSettings: 'Kontoeinstellungen',
+    manageProfile: 'Verwalten Sie Ihr Profil und Passwort',
+    profile: 'Profil',
+    password: 'Passwort',
+    language: 'Sprache',
+    backToApp: 'Zurück zur Anwendung',
+    loggedInAs: 'Angemeldet als',
+    fullName: 'Vollständiger Name',
+    emailAddress: 'E-Mail-Adresse',
+    emailCannotBeChanged: 'E-Mail-Adresse kann nicht geändert werden. Kontaktieren Sie den Administrator, wenn Sie eine Änderung benötigen.',
+    updateProfile: 'Profil aktualisieren',
+    updating: 'Aktualisierung...',
+    newPassword: 'Neues Passwort',
+    confirmPassword: 'Neues Passwort bestätigen',
+    changePassword: 'Passwort ändern',
+    changing: 'Ändern...',
+    passwordsDoNotMatch: 'Neue Passwörter stimmen nicht überein',
+    passwordTooShort: 'Neues Passwort muss mindestens 6 Zeichen haben',
+    profileUpdatedSuccess: 'Profil wurde erfolgreich aktualisiert!',
+    passwordChangedSuccess: 'Passwort wurde erfolgreich geändert!',
+    logOut: 'Abmelden',
+    endSession: 'Sitzung beenden und zur Anmeldeseite zurückkehren',
+    languagePreferences: 'Spracheinstellungen',
+    selectLanguageInterface: 'Wählen Sie die Sprache der Anwendungsoberfläche. Die Änderung wird sofort angewendet.',
+    changeAppliedImmediately: 'Die Änderung wird sofort angewendet',
+    active: 'Aktiv',
+    polish: 'Polski',
+    german: 'Deutsch',
+    polishLanguage: 'Polnische Sprache',
+    germanLanguage: 'Deutsche Sprache',
+    languageInfo: 'Ihre Spracheinstellungen werden im Benutzerprofil gespeichert und beim nächsten Login gespeichert.',
+    languageChangedSuccess: 'Sprache wurde erfolgreich geändert!',
+    failedToChangeLanguage: 'Sprache konnte nicht geändert werden. Bitte versuchen Sie es erneut.',
+    
     // Common
     edit: 'Bearbeiten',
     delete: 'Löschen',
@@ -361,7 +505,6 @@ export const translations: Record<Language, Translations> = {
     priorityRequired: 'Priorytet *',
     status: 'Status',
     dueDate: 'Termin wykonania',
-    assignedTo: 'Przypisane do',
     notAssigned: 'Nie przypisane',
     triggerEvent: 'Zdarzenie wyzwalające',
     triggerPlaceholder: 'np. Successful Match Event',
@@ -484,6 +627,96 @@ export const translations: Record<Language, Translations> = {
     sampleTask9Title: 'Sandra Hoffmann - Znana, bez zadania',
     sampleTask9Description: 'Regularne sprawdzenie ze znanym CG bez aktualnego zadania. Zapytać o sytuację, wyjaśnić potrzeby wsparcia i zaoferować nowe możliwości pracy.',
 
+    // Account Settings
+    unexpectedError: 'Wystąpił nieoczekiwany błąd',
+    passwordChangeWarning: 'Hasło mogło zostać zmienione. Sprawdź czy nowe hasło działa.',
+
+    // Sample tasks
+    hideSampleTasks: 'Ukryj przykładowe zadania',
+    showSampleTasks: 'Pokaż przykładowe zadania',
+
+    // Reset Password Form
+    passwordsNotIdentical: 'Hasła nie są identyczne',
+    passwordMinLength: 'Hasło musi mieć co najmniej 6 znaków',
+    passwordResetSuccess: 'Hasło zostało zmienione pomyślnie! Możesz się teraz zalogować.',
+    backToLogin: 'Powrót do logowania',
+
+    // External Links
+    profilePortalLink: 'Profil w portalu MM',
+    dashboardRetellLink: 'Dashboard Retell',
+    jobLink: 'Link do JOBa',
+    addWklejka: 'Dodaj wklejkę',
+    editWklejka: 'Edytuj wklejkę',
+    removeWklejka: 'Usuń wklejkę (nieudana)',
+    agentNote: 'Notatka Agenta:',
+    nextSteps: 'Następne kroki:',
+    urgent: 'PILNE',
+    removeUrgentStatus: 'Usuń status pilny',
+    failedWklejka: 'Nieudanych wklejek:',
+    wklejkaOldWarning: 'Wklejka starsza niż 24h - sprawdź czy przeszła',
+    
+    // Header Navigation
+    account: 'Konto',
+    accountSettings: 'Ustawienia konta',
+    signOut: 'Wyloguj',
+    signOutTitle: 'Wyloguj się',
+
+    // Action buttons
+    take: 'Biorę',
+    taking: 'Przypisuję...',
+    abandon: 'Porzuć kontakt',
+    phone: 'Telefon',
+    finish: 'Zakończ',
+    transfer: 'Przekaż',
+    
+    // Phone call related
+    reachable: 'Dostępny',
+    unreachable: 'Niedostępny',
+    callResult: 'Wynik połączenia',
+    
+    // Assignment related
+    assigned: 'Przypisane',
+    unassigned: 'Nieprzypisane',
+    assignedTo: 'Przypisane do: {name}',
+    assigningInProgress: 'Przypisuję...',
+    verifyingAssignment: 'Weryfikuję przypisanie...',
+    assignmentFailed: 'Błąd przypisania - spróbuj ponownie za chwilę',
+    
+    // Account Settings
+    accountSettings: 'Ustawienia konta',
+    manageProfile: 'Zarządzaj swoim profilem i hasłem',
+    profile: 'Profil',
+    password: 'Hasło',
+    language: 'Język',
+    backToApp: 'Powrót do aplikacji',
+    loggedInAs: 'Zalogowany jako',
+    fullName: 'Imię i nazwisko',
+    emailAddress: 'Adres e-mail',
+    emailCannotBeChanged: 'Adres e-mail nie może być zmieniony. Skontaktuj się z administratorem jeśli potrzebujesz zmiany.',
+    updateProfile: 'Zaktualizuj profil',
+    updating: 'Aktualizowanie...',
+    newPassword: 'Nowe hasło',
+    confirmPassword: 'Potwierdź nowe hasło',
+    changePassword: 'Zmień hasło',
+    changing: 'Zmienianie...',
+    passwordsDoNotMatch: 'Nowe hasła nie są identyczne',
+    passwordTooShort: 'Nowe hasło musi mieć co najmniej 6 znaków',
+    profileUpdatedSuccess: 'Profil został zaktualizowany pomyślnie!',
+    passwordChangedSuccess: 'Hasło zostało zmienione pomyślnie!',
+    logOut: 'Wyloguj',
+    endSession: 'Zakończ sesję i wróć do strony logowania',
+    languagePreferences: 'Preferencje językowe',
+    selectLanguageInterface: 'Wybierz język interfejsu aplikacji. Zmiana zostanie zastosowana natychmiast.',
+    changeAppliedImmediately: 'Zmiana zostanie zastosowana natychmiast',
+    active: 'Aktywny',
+    polish: 'Polski',
+    german: 'Deutsch',
+    polishLanguage: 'Język polski',
+    germanLanguage: 'Deutsche Sprache',
+    languageInfo: 'Twoje preferencje językowe są zapisywane w profilu użytkownika i będą zapamiętane przy następnym logowaniu.',
+    languageChangedSuccess: 'Język został zmieniony pomyślnie!',
+    failedToChangeLanguage: 'Nie udało się zmienić języka. Spróbuj ponownie.',
+    
     // Common
     edit: 'Edytuj',
     delete: 'Usuń',

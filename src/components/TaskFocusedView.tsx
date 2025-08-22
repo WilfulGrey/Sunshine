@@ -229,11 +229,11 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
           {nextTask.airtableData?.urgent && (
             <div className="flex items-center space-x-2 px-3 py-1 bg-red-100 text-red-700 rounded-full relative group">
               <span className="text-lg">🚨</span>
-              <span className="text-sm font-bold">PILNE</span>
+              <span className="text-sm font-bold">{t.urgent}</span>
               <button
                 onClick={() => taskActions.handleRemoveUrgent(nextTask.id)}
                 className="ml-2 p-1 hover:bg-red-200 rounded-full transition-colors"
-                title="Usuń status pilny"
+                title={t.removeUrgentStatus}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -314,7 +314,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                     className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
                   >
                     <ExternalLink className="h-4 w-4" />
-                    <span>Profil w portalu MM</span>
+                    <span>{t.profilePortalLink}</span>
                   </a>
                 )}
                 {nextTask.airtableData.retellLink && (
@@ -325,7 +325,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                     className="inline-flex items-center space-x-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
                   >
                     <ExternalLink className="h-4 w-4" />
-                    <span>Dashboard Retell</span>
+                    <span>{t.dashboardRetellLink}</span>
                   </a>
                 )}
                 {nextTask.airtableData.jobLink && (
@@ -336,7 +336,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                     className="inline-flex items-center space-x-2 px-4 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors"
                   >
                     <ExternalLink className="h-4 w-4" />
-                    <span>Link do JOBa</span>
+                    <span>{t.jobLink}</span>
                   </a>
                 )}
                 {nextTask.airtableData.wklejkaUrl && (
@@ -351,7 +351,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                     }`}
                     title={
                       isWklejkaOld(nextTask.airtableData.wklejkaDate)
-                        ? 'Wklejka starsza niż 24h - sprawdź czy przeszła'
+                        ? t.wklejkaOldWarning
                         : 'Wklejka'
                     }
                   >
@@ -372,7 +372,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                 {(nextTask.airtableData.nieudaneWklejki || 0) > 0 && (
                   <div className="mb-3 text-sm text-gray-600">
                     <span className="inline-flex items-center px-2 py-1 bg-gray-100 rounded-full">
-                      ⚠️ Nieudanych wklejek: {nextTask.airtableData.nieudaneWklejki}
+                      ⚠️ {t.failedWklejka} {nextTask.airtableData.nieudaneWklejki}
                     </span>
                   </div>
                 )}
@@ -414,14 +414,14 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                       className="inline-flex items-center space-x-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors text-sm"
                     >
                       <Plus className="h-4 w-4" />
-                      <span>{nextTask.airtableData.wklejkaUrl ? 'Edytuj wklejkę' : 'Dodaj wklejkę'}</span>
+                      <span>{nextTask.airtableData.wklejkaUrl ? t.editWklejka : t.addWklejka}</span>
                     </button>
                     
                     {nextTask.airtableData.wklejkaUrl && (
                       <button
                         onClick={() => handleRemoveWklejka(nextTask.id)}
                         className="inline-flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm"
-                        title="Usuń wklejkę (nieudana)"
+                        title={t.removeWklejka}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -452,22 +452,22 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                       onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#AB4D95')}
                     >
                       <User className="h-5 w-5" />
-                      <span>{taskActions.takingTask === nextTask.id ? 'Przypisuję...' : 'Biorę'}</span>
+                      <span>{taskActions.takingTask === nextTask.id ? t.taking : t.take}</span>
                     </button>
                   ) : taskActions.isTaskVerifying(nextTask) ? (
                     <div className="px-6 py-3 bg-yellow-100 text-yellow-800 rounded-lg font-medium flex items-center space-x-2">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-600"></div>
-                      <span>Weryfikuję przypisanie...</span>
+                      <span>{t.verifyingAssignment}</span>
                     </div>
                   ) : taskActions.isTaskFailed(nextTask) ? (
                     <div className="px-6 py-3 bg-red-100 text-red-800 rounded-lg font-medium flex items-center space-x-2">
                       <XCircle className="h-5 w-5" />
-                      <span>Błąd przypisania - spróbuj ponownie za chwilę</span>
+                      <span>{t.assignmentFailed}</span>
                     </div>
                   ) : taskActions.isTaskAssignedToSomeoneElse(nextTask) ? (
                     <div className="px-6 py-3 bg-gray-100 text-gray-600 rounded-lg font-medium flex items-center space-x-2">
                       <User className="h-5 w-5" />
-                      <span>Przypisane do: {Array.isArray(nextTask.airtableData?.user) ? nextTask.airtableData.user.join(', ') : (nextTask.assignedTo || nextTask.airtableData?.user)}</span>
+                      <span>{t.assignedTo.replace('{name}', Array.isArray(nextTask.airtableData?.user) ? nextTask.airtableData.user.join(', ') : (nextTask.assignedTo || nextTask.airtableData?.user))}</span>
                     </div>
                   ) : (
                     <>
@@ -495,7 +495,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                         className="px-6 py-3 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition-colors flex items-center space-x-2"
                       >
                         <ArrowRight className="h-5 w-5" />
-                        <span>Transfer</span>
+                        <span>{t.transfer}</span>
                       </button>
                       
                       <button
@@ -503,7 +503,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                         className="px-6 py-3 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition-colors flex items-center space-x-2"
                       >
                         <Skull className="h-5 w-5" />
-                        <span>Porzuć kontakt</span>
+                        <span>{t.abandon}</span>
                       </button>
                     </>
                   )}
@@ -533,7 +533,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                     className="px-6 py-3 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition-colors flex items-center space-x-2"
                   >
                     <ArrowRight className="h-5 w-5" />
-                    <span>Transfer</span>
+                    <span>{t.transfer}</span>
                   </button>
                   
                   <button
@@ -541,7 +541,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                     className="px-6 py-3 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition-colors flex items-center space-x-2"
                   >
                     <Skull className="h-5 w-5" />
-                    <span>Porzuć kontakt</span>
+                    <span>{t.abandon}</span>
                   </button>
                 </div>
               )}

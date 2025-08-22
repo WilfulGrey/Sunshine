@@ -4,10 +4,14 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { Language } from '../utils/translations';
 
 export const LanguageSwitch: React.FC = () => {
-  const { language, setLanguage } = useLanguage();
+  const { language, updateUserLanguage } = useLanguage();
 
-  const handleLanguageChange = (newLanguage: Language) => {
-    setLanguage(newLanguage);
+  const handleLanguageChange = async (newLanguage: Language) => {
+    try {
+      await updateUserLanguage(newLanguage);
+    } catch (err) {
+      console.error('Failed to update language:', err);
+    }
   };
 
   return (
