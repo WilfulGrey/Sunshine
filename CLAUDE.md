@@ -174,6 +174,37 @@ git push origin master  # Wypchnij na GitHub dla Render
 - ✅ Merged do master, pushed na GitHub origin (769de7a)
 - ✅ Render auto-deploy completed
 
+### User Assignment Race Condition Fix (2025-08-22)
+✅ **Naprawiono race condition w przypisywaniu zadań**:
+
+**Problem**: Użytkownicy mogli przypisać się do zadań mimo że ktoś inny był już przypisany (stale lokalne dane)
+
+**Rozwiązanie**:
+- **Real-time Airtable verification**: `getContactById()` sprawdza aktualny stan przed przypisaniem
+- **Race condition protection**: Zapobiega konfliktom gdy lokalne dane są nieaktualne
+- **Clear user feedback**: Alert + auto refresh strony przy wykryciu konfliktu
+- **Graceful error handling**: Fallback na refresh jeśli Airtable nie odpowiada
+- **Test compatibility**: `skipAirtableCheck` parameter dla testów
+
+**Zmiany w kodzie**:
+- `airtableService.ts`: dodano `getContactById()` method
+- `useTaskActions.ts`: real-time verification w `handleTakeTask()`
+- User field type: `string | string[]` dla multiselect support
+- Kompletne mocki window.alert i location.reload w testach
+
+**Testy**: 169 testów (wszystkie przechodzą) ✅
+- Mock AirtableService z proper return values
+- Window methods properly mocked
+- skipAirtableCheck flag dla test isolation
+
+**Pliki**: useTaskActions.ts, airtableService.ts, useTaskActions.test.tsx
+
+**Deployment**: 
+- ✅ Branch: `bugfix/user-assignment-blocking`
+- ✅ Commit: "Fix user assignment blocking by adding Airtable real-time verification" (7aa6352)
+- ✅ Merged do master, pushed na GitHub origin
+- ✅ Render auto-deploy completed
+
 ## Szczegółowa Mapa Plików
 
 ### 🎯 Core Hooks (src/hooks/)
@@ -233,7 +264,26 @@ git push origin master  # Wypchnij na GitHub dla Render
 - **tsconfig.json**: TypeScript config
 - **.env**: Environment variables (Airtable, Supabase keys)
 
+## Development Workflow (WAŻNE!)
+
+### 🔄 **Workflow dla każdego zadania:**
+1. **📋 DYSKUSJA PRZED KODEM** - Zawsze najpierw przedyskutować zadanie:
+   - Zrozumieć problem dokładnie
+   - Zadać pytania diagnostyczne  
+   - Zaplanować rozwiązanie
+   - Uzyskać zgodę na approach
+2. **💻 IMPLEMENTACJA** - Dopiero wtedy zacząć kodowanie
+3. **✅ TESTING** - Build + testy jednostkowe
+4. **🧪 MANUAL TEST** - **ZAWSZE wymagany test ręczny od użytkownika przed deployem**
+5. **🚀 DEPLOY** - Tylko po potwierdzeniu że działa poprawnie
+
+### ⚠️ **NIGDY nie deployować bez:**
+- ✅ Manual testing od użytkownika
+- ✅ Potwierdzenia że funkcjonalność działa
+- ✅ Wyraźnej zgody na deploy
+
 ## Następne Sesje
+- Monitoring działania user assignment race condition fix w produkcji
 - Monitoring działania enhanced boost functionality w produkcji
 - Monitoring działania users table fix w produkcji
 - Monitoring działania wklejka functionality w produkcji
@@ -274,4 +324,4 @@ await onUpdateTask(taskId, { priority: 'boosted' });
 ```
 
 ---
-*Ostatnia aktualizacja: 2025-08-21 - Enhanced boost functionality deployed*
+*Ostatnia aktualizacja: 2025-08-22 - User assignment race condition fix deployed + Development workflow established*
