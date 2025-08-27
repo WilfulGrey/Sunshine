@@ -7,13 +7,11 @@ import { TimezoneProvider } from './contexts/TimezoneContext';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <AuthProvider>
-      <LanguageProvider>
-        <TimezoneProvider>
-          <App />
-        </TimezoneProvider>
-      </LanguageProvider>
-    </AuthProvider>
-  </StrictMode>
+  <AuthProvider>
+    <LanguageProvider>
+      <TimezoneProvider>
+        <App />
+      </TimezoneProvider>
+    </LanguageProvider>
+  </AuthProvider>
 );

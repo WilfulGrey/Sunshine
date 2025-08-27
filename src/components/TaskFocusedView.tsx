@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, ExternalLink, Phone, X, Skull, XCircle, Eye, Plus, Trash2, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTimezone } from '../contexts/TimezoneContext';
 import { useUsers } from '../hooks/useUsers';
-import { useAirtable } from '../hooks/useAirtable';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import { Task } from '../types/Task';
 import { formatDate, isOverdue } from '../utils/helpers';
 import { useTaskActions } from '../hooks/useTaskActions';
@@ -17,20 +18,114 @@ import { PostponeDialog } from './dialogs/PostponeDialog';
 interface TaskFocusedViewProps {
   tasks: Task[];
   onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
+  onLoadContacts?: () => void;
+  onSilentRefresh?: () => void;
+  availableUsers?: string[];
 }
 
-export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdateTask }) => {
+export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdateTask, onLoadContacts, onSilentRefresh, availableUsers = [] }) => {
   const { t } = useLanguage();
   const { timezone } = useTimezone();
   const { users, getUserDisplayName } = useUsers();
-  const { availableUsers } = useAirtable();
+  const { user } = useAuth();
   
-  const taskActions = useTaskActions(tasks, onUpdateTask);
+  // console.log('🎯 TaskFocusedView: Hooks initialized, user:', !!user);
+  
+  // Debug: Simple test to see if component loads
+  if (tasks.length > 0) {
+    // console.log('🔍 TaskFocusedView DEBUG: First task title:', tasks[0]?.title || 'NO TITLE');
+  }
+  
+  const taskActions = useTaskActions(tasks, onUpdateTask, onLoadContacts, onSilentRefresh);
   const dialogState = useDialogState();
   const [showFutureTasks, setShowFutureTasks] = useState(false);
+
+  // 🚀 REAL-TIME MVP: Listen for task assignments and refresh focused task + list
+  useEffect(() => {
+    console.log('🎯 TaskFocusedView: useEffect called - supabase:', !!supabase, 'user:', !!user);
+    if (!supabase || !user) {
+      console.log('🎯 TaskFocusedView: Skipping real-time - Supabase not available or user not logged in');
+      return;
+    }
+
+    console.log('🎯 TaskFocusedView: Setting up real-time listener for focused task updates');
+    
+    const channel = supabase.channel('task-events-global');
+    
+    channel.on(
+      'broadcast',
+      { event: 'task-update' },
+      async (payload) => {
+        console.log('🔥 BROADCAST RECEIVED:', payload);
+        console.log('🎯 TaskFocusedView: Received real-time event:', payload);
+        
+        const eventType = payload.payload?.type || 'task-update';
+        console.log(`🔄 Processing ${eventType} event`);
+        
+        // Add small delay to ensure broadcast is processed
+        setTimeout(() => {
+          if (eventType === 'task-transfer') {
+            // Handle task transfer: someone transferred a task
+            const { toUser, fromUser } = payload.payload || {};
+            const currentUserName = user?.user_metadata?.full_name || user?.email || '';
+            
+            if (toUser === currentUserName) {
+              console.log('📥 Task transferred TO me - full refresh needed');
+              onLoadContacts && onLoadContacts(); // Full refresh - new task assigned to me
+            } else {
+              console.log('📤 Task transferred to someone else - silent refresh');
+              onSilentRefresh && onSilentRefresh(); // Silent refresh - task reassigned elsewhere
+            }
+          } else if (eventType === 'task-unassign') {
+            // Handle task unassign: someone unassigned themselves
+            console.log('🔓 Task unassigned - full refresh needed (task became available)');
+            onLoadContacts && onLoadContacts(); // Full refresh - task became available
+          } else {
+            // Default logic for regular task-update events
+            console.log('🔄 Smart solution: Intelligent refresh based on task assignment status');
+            const currentTask = tasks[0];
+            const isTaskUnassigned = !currentTask || (!currentTask.assignedTo || currentTask.assignedTo.trim() === '');
+            
+            if (isTaskUnassigned) {
+              console.log('⚠️ Task was unassigned - full refresh needed (potential conflict)');
+              onLoadContacts && onLoadContacts(); // Full refresh with spinners - user might have conflict
+            } else {
+              console.log('✅ Task was assigned - silent background refresh only');
+              onSilentRefresh && onSilentRefresh(); // Silent refresh without loading states
+            }
+          }
+        }, 500);
+      }
+    );
+
+    // Subscribe to channel
+    channel.subscribe((status) => {
+      console.log('🎯 TaskFocusedView: Real-time subscription status:', status);
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ TaskFocusedView: Successfully subscribed to realtime channel');
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('❌ TaskFocusedView: Channel subscription error - checking auth');
+        console.error('❌ User email:', user?.email);
+        console.error('❌ Channel config: private channels require proper auth');
+      } else if (status === 'CLOSED') {
+        console.log('🔒 TaskFocusedView: Channel closed - will reconnect');
+      }
+    });
+
+    // Cleanup function
+    return () => {
+      console.log('🎯 TaskFocusedView: Cleaning up real-time listener');
+      supabase.removeChannel(channel);
+    };
+  }, [user, onLoadContacts]); // Depend on user and onLoadContacts
   const [editingWklejka, setEditingWklejka] = useState<string | null>(null);
   const [wklejkaInput, setWklejkaInput] = useState('');
 
+  // EMERGENCY DEBUG: Log current user name
+  if (typeof window !== 'undefined' && user?.email?.includes('info')) {
+    console.log(`🚨 USER B DEBUG: currentUserName="${taskActions.currentUserName}", tasks=${tasks.length}`);
+  }
+  
   const { nextTask, upcomingTasks, hiddenFutureTasksCount } = getProcessedTasks(tasks, taskActions.currentUserName, taskActions.takenTasks, showFutureTasks);
 
   const isWklejkaOld = (wklejkaDate?: Date): boolean => {
@@ -271,7 +366,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
             {/* Poprzednie rekomendacje z Airtable */}
             {nextTask.airtableData?.previousRecommendation && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                {console.log('=== DEBUG PREVIOUS RECOMMENDATION ===', nextTask.airtableData.previousRecommendation)}
+                {/* console.log('=== DEBUG PREVIOUS RECOMMENDATION ===', nextTask.airtableData.previousRecommendation) */}
                 <div className="flex items-start space-x-2">
                   <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                     <span className="text-blue-600 text-sm">💡</span>

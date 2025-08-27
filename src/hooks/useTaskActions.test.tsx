@@ -760,4 +760,59 @@ describe('useTaskActions', () => {
     });
   });
 
+  describe('handleUnassignTask', () => {
+    it('should unassign task and clear local state', async () => {
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      // First take the task to have some local state
+      await act(async () => {
+        await result.current.handleTakeTask('1');
+      });
+
+      // Mock console.log to verify clearing message
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await act(async () => {
+        result.current.handleUnassignTask(mockTasks[0]);
+      });
+
+      // Should update task with null assignment
+      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        assignedTo: undefined,
+        status: 'pending',
+        airtableUpdates: { 'User': null }
+      }));
+
+      // Should log clearing local state
+      expect(consoleSpy).toHaveBeenCalledWith('🧹 Clearing local state for unassigned task');
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should clear boosted priority when unassigning', async () => {
+      const boostedTask: Task = {
+        ...mockTasks[0],
+        priority: 'boosted'
+      };
+
+      const { result } = renderHook(
+        () => useTaskActions([boostedTask], mockOnUpdateTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        result.current.handleUnassignTask(boostedTask);
+      });
+
+      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        priority: 'high',
+        assignedTo: undefined,
+        status: 'pending'
+      }));
+    });
+  });
+
 });

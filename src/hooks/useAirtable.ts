@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Task } from '../types/Task';
 import { airtableService, AirtableContact } from '../services/airtableService';
 import { convertAirtableContactToTask } from '../utils/airtableHelpers';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 export const useAirtable = () => {
   const { user } = useAuth();
@@ -25,8 +26,17 @@ export const useAirtable = () => {
         airtableService.getAvailableUsers()
       ]);
       
-      console.log(`Successfully loaded ${contacts.length} contacts from Airtable`);
       const convertedTasks = contacts.map(convertAirtableContactToTask);
+      
+      // DEBUG: Check first task assignment after conversion
+      if (convertedTasks.length > 0) {
+        const firstTask = convertedTasks[0];
+        console.log('📝 PO REFRESH - First task assignment:', {
+          title: firstTask.title,
+          assignedTo: firstTask.assignedTo,
+          airtableUser: firstTask.airtableData?.user
+        });
+      }
       
       setTasks(convertedTasks);
       setAvailableUsers(users);
@@ -51,6 +61,40 @@ export const useAirtable = () => {
       setError(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const silentRefresh = async () => {
+    try {
+      // Silent refresh WITHOUT loading states - no UI disruption
+      console.log('🔇 Silent refresh: Loading contacts in background...');
+      
+      // Pobierz kontakty i dostępnych użytkowników równolegle
+      const [contacts, users] = await Promise.all([
+        airtableService.getContacts(),
+        airtableService.getAvailableUsers()
+      ]);
+      
+      const convertedTasks = contacts.map(convertAirtableContactToTask);
+      
+      // DEBUG: Check first task assignment after conversion
+      if (convertedTasks.length > 0) {
+        const firstTask = convertedTasks[0];
+        console.log('📝 PO SILENT REFRESH - First task assignment:', {
+          title: firstTask.title,
+          assignedTo: firstTask.assignedTo,
+          airtableUser: firstTask.airtableData?.user
+        });
+      }
+      
+      // Update data silently - no loading state changes
+      setTasks(convertedTasks);
+      setAvailableUsers(users);
+      setLastRefresh(new Date());
+      console.log('🔇 Silent refresh completed successfully');
+    } catch (err) {
+      console.error('🔇 Silent refresh failed:', err);
+      // Don't set error state for silent refresh - don't disrupt user experience
     }
   };
 
@@ -79,7 +123,7 @@ export const useAirtable = () => {
     };
     
     const normalizedUserName = normalizeString(userName);
-    console.log(`🔍 DEBUGGING mapUserToAirtableOption:`);
+    // console.log(`🔍 DEBUGGING mapUserToAirtableOption:`);
     console.log(`  - Looking for: "${userName}" -> normalized: "${normalizedUserName}" (length: ${normalizedUserName.length})`);
     console.log(`  - Char codes:`, userName.split('').map(c => `${c}(${c.charCodeAt(0)})`).join(' '));
     
@@ -308,7 +352,14 @@ export const useAirtable = () => {
       
       // If it's a conflict error, refresh and throw
       if (err instanceof Error && err.message.includes('zostało już przypisane')) {
-        await loadContacts();
+        // Refresh tasks by calling the same logic without recursion
+        try {
+          const freshContacts = await airtableService.getContacts();
+          const freshTasks = freshContacts.map(convertAirtableContactToTask);
+          setTasks(freshTasks);
+        } catch (refreshErr) {
+          console.error('Failed to refresh after conflict:', refreshErr);
+        }
         throw err;
       }
       
@@ -347,7 +398,18 @@ export const useAirtable = () => {
 
   useEffect(() => {
     loadContacts();
-  }, []);
+  }, []); // Empty dependency array
+
+  // Real-time listener moved to TaskFocusedView for better focused task handling
+
+  // DEBUG: Check if loadContacts is properly defined
+  console.log('🔍 useAirtable returning:', {
+    tasks: tasks.length,
+    loading,
+    error: !!error,
+    loadContacts: typeof loadContacts,
+    loadContactsDefined: !!loadContacts
+  });
 
   return {
     tasks,
@@ -357,6 +419,7 @@ export const useAirtable = () => {
     availableUsers,
     mapUserToAirtableOption,
     loadContacts,
+    silentRefresh,
     updateTask: updateTaskInAirtable,
     addTask,
     deleteTask

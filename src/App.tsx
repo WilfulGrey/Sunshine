@@ -23,7 +23,9 @@ function App() {
     loading, 
     error, 
     lastRefresh,
-    loadContacts, 
+    availableUsers,
+    loadContacts,
+    silentRefresh, 
     updateTask: updateAirtableTask, 
     addTask: addAirtableTask, 
     deleteTask: deleteAirtableTask 
@@ -169,11 +171,15 @@ function App() {
 
   const handleResetTasks = () => {
     console.log('Reset button clicked!');
-    loadContacts(); // Przeładuj dane z Airtable
+    if (loadContacts) {
+      loadContacts(); // Przeładuj dane z Airtable
+    }
   };
 
   const handleConfigSaved = () => {
-    loadContacts(); // Przeładuj dane po zapisaniu konfiguracji
+    if (loadContacts) {
+      loadContacts(); // Przeładuj dane po zapisaniu konfiguracji
+    }
   };
 
   const handleUndoAction = (taskId: string, historyEntryId: string) => {
@@ -233,6 +239,9 @@ function App() {
           addTask={addTask}
           handleUndoAction={handleUndoAction}
           onShowSettings={() => setCurrentView('settings')}
+          loadContacts={loadContacts}
+          silentRefresh={silentRefresh}
+          availableUsers={availableUsers}
         />
       )}
     </ProtectedRoute>
@@ -253,6 +262,9 @@ interface MainAppProps {
   addTask: (taskData: Omit<Task, 'id' | 'createdAt'>) => void;
   handleUndoAction: (taskId: string, historyEntryId: string) => void;
   onShowSettings: () => void;
+  loadContacts: () => void;
+  silentRefresh: () => void;
+  availableUsers: string[];
 }
 
 const MainApp: React.FC<MainAppProps> = ({
@@ -268,7 +280,10 @@ const MainApp: React.FC<MainAppProps> = ({
   updateTask,
   addTask,
   handleUndoAction,
-  onShowSettings
+  onShowSettings,
+  loadContacts,
+  silentRefresh,
+  availableUsers
 }) => {
   const { t } = useLanguage();
 
@@ -338,6 +353,9 @@ const MainApp: React.FC<MainAppProps> = ({
               <TaskFocusedView 
               tasks={tasks}
               onUpdateTask={updateTask}
+              onLoadContacts={loadContacts}
+              onSilentRefresh={silentRefresh}
+              availableUsers={availableUsers}
               />
             </div>
 

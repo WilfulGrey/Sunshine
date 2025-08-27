@@ -23,3 +23,27 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Puppeteer test files and screenshots (may contain sensitive data)
+test-*.js
+temp_debug.js
+*.png
+*.jpg
+*.jpeg
+
+# Debug and documentation files
+*SUMMARY*.md
+*DEBUG*.md
+*POSTMORTEM*.md
+*SESSION*.md
+SOLUTION-*.md
+
+# SQL debug files (may contain sensitive data)  
+*.sql
+
+# Backup files
+*.backup
+
+# Internal Claude Code documentation (private)
+CLAUDE.md
+CLAUDE.md.backup

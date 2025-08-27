@@ -8,6 +8,31 @@ vi.mock('../../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
 }))
 
+// Mock useLanguage hook  
+vi.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({
+    t: {
+      resetPassword: 'Ustaw nowe hasło',
+      newPassword: 'Nowe hasło',
+      confirmPassword: 'Potwierdź nowe hasło',
+      changePassword: 'Zmień hasło',
+      passwordUpdated: 'Hasło zostało zmienione',
+      passwordError: 'Błąd podczas zmiany hasła',
+      passwordsDoNotMatch: 'Hasła nie pasują do siebie',
+      passwordTooShort: 'Hasło musi mieć co najmniej 8 znaków',
+      showPassword: 'Pokaż hasło',
+      hidePassword: 'Ukryj hasło',
+      changing: 'Zmienianie...',
+      backToLogin: 'Powrót do logowania',
+      invalidToken: 'Nieprawidłowy token resetowania hasła',
+      passwordsNotIdentical: 'Hasła nie są identyczne',
+      passwordMinLength: 'Hasło musi mieć co najmniej 6 znaków',
+      passwordResetSuccess: 'Hasło zostało zmienione pomyślnie! Możesz się teraz zalogować.',
+      unexpectedError: 'Wystąpił nieoczekiwany błąd'
+    }
+  })
+}))
+
 // Mock window.location
 const mockLocation = {
   search: '',
@@ -172,7 +197,7 @@ describe('ResetPasswordForm', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(screen.getByText('Aktualizowanie...')).toBeInTheDocument()
+      expect(screen.getByText('Zmienianie...')).toBeInTheDocument()
     })
     expect(submitButton).toBeDisabled()
 

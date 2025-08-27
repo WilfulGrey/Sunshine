@@ -26,8 +26,11 @@ vi.mock('../contexts/LanguageContext', () => ({
       low: '🟢 Low',
       medium: '🟡 Medium',
       high: '🟠 High',
-      urgent: '🔴 Urgent',
-      overdue: 'Overdue'
+      urgent: '🔴 PILNE',
+      overdue: 'Overdue',
+      profilePortalLink: 'Profil w portalu MM',
+      dashboardRetellLink: 'Dashboard Retell',
+      jobLink: 'Link do JOBa'
     }
   })
 }));
@@ -35,6 +38,18 @@ vi.mock('../contexts/LanguageContext', () => ({
 vi.mock('../contexts/TimezoneContext', () => ({
   useTimezone: () => ({
     timezone: 'Europe/Warsaw'
+  })
+}));
+
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { 
+      id: 'test-user-id', 
+      email: 'test@example.com',
+      user_metadata: { full_name: 'Test User' }
+    },
+    signOut: vi.fn(),
+    isLoading: false
   })
 }));
 
@@ -255,7 +270,7 @@ describe('TaskFocusedView', () => {
       
       render(<TaskFocusedView tasks={urgentTasks} onUpdateTask={mockOnUpdateTask} />);
       
-      expect(screen.getByText('PILNE')).toBeInTheDocument();
+      expect(screen.getByText('🔴 PILNE')).toBeInTheDocument();
     });
 
     it('should display task action buttons', () => {

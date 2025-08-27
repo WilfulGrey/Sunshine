@@ -1,5 +1,105 @@
 # Claude Memory - Sunshine Project
 
+## 🚨 CRITICAL DEVELOPMENT RULES (TOP PRIORITY) 
+
+### 🎯 AUTOMATED TESTING IS MANDATORY FOR COMPLEX BUGS (2025-08-25):
+```
+🔥 WHEN USER SAYS "nadal nie działa, spam na maksa dalej":
+□ STOP making random code changes
+□ INSTALL proper testing tools (puppeteer, playwright)
+□ CREATE automated browser test to see REAL console output
+□ IDENTIFY exact error messages and stack traces
+□ FIX based on concrete evidence, not guesswork
+□ VERIFY fix with same automated test
+
+⚠️ NEVER say "aplikacja działa" without seeing browser console
+⚠️ NEVER make dependency array changes without testing
+⚠️ NEVER claim "infinite loop fixed" without proof
+```
+
+### ❌ NEVER SAY "READY" WITHOUT MANDATORY VERIFICATION:
+```
+🔴 BEFORE saying "ready/deploy ready/działa":
+□ npm run build (MUST pass - zero tolerance for errors)
+□ npm run dev (MUST start without errors)  
+□ CREATE & RUN automated Puppeteer test (MANDATORY)
+□ VERIFY in browser console output - no critical errors
+□ Test primary user action (MUST function)
+
+🟡 THEN verification:
+□ npm run test (acceptable pass rate)
+□ Manual test key functionality  
+□ No regression in existing features
+
+🟢 ONLY THEN SAY:
+□ "App ready for testing on localhost:XXXX"
+```
+
+### 🤖 PUPPETEER TESTING IS MANDATORY FOR ALL BUILDS:
+```
+🎯 EVERY build session MUST include:
+□ Write automated Puppeteer test for the feature
+□ Run test and capture console output
+□ NEVER claim "działa" without seeing actual browser behavior
+□ Screenshot evidence when possible
+□ Fix based on test results, not assumptions
+
+⚠️ NO EXCEPTIONS: Manual clicking ≠ automated verification
+⚠️ Console logs are REQUIRED evidence
+⚠️ User perspective testing with actual browser automation
+```
+
+### 🔐 USER CREDENTIALS MUST BE PRESERVED (2025-08-27):
+```
+🔑 WHEN USER PROVIDES LOGIN CREDENTIALS:
+□ ALWAYS use EXACTLY the credentials provided by the user
+□ NEVER substitute with fake/test/example credentials
+□ PRESERVE login and password as given in conversation
+□ ASK user for credentials if not provided, don't guess
+□ STORE provided credentials temporarily for test session
+
+⚠️ NEVER create fake credentials like:
+   - "test@example.com" / "password123" 
+   - "michal@mamamia.com" / "testpass123"
+   - Any made-up email/password combinations
+
+✅ ALWAYS use user-provided credentials exactly:
+   - Email: exactly as user typed
+   - Password: exactly as user typed
+   - No modifications, no assumptions
+```
+
+### 🔍 CONSOLE LOGS ANALYSIS IS MANDATORY (2025-08-27):
+```
+🚨 BEFORE making ANY code changes after tests:
+□ READ all console output from test carefully
+□ IDENTIFY exact errors, exceptions, and stack traces  
+□ LOOK FOR missing logs that should be present
+□ ANALYZE what the console tells you vs what you expected
+□ ONLY THEN make targeted fixes based on console evidence
+
+❌ NEVER assume problems without console evidence
+❌ NEVER make random changes hoping they work
+❌ NEVER skip reading test output thoroughly
+✅ ALWAYS let console logs guide your debugging decisions
+✅ ALWAYS compare expected vs actual log patterns
+```
+
+### Key Lessons from 2025-08-22 Real-time Implementation Disaster:
+- **2x said "deploy ready" when app crashed** - UNACCEPTABLE
+- **"89% test pass ≠ working app"** - Tests don't guarantee functionality
+- **TypeScript compilation errors = instant app crash** - No exceptions
+- **React Context outside Provider = crash** - Architecture must be verified
+- **User experience > Technical correctness** - If user can't click → FAIL
+
+### New Mindset: USER-FIRST VERIFICATION
+- Every change must be verified from user perspective
+- "Does the button work?" > "Does the code compile?"
+- Manual verification is MANDATORY, not optional
+- Quality over speed, always
+
+---
+
 ## Project Overview
 **Sunshine** - React TypeScript aplikacja do zarządzania zadaniami z integracjami:
 - **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS

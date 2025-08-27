@@ -5,10 +5,18 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useTimezone } from '../contexts/TimezoneContext';
 import { addHistoryEntry } from '../utils/helpers';
 import { AirtableService } from '../services/airtableService';
+import { supabase } from '../lib/supabase';
+
+// Using shared Supabase instance for consistent real-time channels
+let globalChannel: any = null;
+
+// Real-time event sender function will be defined INSIDE useTaskActions hook
 
 export const useTaskActions = (
   tasks: Task[],
-  onUpdateTask: (taskId: string, updates: Partial<Task>) => void
+  onUpdateTask: (taskId: string, updates: Partial<Task>) => void,
+  onLoadContacts?: () => void,
+  onSilentRefresh?: () => void
 ) => {
   const { t } = useLanguage();
   const { timezone } = useTimezone();
@@ -21,6 +29,83 @@ export const useTaskActions = (
   const [boostingTask, setBoostingTask] = useState<string | null>(null);
 
   const currentUserName = user?.user_metadata?.full_name || user?.email || 'Nieznany użytkownik';
+
+  // Real-time event sender function - UNIFIED with sendEvent
+  const sendRealTimeEvent = (eventData: any) => {
+    if (!supabase || !user) {
+      console.log('🔄 Supabase not available or user not logged in - skipping real-time event');
+      return;
+    }
+
+    console.log('📤 Sending real-time event via Supabase broadcast:', eventData);
+    
+    // Use SAME format as sendEvent (unified implementation)
+    const event = {
+      type: eventData.type,
+      payload: {
+        taskId: eventData.taskId,
+        userId: user.id,
+        userName: user?.user_metadata?.full_name || user?.email || '',
+        timestamp: eventData.timestamp || new Date().toISOString(),
+        ...eventData
+      }
+    };
+
+    console.log('📤 Sending HTTP broadcast directly...');
+    const channel = supabase.channel('task-events-global');
+    
+    channel.send({
+      type: 'broadcast',
+      event: 'task-update',
+      payload: event
+    }).then((response) => {
+      console.log('✅ HTTP broadcast sent successfully:', response);
+    }).catch((error) => {
+      console.error('❌ HTTP broadcast failed:', error);
+    });
+  };
+
+  // Minimal real-time event sender
+  const sendEvent = (eventType: string, taskId: string, additionalData: any = {}) => {
+    if (!supabase || !user) {
+      console.log('🔄 Supabase not available or user not logged in - skipping real-time event');
+      return;
+    }
+
+    const event = {
+      type: eventType,
+      payload: {
+        taskId,
+        userId: user.id,
+        userName: currentUserName,
+        timestamp: new Date().toISOString(),
+        ...additionalData
+      }
+    };
+
+    console.log('📤 Sending minimal real-time event:', event);
+    
+    // SIMPLEST TEST: Direct HTTP send without subscription (from docs)
+    console.log('📤 Testing simplest HTTP broadcast...');
+    const channel = supabase.channel('task-events-global');
+    
+    console.log('📤 Sending HTTP broadcast directly...');
+    channel.send({
+      type: 'broadcast',
+      event: 'task-update',
+      payload: event  // Send entire event object with type + payload
+    }).then((response) => {
+      console.log('✅ HTTP broadcast sent successfully:', response);
+    }).catch((error) => {
+      console.error('❌ HTTP broadcast failed:', error);
+    });
+    
+    // Clean up
+    setTimeout(() => {
+      console.log('🧹 Cleaning up channel...');
+      supabase.removeChannel(channel);
+    }, 1000);
+  };
 
   const extractPhoneNumber = (task: Task): string => {
     if (task.airtableData?.phoneNumber) {
@@ -136,6 +221,21 @@ export const useTaskActions = (
       });
 
       console.log('✅ Zadanie pomyślnie przypisane i zweryfikowane');
+      
+      // 🚀 SEND REAL-TIME EVENT - Task assigned
+      console.log('📤 About to send real-time event with:', { 
+        eventType: 'task-assigned', 
+        taskId, 
+        additionalData: { status: 'pending', assignedTo: userName },
+        currentUserName 
+      });
+      // Send real-time event with 0.5s delay to allow Airtable propagation
+      setTimeout(() => {
+        sendEvent('task-assigned', taskId, {
+          status: 'pending',
+          assignedTo: userName
+        });
+      }, 500);
       
       // Usuń z weryfikacji - sukces
       setVerifyingTasks(prev => {
@@ -284,6 +384,16 @@ export const useTaskActions = (
     }
     
     onUpdateTask(task.id, updates);
+    
+    // Send real-time event to target user (transferred task appears as assigned to them)
+    console.log('📤 About to send real-time event for task transfer');
+    sendRealTimeEvent({
+      type: 'task-transfer',
+      taskId: task.id,
+      fromUser: task.assignedTo,
+      toUser: transferToUser,
+      timestamp: new Date().toISOString()
+    });
   };
 
   const handleUnassignTask = (task: Task) => {
@@ -310,6 +420,36 @@ export const useTaskActions = (
     }
     
     onUpdateTask(task.id, updates);
+    
+    // Clear local state for this task (user no longer owns/is taking/verifying this task)
+    console.log('🧹 Clearing local state for unassigned task');
+    takenTasks.delete(task.id);
+    setVerifyingTasks(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(task.id);
+      return newSet;
+    });
+    setFailedTasks(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(task.id);
+      return newSet;
+    });
+    
+    // Send real-time event to ALL users (task becomes available) + self (refresh tasks)
+    console.log('📤 About to send real-time event for task unassign');
+    sendRealTimeEvent({
+      type: 'task-unassign',
+      taskId: task.id,
+      fromUser: task.assignedTo,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Trigger delayed silent refresh for the user who unassigned (no loading states)
+    console.log('🔄 User who unassigned: triggering delayed silent refresh to allow Airtable propagation');
+    setTimeout(() => {
+      console.log('🔇 Delayed silent refresh executing - Airtable should have propagated changes');
+      onSilentRefresh && onSilentRefresh();
+    }, 500); // 0.5 second delay for Airtable propagation
   };
 
   const handlePostponeTask = (task: Task, postponeDate: string, postponeTime: string, postponeNotes: string) => {

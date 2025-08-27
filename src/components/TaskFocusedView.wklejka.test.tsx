@@ -23,6 +23,14 @@ vi.mock('../contexts/LanguageContext', () => ({
       postpone: 'Postpone',
       completed: 'Completed',
       matchingContact: 'Matching & Contact',
+      addWklejka: 'Dodaj wklejkę',
+      editWklejka: 'Edytuj wklejkę',
+      removeWklejka: 'Usuń wklejkę (nieudana)',
+      wklejkaOldWarning: 'Wklejka starsza niż 24h - sprawdź czy przeszła',
+      failedWklejka: 'Nieudanych wklejek:',
+      profilePortalLink: 'Profil w portalu MM',
+      dashboardRetellLink: 'Dashboard Retell',
+      jobLink: 'Link do JOBa'
     }
   })
 }));

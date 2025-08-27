@@ -24,9 +24,16 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
 
   // Load user's preferred language when user data is available
   useEffect(() => {
+    console.log('🌐 LanguageContext useEffect triggered:', { 
+      currentUser: !!currentUser, 
+      usersLength: users.length,
+      userIds: users.map(u => u.id).slice(0, 3)
+    });
+    
     if (currentUser && users.length > 0) {
       const userProfile = users.find(u => u.id === currentUser.id);
       if (userProfile?.preferred_language) {
+        console.log('🌐 Setting language from profile:', userProfile.preferred_language);
         setLanguage(userProfile.preferred_language);
       }
     }

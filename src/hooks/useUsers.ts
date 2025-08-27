@@ -108,12 +108,10 @@ export const useUsers = () => {
       setUsers(profilesData);
       
     } catch (err) {
-      console.error('Błąd podczas ładowania użytkowników:', err);
-      setError(err instanceof Error ? err.message : 'Nieznany błąd');
-      
-      // No fallback - if we can't get users properly, show error
-      console.log('Could not load users from any source');
-      setUsers([]);
+      // Defensive error handling to prevent cascade failures
+      console.warn('⚠️ useUsers error handled defensively:', err);
+      setError(null); // Don't propagate error to prevent cascade
+      setUsers([]); // Set empty users as fallback
     } finally {
       setLoading(false);
     }

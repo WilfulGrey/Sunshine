@@ -6,17 +6,17 @@ export const convertAirtableContactToTask = (contact: AirtableContact): Task => 
   const fullName = `${contact.fields['Imię']} ${contact.fields['Nazwisko']}`;
   
   // Debug: sprawdź czy pole "Komentarz status nön" jest pobierane
-  console.log('=== DEBUG AIRTABLE CONTACT ===');
-  console.log('Full name:', fullName);
-  console.log('All fields:', Object.keys(contact.fields));
-  console.log('Komentarz status n8n:', contact.fields['Komentarz status n8n']);
-  console.log('==============================');
+  // console.log('=== DEBUG AIRTABLE CONTACT ===');
+  // console.log('Full name:', fullName);
+  // console.log('All fields:', Object.keys(contact.fields));
+  // console.log('Komentarz status n8n:', contact.fields['Komentarz status n8n']);
+  // console.log('==============================');
   
   // Parsuj datę "kiedy dzwonić"
   let dueDate: Date | undefined;
   if (contact.fields['kiedy dzwonić']) {
     const dateStr = contact.fields['kiedy dzwonić'];
-    console.log(`Parsing date for ${fullName}: "${dateStr}"`);
+    // console.log(`Parsing date for ${fullName}: "${dateStr}"`);
     let tempDate: Date | undefined;
     
     // 1. Spróbuj nowy format Airtable: "15/9/2025 12:00am" lub "15/9/2025 12:00pm"
@@ -61,14 +61,14 @@ export const convertAirtableContactToTask = (contact: AirtableContact): Task => 
     if (!tempDate || isNaN(tempDate.getTime())) {
       tempDate = new Date(dateStr);
       if (!isNaN(tempDate.getTime())) {
-        console.log(`✅ Parsed ISO format: ${tempDate.toLocaleString('de-DE')}`);
+        // console.log(`✅ Parsed ISO format: ${tempDate.toLocaleString('de-DE')}`);
       }
     }
     
     // Sprawdź czy tempDate jest prawidłową datą
     if (tempDate && !isNaN(tempDate.getTime())) {
       dueDate = tempDate;
-      console.log(`✅ Final parsed date for ${fullName}: ${dueDate.toLocaleString('de-DE')}`);
+      // console.log(`✅ Final parsed date for ${fullName}: ${dueDate.toLocaleString('de-DE')}`);
     } else {
       console.warn(`❌ Failed to parse date "${dateStr}" for ${fullName}. Setting to undefined.`);
       dueDate = undefined;
@@ -123,7 +123,9 @@ export const convertAirtableContactToTask = (contact: AirtableContact): Task => 
     priority,
     status: 'pending',
     dueDate,
-    assignedTo: contact.fields['DRI'] || undefined,
+    assignedTo: contact.fields['User'] ? 
+      (Array.isArray(contact.fields['User']) ? contact.fields['User'][0] : contact.fields['User']) 
+      : undefined,
     category: 'Matching & Kontakt',
     createdAt: contact.fields['Created at'] ? new Date(contact.fields['Created at']) : new Date(),
     history: [],
