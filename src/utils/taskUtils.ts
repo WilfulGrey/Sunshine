@@ -31,18 +31,7 @@ export const getPriorityColor = (priority: string) => {
 };
 
 export const filterActiveTasks = (tasks: Task[], currentUserName: string, takenTasks: Set<string>) => {
-  // EMERGENCY DEBUG: Log user name for each call
-  console.log(`🔍 FILTERING DEBUG: currentUserName="${currentUserName}"`);
-  
   return tasks.filter(task => {
-    // Debug first task only to avoid spam
-    if (task === tasks[0]) {
-      console.log(`🔍 FIRST TASK DEBUG: "${task.title}"`, {
-        assignedTo: task.assignedTo,
-        airtableUser: task.airtableData?.user,
-        currentUser: currentUserName
-      });
-    }
     if (task.status === 'completed' || task.status === 'cancelled') {
       return false;
     }

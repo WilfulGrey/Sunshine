@@ -23,7 +23,10 @@
       "Bash(node:*)",
       "Bash(timeout:*)",
       "Bash(rg:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(set TEST_EMAIL=m.kepinski@mamamia.app)",
+      "Bash(set TEST_PASSWORD=123Qwe123$)",
+      "Bash(TEST_EMAIL=\"m.kepinski@mamamia.app\" TEST_PASSWORD=\"123Qwe123$\" node test-console-analysis.js)"
     ],
     "deny": [],
     "ask": [],

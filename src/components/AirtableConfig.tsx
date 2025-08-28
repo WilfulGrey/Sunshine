@@ -31,11 +31,10 @@ export const AirtableConfig: React.FC<AirtableConfigProps> = ({ onConfigSaved })
 
   const testConnection = async () => {
     try {
-      // Testuj rzeczywiste połączenie
-      const tempService = new (await import('../services/airtableService')).AirtableService();
-      tempService.updateConfig(config);
+      // Use shared singleton instead of creating new instance
+      airtableService.updateConfig(config);
       
-      await tempService.getContacts();
+      await airtableService.getContacts();
       setTestResult('success');
       setTimeout(() => setTestResult(null), 3000);
     } catch (error) {

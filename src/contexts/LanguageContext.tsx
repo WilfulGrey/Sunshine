@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useRef } from 'react';
 import { Language, useTranslation } from '../utils/translations';
 import { useAuth } from './AuthContext';
 import { useUsers } from '../hooks/useUsers';
@@ -22,22 +22,22 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
   const { users, updateUserLanguage: updateUserLanguageInUsers } = useUsers();
   const t = useTranslation(language);
 
+  // Optimize: only find user profile when necessary and cache result
+  const currentUserProfile = useMemo(() => {
+    if (!currentUser || users.length === 0) return null;
+    return users.find(u => u.id === currentUser.id) || null;
+  }, [currentUser?.id, users]);
+
+  // Track if we've already set language from profile to prevent re-setting
+  const hasSetLanguageFromProfile = useRef(false);
+  
   // Load user's preferred language when user data is available
   useEffect(() => {
-    console.log('🌐 LanguageContext useEffect triggered:', { 
-      currentUser: !!currentUser, 
-      usersLength: users.length,
-      userIds: users.map(u => u.id).slice(0, 3)
-    });
-    
-    if (currentUser && users.length > 0) {
-      const userProfile = users.find(u => u.id === currentUser.id);
-      if (userProfile?.preferred_language) {
-        console.log('🌐 Setting language from profile:', userProfile.preferred_language);
-        setLanguage(userProfile.preferred_language);
-      }
+    if (currentUserProfile?.preferred_language && !hasSetLanguageFromProfile.current) {
+      setLanguage(currentUserProfile.preferred_language);
+      hasSetLanguageFromProfile.current = true;
     }
-  }, [currentUser, users]);
+  }, [currentUserProfile?.preferred_language]);
 
   const updateUserLanguage = async (newLanguage: Language): Promise<void> => {
     if (!currentUser) {
@@ -56,8 +56,16 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     }
   };
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    language,
+    setLanguage,
+    updateUserLanguage,
+    t
+  }), [language, t]);
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, updateUserLanguage, t }}>
+    <LanguageContext.Provider value={contextValue}>
       {children}
     </LanguageContext.Provider>
   );

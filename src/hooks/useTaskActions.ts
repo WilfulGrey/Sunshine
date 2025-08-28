@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTimezone } from '../contexts/TimezoneContext';
 import { addHistoryEntry } from '../utils/helpers';
-import { AirtableService } from '../services/airtableService';
+import { airtableService } from '../services/airtableService';
 import { supabase } from '../lib/supabase';
 
 // Using shared Supabase instance for consistent real-time channels
@@ -21,7 +21,7 @@ export const useTaskActions = (
   const { t } = useLanguage();
   const { timezone } = useTimezone();
   const { user } = useAuth();
-  const airtableService = new AirtableService();
+  // Use shared airtableService singleton instead of creating new instance
   const [takenTasks, setTakenTasks] = useState<Set<string>>(new Set());
   const [takingTask, setTakingTask] = useState<string | null>(null);
   const [verifyingTasks, setVerifyingTasks] = useState<Set<string>>(new Set());

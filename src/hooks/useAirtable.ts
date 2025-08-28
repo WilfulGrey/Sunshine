@@ -18,7 +18,6 @@ export const useAirtable = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Attempting to load contacts from Airtable...');
       
       // Pobierz kontakty i dostępnych użytkowników równolegle
       const [contacts, users] = await Promise.all([
@@ -28,15 +27,6 @@ export const useAirtable = () => {
       
       const convertedTasks = contacts.map(convertAirtableContactToTask);
       
-      // DEBUG: Check first task assignment after conversion
-      if (convertedTasks.length > 0) {
-        const firstTask = convertedTasks[0];
-        console.log('📝 PO REFRESH - First task assignment:', {
-          title: firstTask.title,
-          assignedTo: firstTask.assignedTo,
-          airtableUser: firstTask.airtableData?.user
-        });
-      }
       
       setTasks(convertedTasks);
       setAvailableUsers(users);
@@ -66,8 +56,6 @@ export const useAirtable = () => {
 
   const silentRefresh = async () => {
     try {
-      // Silent refresh WITHOUT loading states - no UI disruption
-      console.log('🔇 Silent refresh: Loading contacts in background...');
       
       // Pobierz kontakty i dostępnych użytkowników równolegle
       const [contacts, users] = await Promise.all([
@@ -77,21 +65,11 @@ export const useAirtable = () => {
       
       const convertedTasks = contacts.map(convertAirtableContactToTask);
       
-      // DEBUG: Check first task assignment after conversion
-      if (convertedTasks.length > 0) {
-        const firstTask = convertedTasks[0];
-        console.log('📝 PO SILENT REFRESH - First task assignment:', {
-          title: firstTask.title,
-          assignedTo: firstTask.assignedTo,
-          airtableUser: firstTask.airtableData?.user
-        });
-      }
       
       // Update data silently - no loading state changes
       setTasks(convertedTasks);
       setAvailableUsers(users);
       setLastRefresh(new Date());
-      console.log('🔇 Silent refresh completed successfully');
     } catch (err) {
       console.error('🔇 Silent refresh failed:', err);
       // Don't set error state for silent refresh - don't disrupt user experience
@@ -123,35 +101,12 @@ export const useAirtable = () => {
     };
     
     const normalizedUserName = normalizeString(userName);
-    // console.log(`🔍 DEBUGGING mapUserToAirtableOption:`);
-    console.log(`  - Looking for: "${userName}" -> normalized: "${normalizedUserName}" (length: ${normalizedUserName.length})`);
-    console.log(`  - Char codes:`, userName.split('').map(c => `${c}(${c.charCodeAt(0)})`).join(' '));
-    
-    const normalizedAvailableUsers = availableUsers.map(u => ({
-      original: u,
-      normalized: normalizeString(u),
-      charCodes: u.split('').map(c => `${c}(${c.charCodeAt(0)})`).join(' ')
-    }));
-    
-    console.log(`  - Available users:`, normalizedAvailableUsers.map(u => 
-      `"${u.original}" -> "${u.normalized}" (${u.original.length} -> ${u.normalized.length})`
-    ));
     
     // Sprawdź dopasowanie na agresywnie znormalizowanych stringach
     const exactMatch = availableUsers.find(u => normalizeString(u) === normalizedUserName);
     if (exactMatch) {
-      console.log(`✅ Found exact match in Airtable: "${exactMatch}" (aggressively normalized)`);
       return exactMatch;
     }
-    
-    // Debug: pokaż różnice w char codes
-    normalizedAvailableUsers.forEach(u => {
-      if (u.normalized === normalizedUserName) {
-        console.log(`🔍 MATCH FOUND BUT MISSED: "${u.original}"`);
-        console.log(`  User chars: ${userName.split('').map(c => `${c}(${c.charCodeAt(0)})`).join(' ')}`);
-        console.log(`  Available chars: ${u.charCodes}`);
-      }
-    });
     
     // Fuzzy matching dla podobnych nazw (błędy pisowni)
     const normalizedName = normalizeString(userName).toLowerCase();
@@ -186,7 +141,6 @@ export const useAirtable = () => {
       const normalizedAvailable = normalizeString(availableUser).toLowerCase();
       const sim = similarity(normalizedName, normalizedAvailable);
       
-      console.log(`🔍 Similarity "${userName}" vs "${availableUser}": ${(sim * 100).toFixed(1)}%`);
       
       if (sim > bestSimilarity && sim > 0.85) {
         bestMatch = availableUser;
@@ -195,13 +149,10 @@ export const useAirtable = () => {
     }
     
     if (bestMatch) {
-      console.log(`🔄 Fuzzy matched user "${userName}" to "${bestMatch}" (${(bestSimilarity * 100).toFixed(1)}% similarity)`);
       return bestMatch;
     }
     
     // Jeśli nie ma w Airtable, ale użytkownik istnieje w systemie - pozwól na dodanie
-    console.warn(`⚠️ User "${userName}" not found in Airtable options. Available: ${availableUsers.join(', ')}`);
-    console.log(`🆕 Will attempt to add new user "${userName}" to Airtable`);
     return userName; // Airtable może automatycznie dodać nową opcję do multiselect
   };
 
@@ -220,22 +171,7 @@ export const useAirtable = () => {
       (updates as any).airtableUpdates?.['Status'] || // any status change in Airtable
       isTransferToOtherUser; // only transfer to different user, not "take task"
 
-    console.log('🔍 updateTaskInAirtable debug:', {
-      taskId,
-      updates,
-      currentUserName,
-      assignedTo: updates.assignedTo,
-      isTransferToOtherUser,
-      isTaskCompletionAction,
-      airtableUpdates: (updates as any).airtableUpdates
-    });
-
     try {
-      console.log('🔍 Current user data:', {
-        user_metadata: user?.user_metadata,
-        email: user?.email,
-        currentUserName
-      });
       
       const task = tasks.find(t => t.id === taskId);
       if (!task?.airtableData?.recordId) return;
@@ -244,15 +180,12 @@ export const useAirtable = () => {
       const isTakingTask = updates.assignedTo === currentUserName && !task.assignedTo;
       
       if (isTakingTask) {
-        console.log('🔒 Taking task - checking for conflicts...');
-        
         // Fetch fresh data from Airtable to check current assignment
         try {
           const freshContacts = await airtableService.getContacts();
           const freshContact = freshContacts.find(c => c.id === task.airtableData?.recordId);
           
           if (freshContact?.fields['User'] && freshContact.fields['User'] !== currentUserName) {
-            console.log('❌ Task already taken by:', freshContact.fields['User']);
             throw new Error(`Zadanie zostało już przypisane do: ${freshContact.fields['User']}`);
           }
         } catch (syncError) {
@@ -402,14 +335,7 @@ export const useAirtable = () => {
 
   // Real-time listener moved to TaskFocusedView for better focused task handling
 
-  // DEBUG: Check if loadContacts is properly defined
-  console.log('🔍 useAirtable returning:', {
-    tasks: tasks.length,
-    loading,
-    error: !!error,
-    loadContacts: typeof loadContacts,
-    loadContactsDefined: !!loadContacts
-  });
+  // Production: Remove verbose debug logging
 
   return {
     tasks,

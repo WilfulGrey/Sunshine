@@ -23,9 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env.test
 
 # Puppeteer test files and screenshots (may contain sensitive data)
 test-*.js
+test-console-analysis.js
 temp_debug.js
 *.png
 *.jpg

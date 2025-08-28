@@ -51,7 +51,6 @@ export class AirtableService {
 
     if (apiKey && baseId && tableId) {
       this.config = { apiKey, baseId, tableId };
-      console.log('Loaded Airtable config from environment variables');
     }
   }
 
@@ -82,10 +81,8 @@ export class AirtableService {
     }
 
     try {
-      console.log('Initializing Airtable with Base ID:', this.config.baseId.substring(0, 8) + '...');
       this.base = new Airtable({ apiKey: this.config.apiKey }).base(this.config.baseId);
       this.table = this.base(this.config.tableId);
-      console.log('Airtable initialized successfully for table ID:', this.config.tableId);
     } catch (error) {
       console.error('Failed to initialize Airtable:', error);
     }
@@ -111,7 +108,6 @@ export class AirtableService {
     this.ensureInitialized();
 
     try {
-      console.log('Fetching contacts from Airtable table ID:', this.config?.tableId);
       
       const records = await this.table.select({
         // Sortuj według daty "kiedy dzwonić"
@@ -230,9 +226,6 @@ export class AirtableService {
       
       if (field.type === 'multipleSelects' && field.options && field.options.choices) {
         const options = field.options.choices.map((choice: any) => choice.name);
-        console.log(`✅ Pobrano opcje multiselect dla pola ${fieldName}:`, options);
-        console.log('🔍 Raw field data:', JSON.stringify(field, null, 2));
-        console.log('🔍 Raw choices:', field.options.choices);
         return options;
       }
       
@@ -278,13 +271,11 @@ export class AirtableService {
   async getAvailableUsers(): Promise<string[]> {
     this.ensureInitialized();
     
-    console.log('🔍 Pobieranie dostępnych użytkowników z konfiguracji multiselect...');
     
     // Najpierw spróbuj pobrać z konfiguracji pola
     const multiselectOptions = await this.getMultiselectOptions('User');
     
     if (multiselectOptions.length > 0) {
-      console.log('✅ Używam opcji z konfiguracji multiselect:', multiselectOptions);
       return multiselectOptions;
     }
     

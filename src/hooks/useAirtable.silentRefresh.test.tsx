@@ -112,7 +112,7 @@ describe('useAirtable - Silent Refresh', () => {
     expect(airtableService.getAvailableUsers).toHaveBeenCalledTimes(2); // Initial + silent refresh
   });
 
-  it('should log silent refresh process', async () => {
+  it('should complete silent refresh process without errors', async () => {
     const { result } = renderHook(() => useAirtable());
 
     // Wait for initial load
@@ -120,20 +120,17 @@ describe('useAirtable - Silent Refresh', () => {
       expect(result.current.loading).toBe(false);
     });
 
+    const initialLastRefresh = result.current.lastRefresh;
+
     // Call silent refresh
     await act(async () => {
       await result.current.silentRefresh();
     });
 
-    // Should log silent refresh start
-    expect(mockConsoleLog).toHaveBeenCalledWith(
-      '🔇 Silent refresh: Loading contacts in background...'
-    );
-
-    // Should log successful completion
-    expect(mockConsoleLog).toHaveBeenCalledWith(
-      '🔇 Silent refresh completed successfully'
-    );
+    // Should update data without affecting loading state
+    expect(result.current.loading).toBe(false);
+    expect(result.current.lastRefresh).not.toBe(initialLastRefresh);
+    expect(result.current.tasks).toBeDefined();
   });
 
   it('should update lastRefresh timestamp during silent refresh', async () => {
@@ -230,7 +227,7 @@ describe('useAirtable - Silent Refresh', () => {
     expect(result.current.availableUsers.length).toBeGreaterThan(initialUsers.length);
   });
 
-  it('should debug log task assignments during silent refresh', async () => {
+  it('should handle task data correctly during silent refresh', async () => {
     const { result } = renderHook(() => useAirtable());
 
     // Wait for initial load
@@ -238,20 +235,24 @@ describe('useAirtable - Silent Refresh', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    // Clear console mock to focus only on silent refresh logs
-    mockConsoleLog.mockClear();
+    const initialTasksCount = result.current.tasks.length;
 
     // Call silent refresh
     await act(async () => {
       await result.current.silentRefresh();
     });
 
-    // Should log first task assignment info (check call #2 which contains the specific log)
-    expect(mockConsoleLog).toHaveBeenNthCalledWith(
-      2, // Second call
-      expect.stringContaining('📝 PO SILENT REFRESH - First task assignment:'),
-      expect.any(Object)
-    );
+    // Should maintain task data integrity
+    expect(result.current.tasks).toBeDefined();
+    expect(Array.isArray(result.current.tasks)).toBe(true);
+    expect(result.current.tasks.length).toBeGreaterThanOrEqual(0);
+    
+    // First task should have proper structure if exists
+    if (result.current.tasks.length > 0) {
+      const firstTask = result.current.tasks[0];
+      expect(firstTask).toHaveProperty('title');
+      expect(firstTask).toHaveProperty('id');
+    }
   });
 
   it('should work when no tasks are available', async () => {
@@ -265,14 +266,17 @@ describe('useAirtable - Silent Refresh', () => {
       expect(result.current.loading).toBe(false);
     });
 
+    const initialLastRefresh = result.current.lastRefresh;
+
     // Call silent refresh
     await act(async () => {
       await result.current.silentRefresh();
     });
 
     // Should complete successfully even with no tasks
-    expect(mockConsoleLog).toHaveBeenCalledWith(
-      '🔇 Silent refresh completed successfully'
-    );
+    expect(result.current.tasks).toEqual([]);
+    expect(result.current.loading).toBe(false);
+    expect(result.current.lastRefresh).not.toBe(initialLastRefresh);
+    expect(result.current.error).toBe(null);
   });
 });
