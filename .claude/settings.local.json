@@ -26,7 +26,11 @@
       "Bash(pkill:*)",
       "Bash(set TEST_EMAIL=m.kepinski@mamamia.app)",
       "Bash(set TEST_PASSWORD=123Qwe123$)",
-      "Bash(TEST_EMAIL=\"m.kepinski@mamamia.app\" TEST_PASSWORD=\"123Qwe123$\" node test-console-analysis.js)"
+      "Bash(TEST_EMAIL=\"m.kepinski@mamamia.app\" TEST_PASSWORD=\"123Qwe123$\" node test-console-analysis.js)",
+      "Bash(TEST_EMAIL=\"m.kepinski@mamamia.app\" TEST_PASSWORD=\"123Qwe123$\" node test-console-analysis.cjs)",
+      "Bash(TEST_EMAIL=\"m.kepinski@mamamia.app\" TEST_PASSWORD=\"123Qwe123$\" node test-real-inspection.cjs)",
+      "Bash(TEST_EMAIL=\"m.kepinski@mamamia.app\" TEST_PASSWORD=\"123Qwe123$\" node test-smart-refresh-behavior.cjs)",
+      "Bash(TEST_EMAIL=\"m.kepinski@mamamia.app\" TEST_PASSWORD=\"123Qwe123$\" node test-comprehensive-smart-refresh.cjs)"
     ],
     "deny": [],
     "ask": [],

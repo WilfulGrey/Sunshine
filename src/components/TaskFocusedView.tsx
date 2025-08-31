@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, ExternalLink, Phone, X, Skull, XCircle, Eye, Plus, Trash2, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, ExternalLink, Phone, X, Skull, XCircle, Eye, Plus, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTimezone } from '../contexts/TimezoneContext';
 import { useUsers } from '../hooks/useUsers';
@@ -9,6 +9,9 @@ import { Task } from '../types/Task';
 import { formatDate, isOverdue } from '../utils/helpers';
 import { useTaskActions } from '../hooks/useTaskActions';
 import { useDialogState } from '../hooks/useDialogState';
+import { useActivityRefresh } from '../hooks/useActivityRefresh';
+import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh';
+import { useSmartPolling } from '../hooks/useSmartPolling';
 import { getTypeIcon, getTypeColor, getPriorityColor, getProcessedTasks } from '../utils/taskUtils';
 import { CompletionDialog } from './dialogs/CompletionDialog';
 import { AbandonDialog } from './dialogs/AbandonDialog';
@@ -39,6 +42,64 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   const taskActions = useTaskActions(tasks, onUpdateTask, onLoadContacts, onSilentRefresh);
   const dialogState = useDialogState();
   const [showFutureTasks, setShowFutureTasks] = useState(false);
+  
+  // 🚀 SMART REFRESH INTEGRATION - FIXED INFINITE LOOP
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  
+  // Manual refresh handler (stable reference to avoid re-renders)
+  const handleManualRefresh = useCallback(async () => {
+    if (isManualRefreshing) return;
+    
+    setIsManualRefreshing(true);
+    setRefreshError(null);
+    
+    try {
+      if (onLoadContacts) {
+        await onLoadContacts();
+      }
+      setLastUpdateTime(new Date());
+    } catch (error) {
+      console.error('Manual refresh failed:', error);
+      setRefreshError(t.refreshError || 'Błąd podczas odświeżania');
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  }, [isManualRefreshing, onLoadContacts, t.refreshError]);
+
+  // Activity detection (stable callback)
+  const handleActivityRefresh = useCallback(() => {
+    if (onSilentRefresh) {
+      onSilentRefresh();
+    }
+  }, [onSilentRefresh]);
+
+  // Visibility refresh (stable callback)  
+  const handleVisibilityRefresh = useCallback(() => {
+    if (onSilentRefresh) {
+      onSilentRefresh();
+    }
+  }, [onSilentRefresh]);
+
+  // Polling refresh (stable callback)
+  const handlePollingRefresh = useCallback(async () => {
+    if (onSilentRefresh) {
+      await onSilentRefresh();
+    }
+  }, [onSilentRefresh]);
+
+  // Now use the hooks with stable callbacks (prevents infinite loops)
+  useActivityRefresh(handleActivityRefresh, 5 * 60 * 1000); // 5 minutes inactivity threshold
+  useVisibilityRefresh(handleVisibilityRefresh, 30000); // 30 second minimum interval
+  const pollingState = useSmartPolling(handlePollingRefresh, {
+    activeInterval: 30000, // 30 seconds when user active
+    idleInterval: 120000, // 2 minutes when idle
+    minInterval: 10000,   // 10 seconds minimum
+    maxInterval: 300000,  // 5 minutes maximum
+    backoffMultiplier: 2,
+    maxRetries: 3
+  }, true);
 
   // 🚀 REAL-TIME MVP: Listen for task assignments and refresh focused task + list
   useEffect(() => {
@@ -315,7 +376,61 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   const isNextTaskOverdue = nextTask.dueDate && isOverdue(nextTask.dueDate);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-testid="task-focused-view">
+      {/* Smart Refresh Controls - FIXED INFINITE LOOP */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={handleManualRefresh}
+            disabled={isManualRefreshing}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all ${
+              isManualRefreshing 
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                : 'bg-blue-500 text-white hover:bg-blue-600 active:scale-95'
+            }`}
+            data-testid="manual-refresh-button"
+          >
+            {isManualRefreshing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>{t.loading || 'Ładowanie...'}</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4" />
+                <span>{t.refresh || 'Odśwież'}</span>
+              </>
+            )}
+          </button>
+          
+          {refreshError && (
+            <div className="text-red-600 text-sm font-medium">
+              {refreshError}
+            </div>
+          )}
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-gray-600" data-testid="last-update-timestamp">
+            {t.lastUpdated || 'Ostatnia aktualizacja'}: {lastUpdateTime.toLocaleTimeString()}
+          </div>
+          
+          {pollingState && (
+            <div 
+              className={`w-3 h-3 rounded-full transition-all ${
+                pollingState.errorCount > 0 
+                  ? 'bg-red-400 animate-pulse' 
+                  : pollingState.isActive 
+                    ? 'bg-green-400 animate-pulse' 
+                    : 'bg-yellow-400'
+              }`}
+              data-testid="auto-refresh-indicator"
+              title={`Smart refresh: ${pollingState.isActive ? 'Active' : 'Idle'} (${pollingState.errorCount} errors)`}
+            />
+          )}
+        </div>
+      </div>
+
       {/* Next Task - Hero Section */}
       <div className={`bg-white rounded-xl border-2 p-8 ${
         isNextTaskOverdue ? 'border-red-300 bg-red-50' : 'border-purple-200'

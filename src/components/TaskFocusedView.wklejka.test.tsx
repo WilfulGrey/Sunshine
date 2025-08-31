@@ -67,7 +67,9 @@ vi.mock('lucide-react', () => ({
   XCircle: () => <div data-testid="x-circle-icon">XCircle</div>,
   Eye: () => <div data-testid="eye-icon">Eye</div>,
   Plus: () => <div data-testid="plus-icon">Plus</div>,
-  Trash2: () => <div data-testid="trash-icon">Trash</div>
+  Trash2: () => <div data-testid="trash-icon">Trash</div>,
+  RefreshCw: () => <div data-testid="refresh-icon">Refresh</div>,
+  Loader2: () => <div data-testid="loader-icon">Loading</div>
 }));
 
 describe('TaskFocusedView - Wklejka functionality', () => {
