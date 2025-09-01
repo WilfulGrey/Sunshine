@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Elegant diagonal stripes for inactive tasks */
+@layer utilities {
+  .task-inactive {
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(229, 231, 235, 0.1) 0px,
+      rgba(229, 231, 235, 0.1) 8px,
+      rgba(255, 255, 255, 0.8) 8px,
+      rgba(255, 255, 255, 0.8) 16px
+    );
+    background-size: 22.63px 22.63px;
+  }
+  
+  .task-inactive-subtle {
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(243, 244, 246, 0.6) 0px,
+      rgba(243, 244, 246, 0.6) 6px,
+      rgba(255, 255, 255, 0.9) 6px,
+      rgba(255, 255, 255, 0.9) 12px
+    );
+    background-size: 16.97px 16.97px;
+  }
+}

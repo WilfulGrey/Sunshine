@@ -5,7 +5,8 @@ import {
   getPriorityColor, 
   filterActiveTasks, 
   sortTasksByPriority, 
-  getProcessedTasks 
+  getProcessedTasks,
+  isTaskDueToday
 } from './taskUtils';
 import { Task } from '../types/Task';
 import { User, Bot, Zap } from 'lucide-react';
@@ -422,6 +423,83 @@ describe('taskUtils', () => {
       expect(result.upcomingTasks).toHaveLength(1); // Only urgent task should be visible
       expect(result.upcomingTasks[0].id).toBe('2'); // Urgent task
       expect(result.hiddenFutureTasksCount).toBe(1); // Normal future task hidden
+    });
+  });
+
+  describe('isTaskDueToday', () => {
+    it('should return true for tasks due today', () => {
+      const today = new Date();
+      const taskDueToday: Task = {
+        id: '1',
+        title: 'Test Task',
+        description: 'Description',
+        status: 'pending',
+        priority: 'medium',
+        type: 'manual',
+        assignedTo: null,
+        createdAt: new Date(),
+        history: [],
+        dueDate: today
+      };
+
+      expect(isTaskDueToday(taskDueToday)).toBe(true);
+    });
+
+    it('should return false for tasks due tomorrow', () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      const taskDueTomorrow: Task = {
+        id: '1',
+        title: 'Test Task',
+        description: 'Description',
+        status: 'pending',
+        priority: 'medium',
+        type: 'manual',
+        assignedTo: null,
+        createdAt: new Date(),
+        history: [],
+        dueDate: tomorrow
+      };
+
+      expect(isTaskDueToday(taskDueTomorrow)).toBe(false);
+    });
+
+    it('should return false for tasks due yesterday', () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const taskDueYesterday: Task = {
+        id: '1',
+        title: 'Test Task',
+        description: 'Description',
+        status: 'pending',
+        priority: 'medium',
+        type: 'manual',
+        assignedTo: null,
+        createdAt: new Date(),
+        history: [],
+        dueDate: yesterday
+      };
+
+      expect(isTaskDueToday(taskDueYesterday)).toBe(false);
+    });
+
+    it('should return false for tasks with no due date', () => {
+      const taskWithoutDueDate: Task = {
+        id: '1',
+        title: 'Test Task',
+        description: 'Description',
+        status: 'pending',
+        priority: 'medium',
+        type: 'manual',
+        assignedTo: null,
+        createdAt: new Date(),
+        history: [],
+        dueDate: undefined
+      };
+
+      expect(isTaskDueToday(taskWithoutDueDate)).toBe(false);
     });
   });
 });

@@ -147,7 +147,8 @@ vi.mock('../utils/taskUtils', () => ({
   getProcessedTasks: vi.fn((tasks) => ({
     nextTask: tasks[0] || null,
     upcomingTasks: tasks.slice(1)
-  }))
+  })),
+  isTaskDueToday: vi.fn(() => false) // Mock returns false by default for testing stripes
 }));
 
 // Mock dialog components

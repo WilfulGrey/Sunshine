@@ -12,7 +12,7 @@ import { useDialogState } from '../hooks/useDialogState';
 import { useActivityRefresh } from '../hooks/useActivityRefresh';
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh';
 import { useSmartPolling } from '../hooks/useSmartPolling';
-import { getTypeIcon, getTypeColor, getPriorityColor, getProcessedTasks } from '../utils/taskUtils';
+import { getTypeIcon, getTypeColor, getPriorityColor, getProcessedTasks, isTaskDueToday } from '../utils/taskUtils';
 import { CompletionDialog } from './dialogs/CompletionDialog';
 import { AbandonDialog } from './dialogs/AbandonDialog';
 import { TransferDialog } from './dialogs/TransferDialog';
@@ -437,7 +437,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       {/* Next Task - Hero Section */}
       <div className={`bg-white rounded-xl border-2 p-8 ${
         isNextTaskOverdue ? 'border-red-300 bg-red-50' : 'border-purple-200'
-      }`}>
+      } ${!isTaskDueToday(nextTask, timezone) && !isNextTaskOverdue ? 'task-inactive' : ''}`}>
         <div className="flex items-center space-x-3 mb-4">
           {nextTask.airtableData?.urgent && (
             <div className="flex items-center space-x-2 px-3 py-1 bg-red-100 text-red-700 rounded-full relative group">
@@ -803,7 +803,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                   key={task.id}
                   className={`bg-white rounded-lg border p-4 hover:shadow-md transition-all ${
                     taskOverdue ? 'border-red-200 bg-red-50' : 'border-gray-200'
-                  }`}
+                  } ${!isTaskDueToday(task, timezone) && !taskOverdue ? 'task-inactive-subtle' : ''}`}
                 >
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-3 flex-1">

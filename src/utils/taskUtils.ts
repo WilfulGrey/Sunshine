@@ -113,6 +113,23 @@ const isTaskFarInFuture = (task: Task, daysThreshold: number = 7): boolean => {
   return diffInDays > daysThreshold;
 };
 
+export const isTaskDueToday = (task: Task, timezone: string = 'Europe/Warsaw'): boolean => {
+  if (!task.dueDate) return false;
+  
+  const now = new Date();
+  
+  // Convert both dates to the specified timezone for comparison
+  // Same logic as formatDate() to ensure consistency
+  const displayNow = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+  const displayTaskDate = new Date(task.dueDate.toLocaleString('en-US', { timeZone: timezone }));
+  
+  // Compare only dates without time
+  const today = new Date(displayNow.getFullYear(), displayNow.getMonth(), displayNow.getDate());
+  const taskDateOnly = new Date(displayTaskDate.getFullYear(), displayTaskDate.getMonth(), displayTaskDate.getDate());
+  
+  return taskDateOnly.getTime() === today.getTime();
+};
+
 export const getProcessedTasks = (tasks: Task[], currentUserName: string, takenTasks: Set<string>, showFutureTasks: boolean = false) => {
   const activeTasks = filterActiveTasks(tasks, currentUserName, takenTasks);
   const sortedTasks = sortTasksByPriority(activeTasks);
