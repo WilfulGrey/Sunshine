@@ -69,16 +69,18 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   }, [isManualRefreshing, onLoadContacts, t.refreshError]);
 
   // Activity detection (stable callback)
-  const handleActivityRefresh = useCallback(() => {
+  const handleActivityRefresh = useCallback(async () => {
     if (onSilentRefresh) {
-      onSilentRefresh();
+      await onSilentRefresh();
+      setLastUpdateTime(new Date()); // Update timestamp after successful refresh
     }
   }, [onSilentRefresh]);
 
   // Visibility refresh (stable callback)  
-  const handleVisibilityRefresh = useCallback(() => {
+  const handleVisibilityRefresh = useCallback(async () => {
     if (onSilentRefresh) {
-      onSilentRefresh();
+      await onSilentRefresh();
+      setLastUpdateTime(new Date()); // Update timestamp after successful refresh
     }
   }, [onSilentRefresh]);
 
@@ -86,6 +88,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   const handlePollingRefresh = useCallback(async () => {
     if (onSilentRefresh) {
       await onSilentRefresh();
+      setLastUpdateTime(new Date()); // Update timestamp after successful refresh
     }
   }, [onSilentRefresh]);
 
