@@ -293,6 +293,9 @@ describe('useTaskActions', () => {
       const updateCall = mockOnUpdateTask.mock.calls[0][1];
       expect(updateCall.dueDate).toBeInstanceOf(Date);
       expect(updateCall.description).toContain('Nicht erreicht');
+      
+      // No manual airtableUpdates - let automatic system handle everything
+      expect(updateCall.airtableUpdates).toBeUndefined();
     });
 
     it('should clear boosted priority when call is not reachable', () => {

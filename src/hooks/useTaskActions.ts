@@ -292,19 +292,17 @@ export const useTaskActions = (
       updatedTask = addHistoryEntry(updatedTask, 'not_reachable', t.callUnsuccessfulDetails);
       
       const now = new Date();
-      const warsawTime = new Date(now.getTime() + (2 * 60 * 60 * 1000));
-      const newCallTime = new Date(warsawTime.getTime() + (60 * 60 * 1000));
+      const newCallTime = new Date(now.getTime() + (60 * 60 * 1000)); // Just add 1 hour to current time
       
       // Clear boosted status when task is not reachable (end action)
       const updates: any = {
         status: 'pending',
         dueDate: newCallTime,
         description: (task.description || '') + '\n\n[Nicht erreicht - ' + now.toLocaleString('de-DE') + ' - Wiedervorlage: ' + newCallTime.toLocaleString('de-DE') + ']',
-        history: updatedTask.history,
-        airtableUpdates: {
-          'User': user?.email || undefined
-        }
+        history: updatedTask.history
+        // No manual airtableUpdates - let automatic system handle everything (same as postpone)
       };
+      
 
       // Remove boosted priority if present
       if (task.priority === 'boosted') {
