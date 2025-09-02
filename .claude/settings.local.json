@@ -30,7 +30,14 @@
       "Bash(TEST_EMAIL=\"m.kepinski@mamamia.app\" TEST_PASSWORD=\"123Qwe123$\" node test-console-analysis.cjs)",
       "Bash(TEST_EMAIL=\"m.kepinski@mamamia.app\" TEST_PASSWORD=\"123Qwe123$\" node test-real-inspection.cjs)",
       "Bash(TEST_EMAIL=\"m.kepinski@mamamia.app\" TEST_PASSWORD=\"123Qwe123$\" node test-smart-refresh-behavior.cjs)",
-      "Bash(TEST_EMAIL=\"m.kepinski@mamamia.app\" TEST_PASSWORD=\"123Qwe123$\" node test-comprehensive-smart-refresh.cjs)"
+      "Bash(TEST_EMAIL=\"m.kepinski@mamamia.app\" TEST_PASSWORD=\"123Qwe123$\" node test-comprehensive-smart-refresh.cjs)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_snapshot",
+      "Bash(TEST_EMAIL=\"m.kepinski@mamamia.app\" TEST_PASSWORD=\"123Qwe123$\" node test-boost-refresh-final.cjs)"
     ],
     "deny": [],
     "ask": [],

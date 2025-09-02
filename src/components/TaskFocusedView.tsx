@@ -48,6 +48,9 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   
+  // 🛡️ BOOST DISABLE REFRESH: Wyłącza refresh dopóki user nie weźmie zadania
+  const [refreshDisabledAfterBoost, setRefreshDisabledAfterBoost] = useState(false);
+  
   // Manual refresh handler (stable reference to avoid re-renders)
   const handleManualRefresh = useCallback(async () => {
     if (isManualRefreshing) return;
@@ -70,27 +73,45 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
   // Activity detection (stable callback)
   const handleActivityRefresh = useCallback(async () => {
+    // 🛡️ WYŁĄCZ REFRESH PO BOOST - dopóki user nie weźmie zadania
+    if (refreshDisabledAfterBoost) {
+      console.log('🚫 Activity refresh DISABLED po boost - czekam aż user weźmie zadanie');
+      return;
+    }
+    
     if (onSilentRefresh) {
       await onSilentRefresh();
       setLastUpdateTime(new Date()); // Update timestamp after successful refresh
     }
-  }, [onSilentRefresh]);
+  }, [onSilentRefresh, refreshDisabledAfterBoost]);
 
   // Visibility refresh (stable callback)  
   const handleVisibilityRefresh = useCallback(async () => {
+    // 🛡️ WYŁĄCZ REFRESH PO BOOST - dopóki user nie weźmie zadania
+    if (refreshDisabledAfterBoost) {
+      console.log('🚫 Visibility refresh DISABLED po boost - czekam aż user weźmie zadanie');
+      return;
+    }
+    
     if (onSilentRefresh) {
       await onSilentRefresh();
       setLastUpdateTime(new Date()); // Update timestamp after successful refresh
     }
-  }, [onSilentRefresh]);
+  }, [onSilentRefresh, refreshDisabledAfterBoost]);
 
   // Polling refresh (stable callback)
   const handlePollingRefresh = useCallback(async () => {
+    // 🛡️ WYŁĄCZ REFRESH PO BOOST - dopóki user nie weźmie zadania
+    if (refreshDisabledAfterBoost) {
+      console.log('🚫 Polling refresh DISABLED po boost - czekam aż user weźmie zadanie');
+      return;
+    }
+    
     if (onSilentRefresh) {
       await onSilentRefresh();
       setLastUpdateTime(new Date()); // Update timestamp after successful refresh
     }
-  }, [onSilentRefresh]);
+  }, [onSilentRefresh, refreshDisabledAfterBoost]);
 
   // Now use the hooks with stable callbacks (prevents infinite loops)
   useActivityRefresh(handleActivityRefresh, 5 * 60 * 1000); // 5 minutes inactivity threshold
@@ -276,6 +297,8 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     
     taskActions.handlePhoneCall(dialogState.showPhoneDialog, reachable);
     dialogState.closePhoneDialog();
+    setRefreshDisabledAfterBoost(false);
+    console.log('✅ REFRESH ENABLED po phone call - user zakończył telefon');
   };
 
   const handleCompleteTask = (taskId: string) => {
@@ -301,6 +324,8 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
         );
       }
       dialogState.closePostponeDialog();
+      setRefreshDisabledAfterBoost(false);
+      console.log('✅ REFRESH ENABLED po postpone - user odłożył zadanie');
     }
   };
 
@@ -313,6 +338,8 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       dialogState.completionSummary
     );
     dialogState.closeCompletionDialog();
+    setRefreshDisabledAfterBoost(false);
+    console.log('✅ REFRESH ENABLED po completion - user ukończył zadanie');
   };
 
   const handleAbandonConfirm = () => {
@@ -323,6 +350,8 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       dialogState.abandonReason
     );
     dialogState.closeAbandonDialog();
+    setRefreshDisabledAfterBoost(false);
+    console.log('✅ REFRESH ENABLED po abandon - user porzucił zadanie');
   };
 
   const handleTransferTask = (taskId: string) => {
@@ -341,6 +370,8 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       dialogState.transferReason
     );
     dialogState.closeTransferDialog();
+    setRefreshDisabledAfterBoost(false);
+    console.log('✅ REFRESH ENABLED po transfer - user przekazał zadanie');
   };
 
   const handleUnassignTask = () => {
@@ -658,7 +689,11 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                   {taskActions.canTakeTask(nextTask) ? (
                     <button
                       disabled={taskActions.takingTask === nextTask.id}
-                      onClick={() => taskActions.handleTakeTask(nextTask.id)}
+                      onClick={() => {
+                        taskActions.handleTakeTask(nextTask.id);
+                        setRefreshDisabledAfterBoost(false);
+                        console.log('✅ REFRESH ENABLED - user wziął zadanie, koniec disable po boost');
+                      }}
                       className="px-6 py-3 text-white rounded-lg font-medium transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ backgroundColor: '#AB4D95' }}
                       onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#9A3D85')}
@@ -842,7 +877,11 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                       
                       <div className="flex items-center space-x-1">
                         <button
-                          onClick={() => taskActions.handleBoostUrgent(task.id)}
+                          onClick={() => {
+                            taskActions.handleBoostUrgent(task.id);
+                            setRefreshDisabledAfterBoost(true);
+                            console.log('🚫 REFRESH DISABLED po boost urgent - czekam aż user weźmie zadanie');
+                          }}
                           disabled={taskActions.boostingTask === task.id}
                           className="p-1 text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
                           title="Przenieś zadanie na pierwszą pozycję"
@@ -855,7 +894,11 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                         </button>
                         
                         <button
-                          onClick={() => taskActions.handleBoostPriority(task.id)}
+                          onClick={() => {
+                            taskActions.handleBoostPriority(task.id);
+                            setRefreshDisabledAfterBoost(true);
+                            console.log('🚫 REFRESH DISABLED po boost priority - czekam aż user weźmie zadanie');
+                          }}
                           disabled={taskActions.boostingTask === task.id}
                           className="p-1 text-gray-400 hover:text-purple-600 transition-colors disabled:opacity-50"
                           title="Osoba dzwoni - przenieś na pierwszą pozycję"
