@@ -25,8 +25,8 @@ const EMPLOYEES: Employee[] = [
   { name: 'Marta Kapcio', email: 'marta.kapcio@vitanas.pl', employeeId: 28033, role: 'Team Leader', team: 'Sowy' },
   { name: 'Michał Babczyński', email: 'm.babczynski+rekruterProd@mamamia.app', employeeId: 28442, role: 'Administrator', team: 'Nieprzypisany' },
   { name: 'Katarzyna Sadowska', email: 'katarzyna.sadowska@vitanas.pl', employeeId: 30994, role: 'Rekruter', team: 'Rekiny' },
-  { name: 'Dominika Grabowska', email: 'mm+dgrabowska@vitanas.pl', employeeId: 31140, role: 'Administrator', team: 'Nieprzypisany' },
-  { name: 'Alex Nowek', email: 'mm+anowek@vitanas.pl', employeeId: 31145, role: 'Administrator', team: 'Nieprzypisany' },
+  { name: 'Dominika Grabowska', email: 'd.grabowska@mamamia.app', employeeId: 31140, role: 'Administrator', team: 'Nieprzypisany' },
+  { name: 'Alex Nowek', email: 'a.nowek@mamamia.app', employeeId: 31145, role: 'Administrator', team: 'Nieprzypisany' },
   { name: 'Marek Styn', email: 'marek.styn@vitanas.pl', employeeId: 31719, role: 'Rekruter', team: 'Rekiny' },
 ];
 
