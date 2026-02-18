@@ -854,41 +854,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                          task.priority === 'high' ? t.high.replace('🟠 ', '') : t.urgent.replace('🔴 ', '')}
                       </span>
                       
-                      <div className="flex items-center space-x-1">
-                        <button
-                          onClick={() => {
-                            taskActions.handleBoostUrgent(task.id);
-                            setRefreshDisabledAfterBoost(true);
-                            console.log('🚫 REFRESH DISABLED po boost urgent - czekam aż user weźmie zadanie');
-                          }}
-                          disabled={taskActions.boostingTask === task.id}
-                          className="p-1 text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
-                          title="Przenieś zadanie na pierwszą pozycję"
-                        >
-                          {taskActions.boostingTask === task.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <AlertTriangle className="h-4 w-4" />
-                          )}
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            taskActions.handleBoostPriority(task.id);
-                            setRefreshDisabledAfterBoost(true);
-                            console.log('🚫 REFRESH DISABLED po boost priority - czekam aż user weźmie zadanie');
-                          }}
-                          disabled={taskActions.boostingTask === task.id}
-                          className="p-1 text-gray-400 hover:text-purple-600 transition-colors disabled:opacity-50"
-                          title="Osoba dzwoni - przenieś na pierwszą pozycję"
-                        >
-                          {taskActions.boostingTask === task.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Phone className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
+                      {/* Boost buttons hidden for now */}
                     </div>
                   </div>
                 </div>
