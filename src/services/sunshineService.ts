@@ -54,15 +54,12 @@ class SunshineService {
   private token: string;
 
   constructor() {
-    // In development, use relative URL so Vite proxy handles CORS
-    // In production, use the full API URL from env
-    const configuredUrl = import.meta.env.VITE_SUNSHINE_API_URL || '';
-    this.baseUrl = import.meta.env.DEV ? '' : configuredUrl;
+    // Always use relative URLs - proxy handles routing:
+    // Dev: Vite proxy (vite.config.ts)
+    // Prod: Render rewrite rules
+    this.baseUrl = '';
     this.token = import.meta.env.VITE_SUNSHINE_TOKEN || '';
 
-    if (!configuredUrl) {
-      console.warn('VITE_SUNSHINE_API_URL is not configured');
-    }
     if (!this.token) {
       console.warn('VITE_SUNSHINE_TOKEN is not configured');
     }
