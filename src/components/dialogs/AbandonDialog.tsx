@@ -40,7 +40,7 @@ export const AbandonDialog: React.FC<AbandonDialogProps> = ({
             placeholder="Opisz dlaczego kontakt został porzucony (np. niewłaściwa osoba, brak zainteresowania, inne powody)..."
           />
           <p className="text-xs text-gray-500 mt-2">
-            Ten komentarz zostanie zapisany w polu "Następne kroki" w Airtable
+            Ten komentarz zostanie zapisany jako notatka w systemie
           </p>
         </div>
 
@@ -63,7 +63,8 @@ export const AbandonDialog: React.FC<AbandonDialogProps> = ({
           
           <button
             onClick={onConfirm}
-            className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center space-x-2"
+            disabled={!abandonReason.trim()}
+            className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Skull className="h-5 w-5" />
             <span>Porzuć kontakt</span>

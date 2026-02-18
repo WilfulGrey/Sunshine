@@ -123,53 +123,21 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, on
               )}
             </div>
             
-            {/* Linki z Airtable */}
-            {task.airtableData && (task.airtableData.profileLink || task.airtableData.retellLink || task.airtableData.jobLink || task.airtableData.wklejkaUrl) && (
+            {/* Links from API data */}
+            {task.apiData?.phoneNumber && (
               <div className="flex items-center space-x-2 mt-3">
-                {task.airtableData.profileLink && (
-                  <a
-                    href={task.airtableData.profileLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs hover:bg-blue-100 transition-colors"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    <span>Profil MM</span>
-                  </a>
-                )}
-                {task.airtableData.retellLink && (
-                  <a
-                    href={task.airtableData.retellLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1 px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs hover:bg-green-100 transition-colors"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    <span>Retell</span>
-                  </a>
-                )}
-                {task.airtableData.jobLink && (
-                  <a
-                    href={task.airtableData.jobLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1 px-2 py-1 bg-purple-50 text-purple-700 rounded-full text-xs hover:bg-purple-100 transition-colors"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    <span>JOB</span>
-                  </a>
-                )}
-                {task.airtableData.wklejkaUrl && (
-                  <a
-                    href={task.airtableData.wklejkaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1 px-2 py-1 bg-orange-50 text-orange-700 rounded-full text-xs hover:bg-orange-100 transition-colors"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    <span>Wklejka</span>
-                  </a>
-                )}
+                <a
+                  href={`tel:${task.apiData.phoneNumber.replace(/\s/g, '')}`}
+                  className="inline-flex items-center space-x-1 px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs hover:bg-green-100 transition-colors"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  <span>Phone: {task.apiData.phoneNumber}</span>
+                </a>
+              </div>
+            )}
+            {task.apiData?.recruiterName && (
+              <div className="flex items-center space-x-2 mt-2">
+                <span className="text-xs text-gray-500">Recruiter: {task.apiData.recruiterName}</span>
               </div>
             )}
           </div>

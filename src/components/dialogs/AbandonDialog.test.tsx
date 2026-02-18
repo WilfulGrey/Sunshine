@@ -68,14 +68,21 @@ describe('AbandonDialog', () => {
     expect(textarea).toBeInTheDocument();
   });
 
-  it('should call onConfirm when confirm button is clicked', () => {
+  it('should call onConfirm when confirm button is clicked with reason', () => {
     const onConfirm = vi.fn();
-    render(<AbandonDialog {...defaultProps} onConfirm={onConfirm} />);
-    
+    render(<AbandonDialog {...defaultProps} abandonReason="No interest" onConfirm={onConfirm} />);
+
     const confirmButton = screen.getByRole('button', { name: /Porzuć kontakt/ });
     fireEvent.click(confirmButton);
-    
+
     expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it('should disable confirm button when reason is empty', () => {
+    render(<AbandonDialog {...defaultProps} abandonReason="" />);
+
+    const confirmButton = screen.getByRole('button', { name: /Porzuć kontakt/ });
+    expect(confirmButton).toBeDisabled();
   });
 
   it('should call onClose when cancel button is clicked', () => {
@@ -94,10 +101,10 @@ describe('AbandonDialog', () => {
     expect(screen.getByText(/Status zostanie zmieniony na "porzucony"/)).toBeInTheDocument();
   });
 
-  it('should show information about Airtable save', () => {
+  it('should show information about save', () => {
     render(<AbandonDialog {...defaultProps} />);
-    
-    expect(screen.getByText(/Ten komentarz zostanie zapisany w polu "Następne kroki" w Airtable/)).toBeInTheDocument();
+
+    expect(screen.getByText(/Ten komentarz zostanie zapisany jako notatka w systemie/)).toBeInTheDocument();
   });
 
   it('should have proper form structure', () => {

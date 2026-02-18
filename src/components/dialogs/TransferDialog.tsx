@@ -30,7 +30,7 @@ export const TransferDialog: React.FC<TransferDialogProps> = ({
 }) => {
   const { users, getUserDisplayName } = useUsers();
   
-  // Use available users from Airtable if provided, otherwise fall back to system users
+  // Use available users from props if provided, otherwise fall back to system users
   const usersToShow = availableUsers ? 
     availableUsers.filter(user => user !== currentUserName) :
     users.filter(u => getUserDisplayName(u) !== currentUserName);
@@ -59,7 +59,7 @@ export const TransferDialog: React.FC<TransferDialogProps> = ({
             >
               <option value="">Wybierz użytkownika...</option>
               {availableUsers ? (
-                // Show users from Airtable
+                // Show users from available list
                 usersToShow.map(user => (
                   <option key={user} value={user}>
                     {user}

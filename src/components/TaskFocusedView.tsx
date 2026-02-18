@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, ExternalLink, Phone, X, Skull, XCircle, Eye, Plus, Trash2, Loader2, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, Phone, X, Skull, XCircle, Eye, Loader2, RefreshCw, ExternalLink, MessageSquare, ScrollText, Heart } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTimezone } from '../contexts/TimezoneContext';
 import { useUsers } from '../hooks/useUsers';
@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 import { Task } from '../types/Task';
 import { formatDate, isOverdue } from '../utils/helpers';
 import { useTaskActions } from '../hooks/useTaskActions';
+import { sunshineService } from '../services/sunshineService';
 import { useDialogState } from '../hooks/useDialogState';
 import { useActivityRefresh } from '../hooks/useActivityRefresh';
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh';
@@ -17,16 +18,19 @@ import { CompletionDialog } from './dialogs/CompletionDialog';
 import { AbandonDialog } from './dialogs/AbandonDialog';
 import { TransferDialog } from './dialogs/TransferDialog';
 import { PostponeDialog } from './dialogs/PostponeDialog';
+import { LogsDialog } from './dialogs/LogsDialog';
+import { SunshineLog } from '../services/sunshineService';
 
 interface TaskFocusedViewProps {
   tasks: Task[];
-  onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
+  onUpdateLocalTask: (taskId: string, updates: Partial<Task>) => void;
+  onRemoveLocalTask: (taskId: string) => void;
   onLoadContacts?: () => void;
   onSilentRefresh?: () => void;
   availableUsers?: string[];
 }
 
-export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdateTask, onLoadContacts, onSilentRefresh, availableUsers = [] }) => {
+export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdateLocalTask, onRemoveLocalTask, onLoadContacts, onSilentRefresh, availableUsers = [] }) => {
   const { t } = useLanguage();
   const { timezone } = useTimezone();
   const { users, getUserDisplayName } = useUsers();
@@ -39,10 +43,22 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     // console.log('🔍 TaskFocusedView DEBUG: First task title:', tasks[0]?.title || 'NO TITLE');
   }
   
-  const taskActions = useTaskActions(tasks, onUpdateTask, onLoadContacts, onSilentRefresh);
+  const taskActions = useTaskActions(tasks, onUpdateLocalTask, onRemoveLocalTask, onLoadContacts, onSilentRefresh);
   const dialogState = useDialogState();
   const [showFutureTasks, setShowFutureTasks] = useState(false);
-  
+  const [showLogsDialog, setShowLogsDialog] = useState(false);
+
+  // 🛡️ Track if any dialog is open - blocks refresh to prevent state overwrite
+  const isAnyDialogOpenRef = useRef(false);
+  isAnyDialogOpenRef.current = !!(
+    dialogState.showPhoneDialog ||
+    dialogState.showCompletionDialog ||
+    dialogState.showAbandonDialog ||
+    dialogState.showTransferDialog ||
+    dialogState.showPostponeDialog ||
+    showLogsDialog
+  );
+
   // 🚀 SMART REFRESH INTEGRATION - FIXED INFINITE LOOP
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
@@ -73,9 +89,9 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
   // Activity detection (stable callback)
   const handleActivityRefresh = useCallback(async () => {
-    // 🛡️ WYŁĄCZ REFRESH PO BOOST - dopóki user nie weźmie zadania
-    if (refreshDisabledAfterBoost) {
-      console.log('🚫 Activity refresh DISABLED po boost - czekam aż user weźmie zadanie');
+    // 🛡️ WYŁĄCZ REFRESH gdy dialog otwarty lub po boost
+    if (refreshDisabledAfterBoost || isAnyDialogOpenRef.current) {
+      console.log('🚫 Activity refresh DISABLED - dialog otwarty lub boost');
       return;
     }
     
@@ -85,11 +101,11 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     }
   }, [onSilentRefresh, refreshDisabledAfterBoost]);
 
-  // Visibility refresh (stable callback)  
+  // Visibility refresh (stable callback)
   const handleVisibilityRefresh = useCallback(async () => {
-    // 🛡️ WYŁĄCZ REFRESH PO BOOST - dopóki user nie weźmie zadania
-    if (refreshDisabledAfterBoost) {
-      console.log('🚫 Visibility refresh DISABLED po boost - czekam aż user weźmie zadanie');
+    // 🛡️ WYŁĄCZ REFRESH gdy dialog otwarty lub po boost
+    if (refreshDisabledAfterBoost || isAnyDialogOpenRef.current) {
+      console.log('🚫 Visibility refresh DISABLED - dialog otwarty lub boost');
       return;
     }
     
@@ -101,9 +117,9 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
   // Polling refresh (stable callback)
   const handlePollingRefresh = useCallback(async () => {
-    // 🛡️ WYŁĄCZ REFRESH PO BOOST - dopóki user nie weźmie zadania
-    if (refreshDisabledAfterBoost) {
-      console.log('🚫 Polling refresh DISABLED po boost - czekam aż user weźmie zadanie');
+    // 🛡️ WYŁĄCZ REFRESH gdy dialog otwarty lub po boost
+    if (refreshDisabledAfterBoost || isAnyDialogOpenRef.current) {
+      console.log('🚫 Polling refresh DISABLED - dialog otwarty lub boost');
       return;
     }
     
@@ -149,6 +165,11 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
         
         // Add small delay to ensure broadcast is processed
         setTimeout(() => {
+          if (isAnyDialogOpenRef.current) {
+            console.log('🚫 Real-time refresh BLOCKED - dialog is open');
+            return;
+          }
+
           if (eventType === 'task-transfer') {
             // Handle task transfer: someone transferred a task
             const { toUser, fromUser } = payload.payload || {};
@@ -203,90 +224,128 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       supabase.removeChannel(channel);
     };
   }, [user, onLoadContacts]); // Depend on user and onLoadContacts
-  const [editingWklejka, setEditingWklejka] = useState<string | null>(null);
-  const [wklejkaInput, setWklejkaInput] = useState('');
-
   // EMERGENCY DEBUG: Log current user name
   if (typeof window !== 'undefined' && user?.email?.includes('info')) {
     console.log(`🚨 USER B DEBUG: currentUserName="${taskActions.currentUserName}", tasks=${tasks.length}`);
   }
   
-  const { nextTask, upcomingTasks, hiddenFutureTasksCount } = getProcessedTasks(tasks, taskActions.currentUserName, taskActions.takenTasks, showFutureTasks);
+  // Fetch latest contact note from logs/latest - single source of truth
+  const [latestNote, setLatestNote] = useState<{ content: string; author: string; date: string } | null>(null);
+  const [noteRefreshTrigger, setNoteRefreshTrigger] = useState(0);
 
-  const isWklejkaOld = (wklejkaDate?: Date): boolean => {
-    if (!wklejkaDate) return false;
-    const now = new Date();
-    const diffHours = (now.getTime() - wklejkaDate.getTime()) / (1000 * 60 * 60);
-    return diffHours > 24;
-  };
+  // Interest job offer ID - fetched from logs when callbackSource is "Interest"
+  const [interestJobOfferId, setInterestJobOfferId] = useState<number | null>(null);
 
-  const handleStartEditingWklejka = (taskId: string, currentUrl?: string) => {
-    setEditingWklejka(taskId);
-    setWklejkaInput(currentUrl || '');
-  };
+  // Logs dialog state (declared here so logsData etc. are available below)
+  const [logsData, setLogsData] = useState<SunshineLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsLoadingMore, setLogsLoadingMore] = useState(false);
+  const [logsPage, setLogsPage] = useState(1);
+  const [logsHasMore, setLogsHasMore] = useState(false);
 
-  const handleSaveWklejka = async (taskId: string) => {
-    try {
-      const currentTask = tasks.find(t => t.id === taskId);
-      const now = new Date();
-      
-      await onUpdateTask(taskId, {
-        airtableUpdates: {
-          'Wklejka': wklejkaInput || null,
-          'Data wklejki': wklejkaInput ? now.toISOString() : null
-        },
-        airtableData: {
-          ...currentTask?.airtableData,
-          wklejkaUrl: wklejkaInput || undefined,
-          wklejkaDate: wklejkaInput ? now : undefined
-        }
-      } as any);
-      
-      setEditingWklejka(null);
-      setWklejkaInput('');
-    } catch (error) {
-      console.error('Failed to update wklejka:', error);
+  const { nextTask, upcomingTasks, hiddenFutureTasksCount } = getProcessedTasks(tasks, taskActions.takenTasks, taskActions.currentEmployeeId, showFutureTasks);
+
+  useEffect(() => {
+    const caregiverId = nextTask?.apiData?.caregiverId;
+    if (!caregiverId) {
+      setLatestNote(null);
+      return;
     }
-  };
 
-  const handleCancelEditingWklejka = () => {
-    setEditingWklejka(null);
-    setWklejkaInput('');
-  };
+    let cancelled = false;
 
-  const handleRemoveWklejka = async (taskId: string) => {
-    try {
-      const currentTask = tasks.find(t => t.id === taskId);
-      const currentFailedCount = currentTask?.airtableData?.nieudaneWklejki || 0;
-      const newFailedCount = currentFailedCount + 1;
-      
-      console.log('🗑️ Removing wklejka:', {
-        taskId,
-        currentFailedCount,
-        newFailedCount,
-        currentUrl: currentTask?.airtableData?.wklejkaUrl
-      });
-      
-      await onUpdateTask(taskId, {
-        airtableUpdates: {
-          'Wklejka': '', // Pusty string zamiast null
-          'Ile nieudanych wklejek': newFailedCount
-        },
-        airtableData: {
-          ...currentTask?.airtableData,
-          wklejkaUrl: undefined,
-          nieudaneWklejki: newFailedCount
-          // Data wklejki zostaje bez zmian
+    (async () => {
+      try {
+        const response = await sunshineService.getLatestLog(caregiverId);
+        const log = response.data;
+        if (!cancelled && log) {
+          const CONTACT_TITLES = ['Note Only', 'Successfully', 'Not Successfully'];
+          if (CONTACT_TITLES.includes(log.title)) {
+            setLatestNote({
+              content: log.content,
+              author: log.custom_author_name || (log.author ? `${log.author.first_name} ${log.author.last_name}`.trim() : ''),
+              date: log.created_at,
+            });
+          } else {
+            setLatestNote(null);
+          }
         }
-      } as any);
-      
-      console.log('✅ Wklejka removed successfully');
-    } catch (error) {
-      console.error('❌ Failed to remove wklejka:', error);
+      } catch (err) {
+        console.error('Failed to fetch latest log:', err);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [nextTask?.id, nextTask?.apiData?.caregiverId, noteRefreshTrigger]);
+
+
+  // Fetch job_offer_id from logs when callback source is Interest
+  useEffect(() => {
+    const caregiverId = nextTask?.apiData?.caregiverId;
+    const callbackSource = nextTask?.apiData?.callbackSource;
+
+    if (!caregiverId || callbackSource !== 'Interest') {
+      setInterestJobOfferId(null);
+      return;
     }
-  };
 
+    let cancelled = false;
 
+    (async () => {
+      try {
+        const response = await sunshineService.getLogs(caregiverId, 1, 25);
+        if (!cancelled) {
+          const interestLog = response.data.find(
+            (log: SunshineLog) => log.title === 'interest' && log.job_offer_id
+          );
+          setInterestJobOfferId(interestLog?.job_offer_id ?? null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch interest log:', err);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [nextTask?.id, nextTask?.apiData?.caregiverId, nextTask?.apiData?.callbackSource]);
+
+  const handleOpenLogs = useCallback(async () => {
+    const caregiverId = nextTask?.apiData?.caregiverId;
+    if (!caregiverId) return;
+
+    setShowLogsDialog(true);
+    setLogsLoading(true);
+    setLogsData([]);
+    setLogsPage(1);
+
+    try {
+      const response = await sunshineService.getLogs(caregiverId, 1, 25);
+      setLogsData(response.data);
+      setLogsHasMore(response.meta.current_page < response.meta.last_page);
+    } catch (err) {
+      console.error('Failed to fetch logs:', err);
+    } finally {
+      setLogsLoading(false);
+    }
+  }, [nextTask?.apiData?.caregiverId]);
+
+  const handleLoadMoreLogs = useCallback(async () => {
+    const caregiverId = nextTask?.apiData?.caregiverId;
+    if (!caregiverId || logsLoadingMore) return;
+
+    const nextPage = logsPage + 1;
+    setLogsLoadingMore(true);
+
+    try {
+      const response = await sunshineService.getLogs(caregiverId, nextPage, 25);
+      setLogsData(prev => [...prev, ...response.data]);
+      setLogsPage(nextPage);
+      setLogsHasMore(response.meta.current_page < response.meta.last_page);
+    } catch (err) {
+      console.error('Failed to fetch more logs:', err);
+    } finally {
+      setLogsLoadingMore(false);
+    }
+  }, [nextTask?.apiData?.caregiverId, logsPage, logsLoadingMore]);
 
   const handleStartTask = (task: Task) => {
     dialogState.openPhoneDialog(task);
@@ -294,11 +353,18 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
   const handlePhoneCall = (reachable: boolean) => {
     if (!dialogState.showPhoneDialog) return;
-    
-    taskActions.handlePhoneCall(dialogState.showPhoneDialog, reachable);
+
+    const task = dialogState.showPhoneDialog;
+    taskActions.handlePhoneCall(task, reachable);
     dialogState.closePhoneDialog();
-    setRefreshDisabledAfterBoost(false);
-    console.log('✅ REFRESH ENABLED po phone call - user zakończył telefon');
+
+    if (reachable) {
+      // Immediately open the conversation summary dialog
+      dialogState.openCompletionDialog(task);
+    } else {
+      setRefreshDisabledAfterBoost(false);
+      console.log('✅ REFRESH ENABLED po phone call (nie odebrał)');
+    }
   };
 
   const handleCompleteTask = (taskId: string) => {
@@ -332,14 +398,22 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
   const handleCompletionConfirm = () => {
     if (!dialogState.showCompletionDialog) return;
-    
-    taskActions.handleCompleteTask(
+
+    taskActions.handleSaveNote(
       dialogState.showCompletionDialog,
       dialogState.completionSummary
-    );
+    ).then(() => {
+      setNoteRefreshTrigger(prev => prev + 1);
+    });
     dialogState.closeCompletionDialog();
     setRefreshDisabledAfterBoost(false);
-    console.log('✅ REFRESH ENABLED po completion - user ukończył zadanie');
+  };
+
+  const handleCompletionBack = () => {
+    if (!dialogState.showCompletionDialog) return;
+    const task = dialogState.showCompletionDialog;
+    dialogState.closeCompletionDialog();
+    dialogState.openPhoneDialog(task);
   };
 
   const handleAbandonConfirm = () => {
@@ -470,19 +544,6 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
         isNextTaskOverdue ? 'border-red-300 bg-red-50' : 'border-purple-200'
       } ${!isTaskDueToday(nextTask, timezone) && !isNextTaskOverdue ? 'task-inactive' : ''}`}>
         <div className="flex items-center space-x-3 mb-4">
-          {nextTask.airtableData?.urgent && (
-            <div className="flex items-center space-x-2 px-3 py-1 bg-red-100 text-red-700 rounded-full relative group">
-              <span className="text-lg">🚨</span>
-              <span className="text-sm font-bold">{t.urgent}</span>
-              <button
-                onClick={() => taskActions.handleRemoveUrgent(nextTask.id)}
-                className="ml-2 p-1 hover:bg-red-200 rounded-full transition-colors"
-                title={t.removeUrgentStatus}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-          )}
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${getPriorityColor(nextTask.priority)}`}>
             {nextTask.priority === 'low' ? t.low : 
              nextTask.priority === 'medium' ? t.medium : 
@@ -508,172 +569,93 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
           <div className="flex-1">
             <h3 className="text-2xl font-bold text-gray-900 mb-3">{nextTask.title}</h3>
 
+            {/* Profile / Chat / Logs links */}
+            {nextTask.apiData?.caregiverId && (
+              <div className="flex items-center space-x-4 mb-3" data-testid="caregiver-links">
+                <a
+                  href={`https://portal.mamamia.app/caregiver-agency/caregivers/${nextTask.apiData.caregiverId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-1 text-sm font-medium transition-colors hover:underline"
+                  style={{ color: '#AB4D95' }}
+                  data-testid="profile-link"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Profil</span>
+                </a>
+                <a
+                  href={`https://portal.mamamia.app/caregiver-agency/messages/${nextTask.apiData.caregiverId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-1 text-sm font-medium transition-colors hover:underline"
+                  style={{ color: '#AB4D95' }}
+                  data-testid="chat-link"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Chat</span>
+                </a>
+                <button
+                  onClick={handleOpenLogs}
+                  className="inline-flex items-center space-x-1 text-sm font-medium transition-colors hover:underline"
+                  style={{ color: '#AB4D95' }}
+                  data-testid="logs-button"
+                >
+                  <ScrollText className="h-4 w-4" />
+                  <span>Notatki</span>
+                </button>
+              </div>
+            )}
+
             {nextTask.description && (
               <p className="text-gray-700 text-lg mb-4">{nextTask.description}</p>
             )}
 
-            {/* Poprzednie rekomendacje z Airtable */}
-            {nextTask.airtableData?.previousRecommendation && (
+            {/* Ostatni kontakt z logs/latest */}
+            {latestNote && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                {/* console.log('=== DEBUG PREVIOUS RECOMMENDATION ===', nextTask.airtableData.previousRecommendation) */}
                 <div className="flex items-start space-x-2">
                   <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                     <span className="text-blue-600 text-sm">💡</span>
                   </div>
                   <div>
-                    <h4 className="font-medium text-blue-900 mb-2">Notatka Agenta:</h4>
+                    <h4 className="font-medium text-blue-900 mb-2">
+                      Notatka Agenta{latestNote.author ? ` (${latestNote.author})` : ''}:
+                    </h4>
                     <p className="text-blue-800 text-sm leading-relaxed whitespace-pre-wrap">
-                      {nextTask.airtableData.previousRecommendation}
+                      {latestNote.content}
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Następne kroki z Airtable */}
-            {nextTask.airtableData?.nextSteps && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <div className="flex items-start space-x-2">
-                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-green-600 text-sm">📝</span>
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-green-900 mb-2">Następne kroki:</h4>
-                    <p className="text-green-800 text-sm leading-relaxed whitespace-pre-wrap">
-                      {nextTask.airtableData.nextSteps}
-                    </p>
-                  </div>
+            {/* Callback source info */}
+            {nextTask.apiData?.callbackSource && nextTask.apiData.callbackSource === 'Interest' ? (
+              <div className="bg-pink-50 border border-pink-200 rounded-lg p-4 mb-6" data-testid="interest-block">
+                <div className="flex items-center space-x-2">
+                  <Heart className="h-5 w-5 text-pink-500" />
+                  <span className="font-medium text-pink-800">Zainteresowanie zleceniem</span>
+                  {interestJobOfferId && (
+                    <a
+                      href={`https://portal.mamamia.app/caregiver-agency/job-market/${interestJobOfferId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center space-x-1 text-sm text-pink-600 hover:text-pink-800 hover:underline ml-2"
+                      data-testid="interest-job-offer-link"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span>Zobacz zlecenie #{interestJobOfferId}</span>
+                    </a>
+                  )}
                 </div>
               </div>
-            )}
-
-            {/* Linki z Airtable - widoczne zawsze do testów */}
-            {nextTask.airtableData && (nextTask.airtableData.profileLink || nextTask.airtableData.retellLink || nextTask.airtableData.jobLink || nextTask.airtableData.wklejkaUrl) && (
-              <div className="flex items-center space-x-3 mb-6">
-                {nextTask.airtableData.profileLink && (
-                  <a
-                    href={nextTask.airtableData.profileLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <span>{t.profilePortalLink}</span>
-                  </a>
-                )}
-                {nextTask.airtableData.retellLink && (
-                  <a
-                    href={nextTask.airtableData.retellLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <span>{t.dashboardRetellLink}</span>
-                  </a>
-                )}
-                {nextTask.airtableData.jobLink && (
-                  <a
-                    href={nextTask.airtableData.jobLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-2 px-4 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <span>{t.jobLink}</span>
-                  </a>
-                )}
-                {nextTask.airtableData.wklejkaUrl && (
-                  <a
-                    href={nextTask.airtableData.wklejkaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`inline-flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
-                      isWklejkaOld(nextTask.airtableData.wklejkaDate)
-                        ? 'bg-red-100 text-red-700 hover:bg-red-200 ring-2 ring-red-400'
-                        : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
-                    }`}
-                    title={
-                      isWklejkaOld(nextTask.airtableData.wklejkaDate)
-                        ? t.wklejkaOldWarning
-                        : 'Wklejka'
-                    }
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <span>
-                      Wklejka
-                      {isWklejkaOld(nextTask.airtableData.wklejkaDate) && ' ⚠️'}
-                    </span>
-                  </a>
-                )}
-              </div>
-            )}
-
-            {/* Edycja wklejki */}
-            {nextTask.airtableData && (
+            ) : nextTask.apiData?.callbackSource ? (
               <div className="mb-6">
-                {/* Licznik nieudanych wklejek */}
-                {(nextTask.airtableData.nieudaneWklejki || 0) > 0 && (
-                  <div className="mb-3 text-sm text-gray-600">
-                    <span className="inline-flex items-center px-2 py-1 bg-gray-100 rounded-full">
-                      ⚠️ {t.failedWklejka} {nextTask.airtableData.nieudaneWklejki}
-                    </span>
-                  </div>
-                )}
-                
-                {editingWklejka === nextTask.id ? (
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="url"
-                      value={wklejkaInput}
-                      onChange={(e) => setWklejkaInput(e.target.value)}
-                      placeholder="https://..."
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSaveWklejka(nextTask.id);
-                        } else if (e.key === 'Escape') {
-                          handleCancelEditingWklejka();
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={() => handleSaveWklejka(nextTask.id)}
-                      className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      ✓
-                    </button>
-                    <button
-                      onClick={handleCancelEditingWklejka}
-                      className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleStartEditingWklejka(nextTask.id, nextTask.airtableData?.wklejkaUrl)}
-                      className="inline-flex items-center space-x-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors text-sm"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span>{nextTask.airtableData.wklejkaUrl ? t.editWklejka : t.addWklejka}</span>
-                    </button>
-                    
-                    {nextTask.airtableData.wklejkaUrl && (
-                      <button
-                        onClick={() => handleRemoveWklejka(nextTask.id)}
-                        className="inline-flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm"
-                        title={t.removeWklejka}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                )}
+                <span className="inline-flex items-center px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm">
+                  Callback: {nextTask.apiData.callbackSource}
+                </span>
               </div>
-            )}
+            ) : null}
 
             {nextTask.category && nextTask.category !== 'Matching & Kontakt' && nextTask.category !== t.matchingContact && (
               <div className="mb-6">
@@ -715,7 +697,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                   ) : taskActions.isTaskAssignedToSomeoneElse(nextTask) ? (
                     <div className="px-6 py-3 bg-gray-100 text-gray-600 rounded-lg font-medium flex items-center space-x-2">
                       <User className="h-5 w-5" />
-                      <span>{t.assignedTo.replace('{name}', Array.isArray(nextTask.airtableData?.user) ? nextTask.airtableData.user.join(', ') : (nextTask.assignedTo || nextTask.airtableData?.user))}</span>
+                      <span>{t.assignedTo.replace('{name}', nextTask.assignedTo || nextTask.apiData?.recruiterName || '')}</span>
                     </div>
                   ) : (
                     <>
@@ -851,9 +833,6 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
                           <h4 className="font-medium text-gray-900 truncate">{task.title}</h4>
-                          {task.airtableData?.urgent && (
-                            <span className="text-red-500 text-lg" title="Pilne zadanie z Airtable">🚨</span>
-                          )}
                           {taskOverdue && <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />}
                         </div>
                         
@@ -1023,7 +1002,19 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
           completionSummary={dialogState.completionSummary}
           setCompletionSummary={dialogState.setCompletionSummary}
           onConfirm={handleCompletionConfirm}
-          onClose={dialogState.closeCompletionDialog}
+          onBack={handleCompletionBack}
+        />
+      )}
+
+      {/* Logs History Dialog */}
+      {showLogsDialog && (
+        <LogsDialog
+          logs={logsData}
+          loading={logsLoading}
+          onClose={() => setShowLogsDialog(false)}
+          onLoadMore={handleLoadMoreLogs}
+          hasMore={logsHasMore}
+          loadingMore={logsLoadingMore}
         />
       )}
     </div>

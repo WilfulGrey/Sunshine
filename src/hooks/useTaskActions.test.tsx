@@ -8,16 +8,45 @@ import { LanguageProvider } from '../contexts/LanguageContext';
 import { TimezoneProvider } from '../contexts/TimezoneContext';
 
 // Mock window methods
-vi.stubGlobal('alert', vi.fn());
-vi.stubGlobal('location', {
-  reload: vi.fn()
-});
+const mockAlert = vi.fn();
+vi.stubGlobal('alert', mockAlert);
 
-// Mock AirtableService
-vi.mock('../services/airtableService', () => ({
-  AirtableService: vi.fn().mockImplementation(() => ({
-    getContactById: vi.fn().mockResolvedValue(null) // Default mock returns null
-  }))
+// Mock sunshineService
+vi.mock('../services/sunshineService', () => ({
+  sunshineService: {
+    assignEmployee: vi.fn().mockResolvedValue({}),
+    unassignEmployee: vi.fn().mockResolvedValue({}),
+    recordContact: vi.fn().mockResolvedValue({}),
+    setCallback: vi.fn().mockResolvedValue({}),
+    setAvailability: vi.fn().mockResolvedValue({}),
+    getLogs: vi.fn().mockResolvedValue({ data: [] }),
+    getLatestLog: vi.fn().mockResolvedValue({ data: null }),
+  }
+}));
+
+// Mock employee mapping
+vi.mock('../config/employeeMapping', () => ({
+  getEmployeeId: vi.fn((email: string) => email === 'test@example.com' ? 28442 : null),
+  getEmployeeName: vi.fn((id: number) => id === 28442 ? 'Test User' : null),
+  getAllEmployees: vi.fn(() => [
+    { name: 'Test User', email: 'test@example.com', employeeId: 28442, role: 'Admin', team: 'Test' },
+    { name: 'Another User', email: 'another@example.com', employeeId: 980, role: 'Recruiter', team: 'Test' }
+  ]),
+  findEmployeeByName: vi.fn((name: string) => {
+    if (name === 'Another User') return { name: 'Another User', email: 'another@example.com', employeeId: 980, role: 'Recruiter', team: 'Test' };
+    if (name === 'Test User') return { name: 'Test User', email: 'test@example.com', employeeId: 28442, role: 'Admin', team: 'Test' };
+    return null;
+  })
+}));
+
+// Mock Supabase
+vi.mock('../lib/supabase', () => ({
+  supabase: {
+    channel: vi.fn(() => ({
+      send: vi.fn().mockResolvedValue({}),
+    })),
+    removeChannel: vi.fn(),
+  }
 }));
 
 // Mock the contexts
@@ -25,6 +54,7 @@ vi.mock('../contexts/AuthContext', () => ({
   AuthProvider: ({ children }: { children: ReactNode }) => children,
   useAuth: () => ({
     user: {
+      id: 'test-user-id',
       user_metadata: { full_name: 'Test User' },
       email: 'test@example.com'
     }
@@ -56,6 +86,18 @@ vi.mock('../utils/helpers', () => ({
   }))
 }));
 
+vi.mock('../utils/sunshineHelpers', () => ({
+  formatDateForApi: vi.fn((date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const h = String(date.getHours()).padStart(2, '0');
+    const mi = String(date.getMinutes()).padStart(2, '0');
+    const s = String(date.getSeconds()).padStart(2, '0');
+    return `${y}-${m}-${d} ${h}:${mi}:${s}`;
+  })
+}));
+
 const Wrapper = ({ children }: { children: ReactNode }) => (
   <AuthProvider>
     <LanguageProvider>
@@ -67,6 +109,9 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
 );
 
 describe('useTaskActions', () => {
+  const MY_EMPLOYEE_ID = 28442;
+  const OTHER_EMPLOYEE_ID = 980;
+
   const mockTasks: Task[] = [
     {
       id: '1',
@@ -75,10 +120,11 @@ describe('useTaskActions', () => {
       status: 'pending',
       priority: 'medium',
       type: 'manual',
-      assignedTo: 'Test User',
       createdAt: new Date(),
       history: [],
-      airtableData: {
+      apiData: {
+        caregiverId: 123,
+        employeeId: MY_EMPLOYEE_ID,
         phoneNumber: '+48123456789'
       }
     },
@@ -90,29 +136,56 @@ describe('useTaskActions', () => {
       priority: 'high',
       type: 'manual',
       createdAt: new Date(),
-      history: []
+      history: [],
+      apiData: {
+        caregiverId: 456,
+        employeeId: null
+      }
     }
   ];
 
-  const mockOnUpdateTask = vi.fn();
+  const mockOnUpdateLocalTask = vi.fn();
+  const mockOnRemoveLocalTask = vi.fn();
+  const mockOnLoadContacts = vi.fn();
+  const mockOnSilentRefresh = vi.fn();
 
-  beforeEach(() => {
-    mockOnUpdateTask.mockClear();
+  beforeEach(async () => {
+    mockOnUpdateLocalTask.mockClear();
+    mockOnRemoveLocalTask.mockClear();
+    mockOnLoadContacts.mockClear();
+    mockOnSilentRefresh.mockClear();
+    mockAlert.mockClear();
+
+    // Clear all sunshineService mocks between tests
+    const { sunshineService } = await import('../services/sunshineService');
+    vi.mocked(sunshineService.assignEmployee).mockClear();
+    vi.mocked(sunshineService.unassignEmployee).mockClear();
+    vi.mocked(sunshineService.recordContact).mockClear();
+    vi.mocked(sunshineService.setCallback).mockClear();
   });
 
   describe('initialization', () => {
     it('should initialize with correct current user name', () => {
       const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask, mockOnLoadContacts, mockOnSilentRefresh),
         { wrapper: Wrapper }
       );
 
       expect(result.current.currentUserName).toBe('Test User');
     });
 
+    it('should initialize with correct employee ID', () => {
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current.currentEmployeeId).toBe(28442);
+    });
+
     it('should initialize with empty taken tasks and no taking task', () => {
       const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
         { wrapper: Wrapper }
       );
 
@@ -122,9 +195,9 @@ describe('useTaskActions', () => {
   });
 
   describe('extractPhoneNumber', () => {
-    it('should extract phone number from airtable data', () => {
+    it('should extract phone number from apiData', () => {
       const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
         { wrapper: Wrapper }
       );
 
@@ -132,13 +205,14 @@ describe('useTaskActions', () => {
       expect(phoneNumber).toBe('+48123456789');
     });
 
-    it('should return default number when no airtable phone number', () => {
+    it('should return default number when no apiData phone number', () => {
       const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
         { wrapper: Wrapper }
       );
 
-      const phoneNumber = result.current.extractPhoneNumber(mockTasks[1]);
+      const taskWithoutPhone: Task = { ...mockTasks[1], apiData: { caregiverId: 456 } };
+      const phoneNumber = result.current.extractPhoneNumber(taskWithoutPhone);
       expect(phoneNumber).toBe('+48 XXX XXX XXX');
     });
   });
@@ -146,7 +220,7 @@ describe('useTaskActions', () => {
   describe('isTaskAssignedToMe', () => {
     it('should return true for task assigned to current user', () => {
       const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
         { wrapper: Wrapper }
       );
 
@@ -155,7 +229,7 @@ describe('useTaskActions', () => {
 
     it('should return false for unassigned task', () => {
       const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
         { wrapper: Wrapper }
       );
 
@@ -163,583 +237,103 @@ describe('useTaskActions', () => {
     });
 
     it('should return true for taken task', async () => {
+      const unassignedTask: Task = {
+        ...mockTasks[1],
+        assignedTo: undefined,
+        apiData: { caregiverId: 456 }
+      };
+
       const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        () => useTaskActions([mockTasks[0], unassignedTask], mockOnUpdateLocalTask, mockOnRemoveLocalTask),
         { wrapper: Wrapper }
       );
 
       await act(async () => {
-        await result.current.handleTakeTask('2', true); // skip Airtable check for tests
+        await result.current.handleTakeTask('2');
       });
 
-      expect(result.current.isTaskAssignedToMe(mockTasks[1])).toBe(true);
-    });
-
-    it('should handle airtable user data as array', () => {
-      const taskWithAirtableUser = {
-        ...mockTasks[1],
-        airtableData: {
-          user: ['Test User', 'Another User']
-        }
-      };
-
-      const { result } = renderHook(
-        () => useTaskActions([taskWithAirtableUser], mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      expect(result.current.isTaskAssignedToMe(taskWithAirtableUser)).toBe(true);
-    });
-
-    it('should handle airtable user data as string', () => {
-      const taskWithAirtableUser = {
-        ...mockTasks[1],
-        airtableData: {
-          user: 'Test User'
-        }
-      };
-
-      const { result } = renderHook(
-        () => useTaskActions([taskWithAirtableUser], mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      expect(result.current.isTaskAssignedToMe(taskWithAirtableUser)).toBe(true);
+      expect(result.current.isTaskAssignedToMe(unassignedTask)).toBe(true);
     });
   });
 
   describe('handleTakeTask', () => {
-    it('should take a task successfully', async () => {
+    it('should take a task successfully via API', async () => {
+      const unassignedTask: Task = {
+        ...mockTasks[1],
+        assignedTo: undefined,
+        apiData: { caregiverId: 456 }
+      };
+
+      const { sunshineService } = await import('../services/sunshineService');
+
       const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        () => useTaskActions([mockTasks[0], unassignedTask], mockOnUpdateLocalTask, mockOnRemoveLocalTask),
         { wrapper: Wrapper }
       );
 
       await act(async () => {
-        await result.current.handleTakeTask('2', true); // skip Airtable check for tests
+        await result.current.handleTakeTask('2');
       });
 
       expect(result.current.takenTasks.has('2')).toBe(true);
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('2', expect.objectContaining({
+      expect(sunshineService.assignEmployee).toHaveBeenCalledWith(456, 28442);
+      expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('2', expect.objectContaining({
         status: 'pending',
         assignedTo: 'Test User',
-        airtableUpdates: {
-          'User': ['Test User']
-        }
       }));
     });
 
     it('should not take task if already taking it', async () => {
+      const unassignedTask: Task = {
+        ...mockTasks[1],
+        assignedTo: undefined,
+        apiData: { caregiverId: 456 }
+      };
+
       const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        () => useTaskActions([mockTasks[0], unassignedTask], mockOnUpdateLocalTask, mockOnRemoveLocalTask),
         { wrapper: Wrapper }
       );
 
-      // Start taking task
       await act(async () => {
-        await result.current.handleTakeTask('2', true); // skip Airtable check for tests
+        await result.current.handleTakeTask('2');
       });
 
-      // At this point, takingTask should be null again, so we need to mock the state
-      // This test is more about preventing double-clicks, which is harder to test in isolation
-      // The real protection happens in the actual implementation
-      expect(mockOnUpdateTask).toHaveBeenCalledTimes(1);
+      expect(mockOnUpdateLocalTask).toHaveBeenCalledTimes(1);
     });
 
     it('should handle task not found', async () => {
       const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
         { wrapper: Wrapper }
       );
 
       await act(async () => {
-        await result.current.handleTakeTask('nonexistent', true); // skip Airtable check for tests
+        await result.current.handleTakeTask('nonexistent');
       });
 
-      expect(mockOnUpdateTask).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('handlePhoneCall', () => {
-    it('should handle reachable call', () => {
-      const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handlePhoneCall(mockTasks[0], true);
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        status: 'in_progress'
-      }));
+      expect(mockOnUpdateLocalTask).not.toHaveBeenCalled();
     });
 
-    it('should handle unreachable call with new due date', () => {
-      const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handlePhoneCall(mockTasks[0], false);
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        status: 'pending'
-      }));
-
-      const updateCall = mockOnUpdateTask.mock.calls[0][1];
-      expect(updateCall.dueDate).toBeInstanceOf(Date);
-      expect(updateCall.description).toContain('Nicht erreicht');
-      
-      // No manual airtableUpdates - let automatic system handle everything
-      expect(updateCall.airtableUpdates).toBeUndefined();
-    });
-
-    it('should clear boosted priority when call is not reachable', () => {
-      const boostedTask = { ...mockTasks[0], priority: 'boosted' as const };
-      const { result } = renderHook(
-        () => useTaskActions([boostedTask], mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handlePhoneCall(boostedTask, false);
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        status: 'pending',
-        priority: 'high', // Boosted should be cleared to high
-      }));
-
-      const updateCall = mockOnUpdateTask.mock.calls[0][1];
-      expect(updateCall.dueDate).toBeInstanceOf(Date);
-      expect(updateCall.description).toContain('Nicht erreicht');
-    });
-  });
-
-  describe('handleCompleteTask', () => {
-    it('should complete task with summary', () => {
-      const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handleCompleteTask(mockTasks[0], 'Task completed successfully');
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        status: 'completed',
-        airtableUpdates: {
-          'Status': 'kontakt udany',
-          'Następne kroki': 'Task completed successfully'
-        }
-      }));
-    });
-
-    it('should clear boosted priority when completing task', () => {
-      const boostedTask = { ...mockTasks[0], priority: 'boosted' as const };
-      const { result } = renderHook(
-        () => useTaskActions([boostedTask], mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handleCompleteTask(boostedTask, 'Task completed');
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        status: 'completed',
-        priority: 'high', // Boosted should be cleared to high
-        airtableUpdates: {
-          'Status': 'kontakt udany',
-          'Następne kroki': 'Task completed'
-        }
-      }));
-    });
-
-    it('should not change priority for non-boosted task', () => {
-      const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handleCompleteTask(mockTasks[0], 'Task completed');
-      });
-
-      // Should not include priority in update object
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.not.objectContaining({
-        priority: expect.anything()
-      }));
-    });
-  });
-
-  describe('handleAbandonTask', () => {
-    it('should abandon task with reason', () => {
-      const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handleAbandonTask(mockTasks[0], 'Wrong contact');
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        status: 'cancelled',
-        airtableUpdates: {
-          'Status': 'porzucony',
-          'Następne kroki': 'Wrong contact'
-        }
-      }));
-    });
-
-    it('should clear boosted priority when abandoning task', () => {
-      const boostedTask = { ...mockTasks[0], priority: 'boosted' as const };
-      const { result } = renderHook(
-        () => useTaskActions([boostedTask], mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handleAbandonTask(boostedTask, 'Wrong contact');
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        status: 'cancelled',
-        priority: 'high', // Boosted should be cleared to high
-        airtableUpdates: {
-          'Status': 'porzucony',
-          'Następne kroki': 'Wrong contact'
-        }
-      }));
-    });
-  });
-
-  describe('handleTransferTask', () => {
-    it('should transfer task to another user', () => {
-      const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handleTransferTask(mockTasks[0], 'Another User', 'Expertise needed');
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        assignedTo: 'Another User',
-        status: 'pending',
-        airtableUpdates: {
-          'User': ['Another User'],
-          'Następne kroki': 'Expertise needed'
-        }
-      }));
-    });
-
-    it('should clear boosted priority when transferring task', () => {
-      const boostedTask = { ...mockTasks[0], priority: 'boosted' as const };
-      const { result } = renderHook(
-        () => useTaskActions([boostedTask], mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handleTransferTask(boostedTask, 'Another User', 'Expertise needed');
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        assignedTo: 'Another User',
-        status: 'pending',
-        priority: 'high', // Boosted should be cleared to high
-        airtableUpdates: {
-          'User': ['Another User'],
-          'Następne kroki': 'Expertise needed'
-        }
-      }));
-    });
-  });
-
-  describe('handlePostponeTask', () => {
-    it('should postpone task with correct UTC conversion', () => {
-      const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handlePostponeTask(
-          mockTasks[0], 
-          '2024-01-15', 
-          '14:30', 
-          'Need more time'
-        );
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        status: 'pending',
-        airtableUpdates: {
-          'Następne kroki': 'Need more time'
-        }
-      }));
-
-      const updateCall = mockOnUpdateTask.mock.calls[0][1];
-      expect(updateCall.dueDate).toBeInstanceOf(Date);
-    });
-
-    it('should clear boosted priority when postponing task', () => {
-      const boostedTask = { ...mockTasks[0], priority: 'boosted' as const };
-      const { result } = renderHook(
-        () => useTaskActions([boostedTask], mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handlePostponeTask(
-          boostedTask, 
-          '2024-01-15', 
-          '14:30', 
-          'Need more time'
-        );
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        status: 'pending',
-        priority: 'high', // Boosted should be cleared to high
-        airtableUpdates: {
-          'Następne kroki': 'Need more time'
-        }
-      }));
-    });
-  });
-
-  describe('handleUnassignTask', () => {
-    it('should unassign task', () => {
-      const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handleUnassignTask(mockTasks[0]);
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        assignedTo: undefined,
-        status: 'pending',
-        airtableUpdates: {
-          'User': null
-        }
-      }));
-    });
-
-    it('should clear boosted priority when unassigning task', () => {
-      const boostedTask = { ...mockTasks[0], priority: 'boosted' as const };
-      const { result } = renderHook(
-        () => useTaskActions([boostedTask], mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handleUnassignTask(boostedTask);
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        assignedTo: undefined,
-        status: 'pending',
-        priority: 'high', // Boosted should be cleared to high
-        airtableUpdates: {
-          'User': null
-        }
-      }));
-    });
-  });
-
-  describe('boost functions', () => {
-    it('should boost task priority and reset current active task', async () => {
-      const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      await act(async () => {
-        await result.current.handleBoostPriority('1');
-      });
-
-      // Should update the active task first, then boost the selected task
-      expect(mockOnUpdateTask).toHaveBeenCalledTimes(2);
-      
-      // First call resets the in_progress task
-      expect(mockOnUpdateTask).toHaveBeenNthCalledWith(1, '2', expect.objectContaining({
-        status: 'pending'
-      }));
-
-      // Second call boosts the selected task and assigns user
-      expect(mockOnUpdateTask).toHaveBeenNthCalledWith(2, '1', expect.objectContaining({
-        priority: 'boosted',
-        status: 'in_progress', // Phone boost - od razu w trakcie
-        assignedTo: 'Test User',
-        airtableUpdates: expect.objectContaining({
-          'User': ['Test User']
-        })
-      }));
-    });
-
-    it('should boost urgent task and assign user', async () => {
-      const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      await act(async () => {
-        await result.current.handleBoostUrgent('1');
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        priority: 'boosted',
-        status: 'pending', // Zmienione z 'in_progress' na 'pending'
-        assignedTo: 'Test User',
-        airtableUpdates: expect.objectContaining({
-          'User': ['Test User']
-        })
-      }));
-    });
-
-    it('should remove urgent status', () => {
-      const taskWithUrgent = {
-        ...mockTasks[0],
-        airtableData: { urgent: true }
-      };
-
-      const { result } = renderHook(
-        () => useTaskActions([taskWithUrgent], mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      act(() => {
-        result.current.handleRemoveUrgent('1');
-      });
-
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        airtableData: expect.objectContaining({
-          urgent: false
-        }),
-        airtableUpdates: {
-          'Urgent': false
-        }
-      }));
-    });
-
-  });
-
-  describe('isTaskAssignedToSomeoneElse', () => {
-    it('should return false for unassigned task', () => {
-      const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      expect(result.current.isTaskAssignedToSomeoneElse(mockTasks[1])).toBe(false);
-    });
-
-    it('should return true for task assigned to different user', () => {
-      const taskAssignedToOther = {
-        ...mockTasks[1],
-        assignedTo: 'Other User'
-      };
-
-      const { result } = renderHook(
-        () => useTaskActions([taskAssignedToOther], mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      expect(result.current.isTaskAssignedToSomeoneElse(taskAssignedToOther)).toBe(true);
-    });
-
-    it('should return false for task assigned to current user', () => {
-      const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      expect(result.current.isTaskAssignedToSomeoneElse(mockTasks[0])).toBe(false);
-    });
-
-    it('should handle airtable user array with other users', () => {
-      const taskWithOtherUsers = {
-        ...mockTasks[1],
-        airtableData: {
-          user: ['Other User', 'Another User']
-        }
-      };
-
-      const { result } = renderHook(
-        () => useTaskActions([taskWithOtherUsers], mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      expect(result.current.isTaskAssignedToSomeoneElse(taskWithOtherUsers)).toBe(true);
-    });
-  });
-
-  describe('canTakeTask', () => {
-    it('should return true for unassigned task', () => {
-      const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      expect(result.current.canTakeTask(mockTasks[1])).toBe(true);
-    });
-
-    it('should return false for task assigned to current user', () => {
-      const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      expect(result.current.canTakeTask(mockTasks[0])).toBe(false);
-    });
-
-    it('should return false for task assigned to other user', () => {
-      const taskAssignedToOther = {
-        ...mockTasks[1],
-        assignedTo: 'Other User'
-      };
-
-      const { result } = renderHook(
-        () => useTaskActions([taskAssignedToOther], mockOnUpdateTask),
-        { wrapper: Wrapper }
-      );
-
-      expect(result.current.canTakeTask(taskAssignedToOther)).toBe(false);
-    });
-  });
-
-  describe('handleTakeTask validation', () => {
     it('should prevent taking task assigned to someone else', async () => {
-      const taskAssignedToOther = {
+      const taskAssignedToOther: Task = {
         ...mockTasks[1],
-        assignedTo: 'Other User'
+        apiData: { caregiverId: 456, employeeId: OTHER_EMPLOYEE_ID }
       };
 
       const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
       const { result } = renderHook(
-        () => useTaskActions([taskAssignedToOther], mockOnUpdateTask),
+        () => useTaskActions([taskAssignedToOther], mockOnUpdateLocalTask, mockOnRemoveLocalTask),
         { wrapper: Wrapper }
       );
 
       await act(async () => {
-        await result.current.handleTakeTask('2', true); // skip Airtable check for tests
+        await result.current.handleTakeTask('2');
       });
 
-      expect(alertSpy).toHaveBeenCalledWith('To zadanie jest już przypisane do: Other User');
-      expect(mockOnUpdateTask).not.toHaveBeenCalled();
+      expect(alertSpy).toHaveBeenCalledWith('To zadanie jest już przypisane do: inny użytkownik');
+      expect(mockOnUpdateLocalTask).not.toHaveBeenCalled();
 
       alertSpy.mockRestore();
     });
@@ -748,7 +342,7 @@ describe('useTaskActions', () => {
       const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
       const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
         { wrapper: Wrapper }
       );
 
@@ -757,65 +351,384 @@ describe('useTaskActions', () => {
       });
 
       expect(alertSpy).toHaveBeenCalledWith('To zadanie jest już przypisane do Ciebie.');
-      expect(mockOnUpdateTask).not.toHaveBeenCalled();
+      expect(mockOnUpdateLocalTask).not.toHaveBeenCalled();
 
       alertSpy.mockRestore();
     });
   });
 
-  describe('handleUnassignTask', () => {
-    it('should unassign task and clear local state', async () => {
+  describe('handlePhoneCall', () => {
+    it('should handle reachable call - update local status only, no API call', async () => {
+      const { sunshineService } = await import('../services/sunshineService');
+
       const { result } = renderHook(
-        () => useTaskActions(mockTasks, mockOnUpdateTask),
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
         { wrapper: Wrapper }
       );
 
-      // First take the task to have some local state
       await act(async () => {
-        await result.current.handleTakeTask('1');
+        await result.current.handlePhoneCall(mockTasks[0], true);
       });
 
-      // Mock console.log to verify clearing message
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-      await act(async () => {
-        result.current.handleUnassignTask(mockTasks[0]);
-      });
-
-      // Should update task with null assignment
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        assignedTo: undefined,
-        status: 'pending',
-        airtableUpdates: { 'User': null }
+      // Should NOT call recordContact - that happens later via handleCompleteTask
+      expect(sunshineService.recordContact).not.toHaveBeenCalled();
+      expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        status: 'in_progress'
       }));
-
-      // Should log clearing local state
-      expect(consoleSpy).toHaveBeenCalledWith('🧹 Clearing local state for unassigned task');
-
-      consoleSpy.mockRestore();
     });
 
-    it('should clear boosted priority when unassigning', async () => {
-      const boostedTask: Task = {
-        ...mockTasks[0],
-        priority: 'boosted'
-      };
+    it('should handle unreachable call with callback + note', async () => {
+      const { sunshineService } = await import('../services/sunshineService');
 
       const { result } = renderHook(
-        () => useTaskActions([boostedTask], mockOnUpdateTask),
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
         { wrapper: Wrapper }
       );
 
       await act(async () => {
-        result.current.handleUnassignTask(boostedTask);
+        await result.current.handlePhoneCall(mockTasks[0], false);
       });
 
-      expect(mockOnUpdateTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        priority: 'high',
-        assignedTo: undefined,
+      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String));
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'note_only', expect.stringContaining('Nicht erreicht'));
+
+      expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
         status: 'pending'
+      }));
+
+      const updateCall = mockOnUpdateLocalTask.mock.calls[0][1];
+      expect(updateCall.dueDate).toBeInstanceOf(Date);
+      expect(updateCall.description).toContain('Nicht erreicht');
+    });
+
+    it('should clear boosted priority when call is not reachable', async () => {
+      const boostedTask: Task = { ...mockTasks[0], priority: 'boosted' };
+      const { result } = renderHook(
+        () => useTaskActions([boostedTask], mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handlePhoneCall(boostedTask, false);
+      });
+
+      expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        status: 'pending',
+        priority: 'high',
       }));
     });
   });
 
+  describe('handleCompleteTask', () => {
+    it('should complete task via API and remove from local list', async () => {
+      const { sunshineService } = await import('../services/sunshineService');
+
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handleCompleteTask(mockTasks[0], 'Task completed successfully');
+      });
+
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'successfully', 'Test User: Task completed successfully');
+      expect(mockOnRemoveLocalTask).toHaveBeenCalledWith('1');
+    });
+
+    it('should include user name even with empty summary', async () => {
+      const { sunshineService } = await import('../services/sunshineService');
+
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handleCompleteTask(mockTasks[0], '');
+      });
+
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'successfully', 'Test User: ');
+    });
+  });
+
+  describe('handleAbandonTask', () => {
+    it('should abandon task via API and remove from local list', async () => {
+      const { sunshineService } = await import('../services/sunshineService');
+
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handleAbandonTask(mockTasks[0], 'Wrong contact');
+      });
+
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'not_successfully', 'Test User: Wrong contact');
+      expect(sunshineService.unassignEmployee).toHaveBeenCalledWith(123);
+      expect(mockOnRemoveLocalTask).toHaveBeenCalledWith('1');
+    });
+  });
+
+  describe('handleTransferTask', () => {
+    it('should transfer task to another user via API and remove from local list', async () => {
+      const { sunshineService } = await import('../services/sunshineService');
+
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handleTransferTask(mockTasks[0], 'Another User', 'Expertise needed');
+      });
+
+      expect(sunshineService.assignEmployee).toHaveBeenCalledWith(123, 980);
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'note_only', expect.stringContaining('Another User'));
+      expect(mockOnRemoveLocalTask).toHaveBeenCalledWith('1');
+    });
+
+    it('should alert when target employee not found', async () => {
+      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handleTransferTask(mockTasks[0], 'Unknown User', 'reason');
+      });
+
+      expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('Nie znaleziono employee_id'));
+      expect(mockOnRemoveLocalTask).not.toHaveBeenCalled();
+
+      alertSpy.mockRestore();
+    });
+  });
+
+  describe('handlePostponeTask', () => {
+    it('should postpone task via API with new callback date', async () => {
+      const { sunshineService } = await import('../services/sunshineService');
+
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handlePostponeTask(
+          mockTasks[0],
+          '2024-01-15',
+          '14:30',
+          'Need more time'
+        );
+      });
+
+      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String));
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'note_only', 'Need more time');
+      expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        status: 'pending',
+      }));
+
+      const updateCall = mockOnUpdateLocalTask.mock.calls[0][1];
+      expect(updateCall.dueDate).toBeInstanceOf(Date);
+    });
+
+    it('should not send note when postponeNotes is empty', async () => {
+      const { sunshineService } = await import('../services/sunshineService');
+      vi.mocked(sunshineService.recordContact).mockClear();
+
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handlePostponeTask(
+          mockTasks[0],
+          '2024-01-15',
+          '14:30',
+          ''
+        );
+      });
+
+      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String));
+      expect(sunshineService.recordContact).not.toHaveBeenCalled();
+    });
+
+    it('should clear boosted priority when postponing task', async () => {
+      const boostedTask: Task = { ...mockTasks[0], priority: 'boosted' };
+      const { result } = renderHook(
+        () => useTaskActions([boostedTask], mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handlePostponeTask(
+          boostedTask,
+          '2024-01-15',
+          '14:30',
+          'Need more time'
+        );
+      });
+
+      expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        status: 'pending',
+        priority: 'high',
+      }));
+    });
+  });
+
+  describe('handleUnassignTask', () => {
+    it('should unassign task via API', async () => {
+      const { sunshineService } = await import('../services/sunshineService');
+
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handleUnassignTask(mockTasks[0]);
+      });
+
+      expect(sunshineService.unassignEmployee).toHaveBeenCalledWith(123);
+      expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        assignedTo: undefined,
+        status: 'pending',
+      }));
+    });
+  });
+
+  describe('boost functions', () => {
+    it('should boost task priority and reset current active task', async () => {
+      const { sunshineService } = await import('../services/sunshineService');
+
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handleBoostPriority('1');
+      });
+
+      // Should update the active task first, then boost the selected task
+      expect(mockOnUpdateLocalTask).toHaveBeenCalledTimes(2);
+
+      // First call resets the in_progress task
+      expect(mockOnUpdateLocalTask).toHaveBeenNthCalledWith(1, '2', expect.objectContaining({
+        status: 'pending'
+      }));
+
+      // Second call boosts the selected task
+      expect(mockOnUpdateLocalTask).toHaveBeenNthCalledWith(2, '1', expect.objectContaining({
+        priority: 'boosted',
+        status: 'in_progress',
+      }));
+
+      // Task already assigned to me - should NOT call assignEmployee, only setCallback
+      expect(sunshineService.assignEmployee).not.toHaveBeenCalledWith(123, 28442);
+      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String));
+    });
+
+    it('should boost urgent task and assign user', async () => {
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handleBoostUrgent('1');
+      });
+
+      expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
+        priority: 'boosted',
+        status: 'pending',
+      }));
+    });
+
+    it('should handle removeUrgent as no-op', () => {
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      act(() => {
+        result.current.handleRemoveUrgent('1');
+      });
+
+      expect(mockOnUpdateLocalTask).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('isTaskAssignedToSomeoneElse', () => {
+    it('should return false for unassigned task (no employeeId)', () => {
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current.isTaskAssignedToSomeoneElse(mockTasks[1])).toBe(false);
+    });
+
+    it('should return true for task with different employeeId', () => {
+      const taskAssignedToOther: Task = {
+        ...mockTasks[1],
+        apiData: { caregiverId: 456, employeeId: OTHER_EMPLOYEE_ID }
+      };
+
+      const { result } = renderHook(
+        () => useTaskActions([taskAssignedToOther], mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current.isTaskAssignedToSomeoneElse(taskAssignedToOther)).toBe(true);
+    });
+
+    it('should return false for task with my employeeId', () => {
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current.isTaskAssignedToSomeoneElse(mockTasks[0])).toBe(false);
+    });
+  });
+
+  describe('canTakeTask', () => {
+    it('should return true for unassigned task (no employeeId)', () => {
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current.canTakeTask(mockTasks[1])).toBe(true);
+    });
+
+    it('should return false for task with my employeeId', () => {
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current.canTakeTask(mockTasks[0])).toBe(false);
+    });
+
+    it('should return false for task with other employeeId', () => {
+      const taskAssignedToOther: Task = {
+        ...mockTasks[1],
+        apiData: { caregiverId: 456, employeeId: OTHER_EMPLOYEE_ID }
+      };
+
+      const { result } = renderHook(
+        () => useTaskActions([taskAssignedToOther], mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current.canTakeTask(taskAssignedToOther)).toBe(false);
+    });
+  });
 });

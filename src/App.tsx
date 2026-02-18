@@ -9,7 +9,7 @@ import { Header } from './components/Header';
 import { TaskFocusedView } from './components/TaskFocusedView';
 import { TaskHistory } from './components/TaskHistory';
 import { useLanguage } from './contexts/LanguageContext';
-import { useAirtable } from './hooks/useAirtable';
+import { useCallbacks } from './hooks/useCallbacks';
 import { Task, TaskType, TaskPriority, TaskStatus } from './types/Task';
 import { generateId, addHistoryEntry } from './utils/helpers';
 
@@ -18,18 +18,17 @@ function App() {
   const { t } = useLanguage();
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>('signin');
   const [currentView, setCurrentView] = useState<'main' | 'settings'>('main');
-  const { 
-    tasks, 
-    loading, 
-    error, 
+  const {
+    tasks,
+    loading,
+    error,
     lastRefresh,
     availableUsers,
-    loadContacts,
-    silentRefresh, 
-    updateTask: updateAirtableTask, 
-    addTask: addAirtableTask, 
-    deleteTask: deleteAirtableTask 
-  } = useAirtable();
+    loadCallbacks,
+    silentRefresh,
+    updateLocalTask,
+    removeLocalTask,
+  } = useCallbacks();
   
   const [showSampleTasks, setShowSampleTasks] = useState(false);
 
@@ -147,61 +146,34 @@ function App() {
     
     console.log('Creating 9 test tasks:', sampleTasks.length);
     setShowSampleTasks(true);
-    // Dodaj przykładowe zadania do istniejących zadań z Airtable
-    sampleTasks.forEach(task => addAirtableTask(task));
-  };
-
-  const addTask = async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
-    await addAirtableTask(taskData);
-  };
-
-  const updateTask = async (taskId: string, updates: Partial<Task>) => {
-    try {
-      await updateAirtableTask(taskId, updates);
-    } catch (error) {
-      console.error('Failed to update task:', error);
-      // Error is already handled in useAirtable hook
-      throw error;
-    }
-  };
-
-  const deleteTask = async (taskId: string) => {
-    await deleteAirtableTask(taskId);
   };
 
   const handleResetTasks = () => {
-    console.log('Reset button clicked!');
-    if (loadContacts) {
-      loadContacts(); // Przeładuj dane z Airtable
-    }
+    loadCallbacks();
   };
 
   const handleConfigSaved = () => {
-    if (loadContacts) {
-      loadContacts(); // Przeładuj dane po zapisaniu konfiguracji
-    }
+    loadCallbacks();
   };
 
   const handleUndoAction = (taskId: string, historyEntryId: string) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task || !task.history) return;
-    
+
     const historyEntry = task.history.find(h => h.id === historyEntryId);
     if (!historyEntry || !historyEntry.canUndo) return;
-    
-    // Revert to previous status
+
     const updates: Partial<Task> = {
       status: historyEntry.previousStatus || 'pending',
       completedAt: undefined,
       history: task.history.filter(h => h.id !== historyEntryId)
     };
-    
-    // If it was a postpone action, remove the due date
+
     if (historyEntry.action === 'postponed') {
       updates.dueDate = undefined;
     }
-    
-    updateTask(taskId, updates);
+
+    updateLocalTask(taskId, updates);
   };
 
   const handleStartTaskFromNotification = (task: Task) => {
@@ -225,7 +197,7 @@ function App() {
       {currentView === 'settings' ? (
         <AccountSettings onBack={() => setCurrentView('main')} />
       ) : (
-        <MainApp 
+        <MainApp
           tasks={tasks}
           loading={loading}
           error={error}
@@ -235,11 +207,11 @@ function App() {
           createTestTasks={createTestTasks}
           handleResetTasks={handleResetTasks}
           handleConfigSaved={handleConfigSaved}
-          updateTask={updateTask}
-          addTask={addTask}
+          updateLocalTask={updateLocalTask}
+          removeLocalTask={removeLocalTask}
           handleUndoAction={handleUndoAction}
           onShowSettings={() => setCurrentView('settings')}
-          loadContacts={loadContacts}
+          loadCallbacks={loadCallbacks}
           silentRefresh={silentRefresh}
           availableUsers={availableUsers}
         />
@@ -258,11 +230,11 @@ interface MainAppProps {
   createTestTasks: () => void;
   handleResetTasks: () => void;
   handleConfigSaved: () => void;
-  updateTask: (taskId: string, updates: Partial<Task>) => void;
-  addTask: (taskData: Omit<Task, 'id' | 'createdAt'>) => void;
+  updateLocalTask: (taskId: string, updates: Partial<Task>) => void;
+  removeLocalTask: (taskId: string) => void;
   handleUndoAction: (taskId: string, historyEntryId: string) => void;
   onShowSettings: () => void;
-  loadContacts: () => void;
+  loadCallbacks: () => void;
   silentRefresh: () => void;
   availableUsers: string[];
 }
@@ -277,11 +249,11 @@ const MainApp: React.FC<MainAppProps> = ({
   createTestTasks,
   handleResetTasks,
   handleConfigSaved,
-  updateTask,
-  addTask,
+  updateLocalTask,
+  removeLocalTask,
   handleUndoAction,
   onShowSettings,
-  loadContacts,
+  loadCallbacks,
   silentRefresh,
   availableUsers
 }) => {
@@ -296,7 +268,7 @@ const MainApp: React.FC<MainAppProps> = ({
             <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">Ładowanie kontaktów...</h3>
-          <p className="text-gray-500">Pobieranie danych z Airtable</p>
+          <p className="text-gray-500">Pobieranie danych z API</p>
           <p className="text-xs text-gray-400 mt-2">Ostatnie odświeżenie: {lastRefresh.toLocaleTimeString()}</p>
         </div>
       </div>
@@ -350,12 +322,13 @@ const MainApp: React.FC<MainAppProps> = ({
             </div>
 
             <div id="task-focused-view">
-              <TaskFocusedView 
-              tasks={tasks}
-              onUpdateTask={updateTask}
-              onLoadContacts={loadContacts}
-              onSilentRefresh={silentRefresh}
-              availableUsers={availableUsers}
+              <TaskFocusedView
+                tasks={tasks}
+                onUpdateLocalTask={updateLocalTask}
+                onRemoveLocalTask={removeLocalTask}
+                onLoadContacts={loadCallbacks}
+                onSilentRefresh={silentRefresh}
+                availableUsers={availableUsers}
               />
             </div>
 
@@ -371,7 +344,7 @@ const MainApp: React.FC<MainAppProps> = ({
                 <div>
                   <h3 className="font-medium text-gray-900">Zarządzanie danymi</h3>
                   <p className="text-sm text-gray-500">
-                    Dane są synchronizowane z Airtable ({tasks.length} {tasks.length === 1 ? 'kontakt' : 'kontaktów'}) - ostatnie odświeżenie: {lastRefresh.toLocaleTimeString()}
+                    Dane z API ({tasks.length} {tasks.length === 1 ? 'kontakt' : 'kontaktów'}) - ostatnie odświeżenie: {lastRefresh.toLocaleTimeString()}
                   </p>
                 </div>
                 <button
@@ -405,10 +378,10 @@ const MainApp: React.FC<MainAppProps> = ({
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#AB4D95'}
               >
                 <span>🔄</span>
-                <span>Odśwież dane z Airtable</span>
+                <span>Odśwież dane z API</span>
               </button>
               <p className="text-xs text-gray-500 mt-2">
-                Przeładowuje najnowsze dane z tabeli Airtable
+                Przeładowuje najnowsze dane z Sunshine API
               </p>
             </div>
           </div>

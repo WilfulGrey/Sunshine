@@ -21,20 +21,13 @@ export interface Task {
     scheduledFor?: Date;
   };
   history?: TaskHistoryEntry[];
-  airtableData?: {
-    recordId: string;
+  apiData?: {
+    caregiverId: number;
+    employeeId?: number | null;
     phoneNumber?: string;
-    profileLink?: string;
-    retellLink?: string;
-    jobLink?: string;
-    mmId?: string;
-    previousRecommendation?: string;
-    nextSteps?: string;
-    urgent?: boolean;
-    user?: string | string[];
-    wklejkaUrl?: string;
-    wklejkaDate?: Date;
-    nieudaneWklejki?: number;
+    callbackSource?: string;
+    latestContactContent?: string;
+    recruiterName?: string;
   };
 }
 

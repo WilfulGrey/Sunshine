@@ -41,7 +41,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onSave, onCancel }) =>
         dueDate: task.dueDate ? task.dueDate.toISOString().slice(0, 16) : '',
         assignedTo: task.assignedTo || '',
         trigger: task.trigger || '',
-        wklejkaUrl: task.airtableData?.wklejkaUrl || '',
+        wklejkaUrl: task.apiData?.wklejkaUrl || '',
         voicebotConfig: {
           script: task.voicebotConfig?.script || '',
           recipients: task.voicebotConfig?.recipients || [],
@@ -96,9 +96,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onSave, onCancel }) =>
       } : undefined
     };
 
-    // Jeśli edytujemy zadanie z Airtable i zmienił się URL wklejki
-    if (task?.airtableData && formData.wklejkaUrl !== (task.airtableData.wklejkaUrl || '')) {
-      (taskData as any).airtableUpdates = {
+    // Jeśli edytujemy zadanie z API i zmienił się URL wklejki
+    if (task?.apiData && formData.wklejkaUrl !== (task.apiData.wklejkaUrl || '')) {
+      (taskData as any).apiUpdates = {
         'Wklejka': formData.wklejkaUrl || null
       };
     }
@@ -246,8 +246,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, onSave, onCancel }) =>
             </div>
           </div>
 
-          {/* URL Wklejki - tylko dla zadań z Airtable */}
-          {task?.airtableData && (
+          {/* URL Wklejki - tylko dla zadań z API */}
+          {task?.apiData && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 URL Wklejki

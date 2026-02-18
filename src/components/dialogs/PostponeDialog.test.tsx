@@ -184,10 +184,10 @@ describe('PostponeDialog', () => {
     expect(confirmButton).not.toBeDisabled();
   });
 
-  it('should show Airtable information note', () => {
+  it('should show save information note', () => {
     render(<PostponeDialog {...defaultProps} />);
-    
-    expect(screen.getByText(/Ta notatka zostanie zapisana w polu "Następne kroki" w Airtable/)).toBeInTheDocument();
+
+    expect(screen.getByText(/Ta notatka zostanie zapisana jako notatka w systemie/)).toBeInTheDocument();
   });
 
   it('should display current notes value', () => {
@@ -200,6 +200,50 @@ describe('PostponeDialog', () => {
     
     const textarea = screen.getByDisplayValue('Current notes');
     expect(textarea).toBeInTheDocument();
+  });
+
+  it('should highlight selected quick option button', () => {
+    render(
+      <PostponeDialog
+        {...defaultProps}
+        setPostponeDate={vi.fn()}
+        setPostponeTime={vi.fn()}
+      />
+    );
+
+    const tomorrowBtn = screen.getByText('Tomorrow 2 PM');
+    expect(tomorrowBtn.className).toContain('bg-gray-100');
+
+    fireEvent.click(tomorrowBtn);
+    expect(tomorrowBtn.style.backgroundColor).toBe('rgb(171, 77, 149)');
+    expect(tomorrowBtn.style.color).toBe('white');
+
+    // Other buttons should remain unselected
+    const oneHourBtn = screen.getByText('In 1 Hour');
+    expect(oneHourBtn.className).toContain('bg-gray-100');
+  });
+
+  it('should clear quick selection highlight when manual date is changed', () => {
+    const setPostponeDate = vi.fn();
+    render(
+      <PostponeDialog
+        {...defaultProps}
+        setPostponeDate={setPostponeDate}
+        setPostponeTime={vi.fn()}
+      />
+    );
+
+    // Select a quick option first
+    const tomorrowBtn = screen.getByText('Tomorrow 2 PM');
+    fireEvent.click(tomorrowBtn);
+    expect(tomorrowBtn.style.backgroundColor).toBe('rgb(171, 77, 149)');
+
+    // Manually change date
+    const dateInput = screen.getByDisplayValue('2024-01-15');
+    fireEvent.change(dateInput, { target: { value: '2024-01-20' } });
+
+    // Quick selection should be cleared
+    expect(tomorrowBtn.className).toContain('bg-gray-100');
   });
 
   it('should have proper form structure with all 24 hours and 60 minutes options', () => {

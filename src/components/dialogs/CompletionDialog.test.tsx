@@ -29,7 +29,7 @@ describe('CompletionDialog', () => {
     completionSummary: '',
     setCompletionSummary: vi.fn(),
     onConfirm: vi.fn(),
-    onClose: vi.fn()
+    onBack: vi.fn()
   };
 
   beforeEach(() => {
@@ -38,14 +38,13 @@ describe('CompletionDialog', () => {
 
   it('should render dialog with task title', () => {
     render(<CompletionDialog {...defaultProps} />);
-    
-    expect(screen.getByText('Complete Task')).toBeInTheDocument();
+
     expect(screen.getByText('Test Task')).toBeInTheDocument();
   });
 
   it('should render completion summary textarea', () => {
     render(<CompletionDialog {...defaultProps} />);
-    
+
     const textarea = screen.getByPlaceholderText(/Opisz wynik rozmowy/);
     expect(textarea).toBeInTheDocument();
   });
@@ -53,72 +52,73 @@ describe('CompletionDialog', () => {
   it('should call setCompletionSummary when textarea value changes', () => {
     const setCompletionSummary = vi.fn();
     render(
-      <CompletionDialog 
-        {...defaultProps} 
+      <CompletionDialog
+        {...defaultProps}
         setCompletionSummary={setCompletionSummary}
       />
     );
-    
+
     const textarea = screen.getByPlaceholderText(/Opisz wynik rozmowy/);
     fireEvent.change(textarea, { target: { value: 'Test summary' } });
-    
+
     expect(setCompletionSummary).toHaveBeenCalledWith('Test summary');
   });
 
   it('should display current completion summary value', () => {
     render(
-      <CompletionDialog 
-        {...defaultProps} 
+      <CompletionDialog
+        {...defaultProps}
         completionSummary={'Current summary'}
       />
     );
-    
+
     const textarea = screen.getByDisplayValue('Current summary');
     expect(textarea).toBeInTheDocument();
   });
 
-  it('should call onConfirm when confirm button is clicked', () => {
+  it('should call onConfirm when save button is clicked with summary', () => {
     const onConfirm = vi.fn();
-    render(<CompletionDialog {...defaultProps} onConfirm={onConfirm} />);
-    
-    const confirmButton = screen.getByText('Zakończ zadanie');
-    fireEvent.click(confirmButton);
-    
+    render(<CompletionDialog {...defaultProps} completionSummary="Call went well" onConfirm={onConfirm} />);
+
+    const saveButton = screen.getByText('Zapisz');
+    fireEvent.click(saveButton);
+
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
-  it('should call onClose when cancel button is clicked', () => {
-    const onClose = vi.fn();
-    render(<CompletionDialog {...defaultProps} onClose={onClose} />);
-    
-    const cancelButton = screen.getByText('Anuluj');
-    fireEvent.click(cancelButton);
-    
-    expect(onClose).toHaveBeenCalledTimes(1);
+  it('should disable save button when summary is empty', () => {
+    render(<CompletionDialog {...defaultProps} completionSummary="" />);
+
+    const saveButton = screen.getByRole('button', { name: /Zapisz/ });
+    expect(saveButton).toBeDisabled();
   });
 
-  it('should show status change information', () => {
-    render(<CompletionDialog {...defaultProps} />);
-    
-    expect(screen.getByText(/Status zostanie zmieniony na "kontakt udany"/)).toBeInTheDocument();
+  it('should call onBack when back button is clicked', () => {
+    const onBack = vi.fn();
+    render(<CompletionDialog {...defaultProps} onBack={onBack} />);
+
+    const backButton = screen.getByText('Wróć');
+    fireEvent.click(backButton);
+
+    expect(onBack).toHaveBeenCalledTimes(1);
   });
 
-  it('should show information about Airtable save', () => {
+  it('should show information about save', () => {
     render(<CompletionDialog {...defaultProps} />);
-    
-    expect(screen.getByText(/Ten komentarz zostanie zapisany w polu "Następne kroki" w Airtable/)).toBeInTheDocument();
+
+    expect(screen.getByText(/Ten komentarz zostanie zapisany jako notatka w systemie/)).toBeInTheDocument();
   });
 
   it('should have proper accessibility attributes', () => {
     render(<CompletionDialog {...defaultProps} />);
-    
+
     const textarea = screen.getByRole('textbox');
     expect(textarea).toHaveAttribute('rows', '4');
-    
-    const confirmButton = screen.getByRole('button', { name: /Zakończ zadanie/ });
-    expect(confirmButton).toBeInTheDocument();
-    
-    const cancelButton = screen.getByRole('button', { name: /Anuluj/ });
-    expect(cancelButton).toBeInTheDocument();
+
+    const saveButton = screen.getByRole('button', { name: /Zapisz/ });
+    expect(saveButton).toBeInTheDocument();
+
+    const backButton = screen.getByRole('button', { name: /Wróć/ });
+    expect(backButton).toBeInTheDocument();
   });
 });

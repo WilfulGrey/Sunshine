@@ -20,7 +20,7 @@ export const PhoneDialog: React.FC<PhoneDialogProps> = ({
   onStartCall
 }) => {
   const { t } = useLanguage();
-  const [phoneNumberInput, setPhoneNumberInput] = useState(task.airtableData?.phoneNumber || '');
+  const [phoneNumberInput, setPhoneNumberInput] = useState(task.apiData?.phoneNumber || '');
   // const [callStatus, setCallStatus] = useState<CallStatus | null>(null);
   // const [isCallInProgress, setIsCallInProgress] = useState(false);
 
@@ -57,7 +57,7 @@ export const PhoneDialog: React.FC<PhoneDialogProps> = ({
   };
 
   const handleCloseDialog = () => {
-    setPhoneNumberInput(task.airtableData?.phoneNumber || '');
+    setPhoneNumberInput(task.apiData?.phoneNumber || '');
     // setCallStatus(null);
     // setIsCallInProgress(false);
     onClose();

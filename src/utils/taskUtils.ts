@@ -30,44 +30,21 @@ export const getPriorityColor = (priority: string) => {
   }
 };
 
-export const filterActiveTasks = (tasks: Task[], currentUserName: string, takenTasks: Set<string>) => {
+export const filterActiveTasks = (tasks: Task[], takenTasks: Set<string>, currentEmployeeId: number | null) => {
   return tasks.filter(task => {
-    if (task.status === 'completed' || task.status === 'cancelled') {
-      return false;
-    }
-    
-    // Check regular assignedTo field
-    const isAssignedToSomeoneElse = task.assignedTo && 
-      task.assignedTo !== currentUserName && 
-      !takenTasks.has(task.id);
-    
-    if (isAssignedToSomeoneElse) {
-      return false;
-    }
-    
-    // Check Airtable user field (can be string or array)
-    if (task.airtableData?.user) {
-      const airtableUser = task.airtableData.user;
-      
-      // If it's an array, check if current user is in it
-      if (Array.isArray(airtableUser)) {
-        const hasCurrentUser = airtableUser.includes(currentUserName);
-        const hasOtherUsers = airtableUser.some(user => user !== currentUserName);
-        
-        // If there are other users and current user is not assigned, hide task
-        if (hasOtherUsers && !hasCurrentUser && !takenTasks.has(task.id)) {
-          return false;
-        }
-      } 
-      // If it's a string, check if it's assigned to someone else
-      else if (typeof airtableUser === 'string') {
-        if (airtableUser !== currentUserName && !takenTasks.has(task.id)) {
-          return false;
-        }
-      }
-    }
-    
-    return true;
+    if (task.status === 'completed' || task.status === 'cancelled') return false;
+    if (takenTasks.has(task.id)) return true;
+
+    const taskEmployeeId = task.apiData?.employeeId;
+
+    // Unassigned → visible to everyone
+    if (!taskEmployeeId) return true;
+
+    // Assigned to me → visible
+    if (currentEmployeeId && taskEmployeeId === currentEmployeeId) return true;
+
+    // Assigned to someone else → hidden
+    return false;
   });
 };
 
@@ -102,14 +79,11 @@ export const sortTasksByPriority = (tasks: Task[]) => {
 
 const isTaskFarInFuture = (task: Task, daysThreshold: number = 7): boolean => {
   if (!task.dueDate) return false;
-  
-  // Never hide urgent tasks from Airtable
-  if (task.airtableData?.urgent) return false;
-  
+
   const now = new Date();
   const taskDate = new Date(task.dueDate);
   const diffInDays = (taskDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-  
+
   return diffInDays > daysThreshold;
 };
 
@@ -130,8 +104,8 @@ export const isTaskDueToday = (task: Task, timezone: string = 'Europe/Warsaw'): 
   return taskDateOnly.getTime() === today.getTime();
 };
 
-export const getProcessedTasks = (tasks: Task[], currentUserName: string, takenTasks: Set<string>, showFutureTasks: boolean = false) => {
-  const activeTasks = filterActiveTasks(tasks, currentUserName, takenTasks);
+export const getProcessedTasks = (tasks: Task[], takenTasks: Set<string>, currentEmployeeId: number | null, showFutureTasks: boolean = false) => {
+  const activeTasks = filterActiveTasks(tasks, takenTasks, currentEmployeeId);
   const sortedTasks = sortTasksByPriority(activeTasks);
   
   const upcomingTasks = sortedTasks.slice(1);

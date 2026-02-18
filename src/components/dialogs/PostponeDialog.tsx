@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface PostponeDialogProps {
@@ -23,8 +23,10 @@ export const PostponeDialog: React.FC<PostponeDialogProps> = ({
   onClose
 }) => {
   const { t } = useLanguage();
+  const [selectedQuick, setSelectedQuick] = useState<string | null>(null);
 
   const handleQuickSelect = (type: string) => {
+    setSelectedQuick(type);
     const now = new Date();
     
     switch (type) {
@@ -57,6 +59,10 @@ export const PostponeDialog: React.FC<PostponeDialogProps> = ({
     setPostponeTime(now.toTimeString().slice(0, 5));
   };
 
+  const quickBtnBase = 'px-3 py-2 text-sm rounded-lg transition-colors';
+  const quickBtnStyle = (type: string): React.CSSProperties =>
+    selectedQuick === type ? { backgroundColor: '#AB4D95', color: 'white' } : {};
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
@@ -74,7 +80,7 @@ export const PostponeDialog: React.FC<PostponeDialogProps> = ({
             placeholder="Opisz powód przełożenia, ustalenia z rozmowy..."
           />
           <p className="text-xs text-gray-500 mt-1">
-            Ta notatka zostanie zapisana w polu "Następne kroki" w Airtable
+            Ta notatka zostanie zapisana jako notatka w systemie
           </p>
         </div>
 
@@ -85,37 +91,43 @@ export const PostponeDialog: React.FC<PostponeDialogProps> = ({
           <div className="grid grid-cols-2 gap-2 mb-4">
             <button
               onClick={() => handleQuickSelect('1hour')}
-              className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className={`${quickBtnBase} ${selectedQuick !== '1hour' ? 'bg-gray-100 hover:bg-gray-200' : ''}`}
+              style={quickBtnStyle('1hour')}
             >
               {t.in1Hour}
             </button>
             <button
               onClick={() => handleQuickSelect('2hours')}
-              className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className={`${quickBtnBase} ${selectedQuick !== '2hours' ? 'bg-gray-100 hover:bg-gray-200' : ''}`}
+              style={quickBtnStyle('2hours')}
             >
               {t.in2Hours}
             </button>
             <button
               onClick={() => handleQuickSelect('tomorrow9')}
-              className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className={`${quickBtnBase} ${selectedQuick !== 'tomorrow9' ? 'bg-gray-100 hover:bg-gray-200' : ''}`}
+              style={quickBtnStyle('tomorrow9')}
             >
               {t.tomorrow9}
             </button>
             <button
               onClick={() => handleQuickSelect('tomorrow14')}
-              className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className={`${quickBtnBase} ${selectedQuick !== 'tomorrow14' ? 'bg-gray-100 hover:bg-gray-200' : ''}`}
+              style={quickBtnStyle('tomorrow14')}
             >
               {t.tomorrow14}
             </button>
             <button
               onClick={() => handleQuickSelect('nextWeek')}
-              className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className={`${quickBtnBase} ${selectedQuick !== 'nextWeek' ? 'bg-gray-100 hover:bg-gray-200' : ''}`}
+              style={quickBtnStyle('nextWeek')}
             >
               {t.nextWeek}
             </button>
             <button
               onClick={() => handleQuickSelect('1week')}
-              className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className={`${quickBtnBase} ${selectedQuick !== '1week' ? 'bg-gray-100 hover:bg-gray-200' : ''}`}
+              style={quickBtnStyle('1week')}
             >
               {t.in1Week}
             </button>
@@ -132,7 +144,7 @@ export const PostponeDialog: React.FC<PostponeDialogProps> = ({
               <input
                 type="date"
                 value={postponeDate}
-                onChange={(e) => setPostponeDate(e.target.value)}
+                onChange={(e) => { setSelectedQuick(null); setPostponeDate(e.target.value); }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
               />
             </div>
@@ -142,6 +154,7 @@ export const PostponeDialog: React.FC<PostponeDialogProps> = ({
                 <select
                   value={postponeTime.split(':')[0] || '09'}
                   onChange={(e) => {
+                    setSelectedQuick(null);
                     const minutes = postponeTime.split(':')[1] || '00';
                     setPostponeTime(`${e.target.value}:${minutes}`);
                   }}
@@ -157,6 +170,7 @@ export const PostponeDialog: React.FC<PostponeDialogProps> = ({
                 <select
                   value={postponeTime.split(':')[1] || '00'}
                   onChange={(e) => {
+                    setSelectedQuick(null);
                     const hours = postponeTime.split(':')[0] || '09';
                     setPostponeTime(`${hours}:${e.target.value}`);
                   }}
