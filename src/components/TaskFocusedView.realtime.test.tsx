@@ -33,12 +33,6 @@ vi.mock('../contexts/LanguageContext', () => ({
   })
 }));
 
-vi.mock('../contexts/TimezoneContext', () => ({
-  useTimezone: () => ({
-    timezone: 'Europe/Warsaw'
-  })
-}));
-
 vi.mock('../hooks/useUsers', () => ({
   useUsers: () => ({
     users: [

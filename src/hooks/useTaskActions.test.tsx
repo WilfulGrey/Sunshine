@@ -5,7 +5,6 @@ import { useTaskActions } from './useTaskActions';
 import { Task } from '../types/Task';
 import { AuthProvider } from '../contexts/AuthContext';
 import { LanguageProvider } from '../contexts/LanguageContext';
-import { TimezoneProvider } from '../contexts/TimezoneContext';
 
 // Mock window methods
 const mockAlert = vi.fn();
@@ -72,13 +71,6 @@ vi.mock('../contexts/LanguageContext', () => ({
   })
 }));
 
-vi.mock('../contexts/TimezoneContext', () => ({
-  TimezoneProvider: ({ children }: { children: ReactNode }) => children,
-  useTimezone: () => ({
-    timezone: 'Europe/Warsaw'
-  })
-}));
-
 vi.mock('../utils/helpers', () => ({
   addHistoryEntry: vi.fn((task, type, description) => ({
     ...task,
@@ -101,9 +93,7 @@ vi.mock('../utils/sunshineHelpers', () => ({
 const Wrapper = ({ children }: { children: ReactNode }) => (
   <AuthProvider>
     <LanguageProvider>
-      <TimezoneProvider>
-        {children}
-      </TimezoneProvider>
+      {children}
     </LanguageProvider>
   </AuthProvider>
 );

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, Phone, X, Skull, XCircle, Eye, Loader2, RefreshCw, ExternalLink, MessageSquare, ScrollText, Heart } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useTimezone } from '../contexts/TimezoneContext';
 import { useUsers } from '../hooks/useUsers';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -33,7 +32,6 @@ interface TaskFocusedViewProps {
 
 export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdateLocalTask, onRemoveLocalTask, onLoadContacts, onSilentRefresh, availableUsers = [] }) => {
   const { t } = useLanguage();
-  const { timezone } = useTimezone();
   const { users, getUserDisplayName } = useUsers();
   const { user } = useAuth();
   
@@ -570,7 +568,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       {/* Next Task - Hero Section */}
       <div className={`bg-white rounded-xl border-2 p-8 ${
         isNextTaskOverdue ? 'border-red-300 bg-red-50' : 'border-purple-200'
-      } ${!isTaskDueToday(nextTask, timezone) && !isNextTaskOverdue ? 'task-inactive' : ''}`}>
+      } ${!isTaskDueToday(nextTask, 'Europe/Warsaw') && !isNextTaskOverdue ? 'task-inactive' : ''}`}>
         <div className="flex items-center space-x-3 mb-4">
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${getPriorityColor(nextTask.priority)}`}>
             {nextTask.priority === 'low' ? t.low : 
@@ -580,7 +578,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
           {nextTask.dueDate && (
             <div className={`flex items-center space-x-2 ${isNextTaskOverdue ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
               <Clock className="h-4 w-4" />
-              <span className="text-sm">{formatDate(nextTask.dueDate, t, timezone)}</span>
+              <span className="text-sm">{formatDate(nextTask.dueDate, t, 'Europe/Warsaw')}</span>
               {isNextTaskOverdue && <AlertTriangle className="h-4 w-4" />}
             </div>
           )}
@@ -848,7 +846,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                   key={task.id}
                   className={`bg-white rounded-lg border p-4 hover:shadow-md transition-all ${
                     taskOverdue ? 'border-red-200 bg-red-50' : 'border-gray-200'
-                  } ${!isTaskDueToday(task, timezone) && !taskOverdue ? 'task-inactive-subtle' : ''}`}
+                  } ${!isTaskDueToday(task, 'Europe/Warsaw') && !taskOverdue ? 'task-inactive-subtle' : ''}`}
                 >
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-3 flex-1">
@@ -868,7 +866,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                           {task.dueDate && (
                             <div className={`flex items-center space-x-1 ${taskOverdue ? 'text-red-600' : ''}`}>
                               <Clock className="h-3 w-3" />
-                              <span>{formatDate(task.dueDate, t, timezone)}</span>
+                              <span>{formatDate(task.dueDate, t, 'Europe/Warsaw')}</span>
                             </div>
                           )}
                         </div>

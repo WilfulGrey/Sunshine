@@ -1,7 +1,6 @@
 import React from 'react';
 import { Clock, User, Bot, Zap, AlertTriangle, ArrowRight, X } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useTimezone } from '../contexts/TimezoneContext';
 import { Task } from '../types/Task';
 import { formatDate, isOverdue } from '../utils/helpers';
 
@@ -17,7 +16,6 @@ export const NotificationPopup: React.FC<NotificationPopupProps> = ({
   onStartTask 
 }) => {
   const { t } = useLanguage();
-  const { timezone } = useTimezone();
 
   // Filter and sort tasks by priority and due date
   const activeTasks = tasks.filter(task => task.status !== 'completed' && task.status !== 'cancelled');
@@ -131,7 +129,7 @@ export const NotificationPopup: React.FC<NotificationPopupProps> = ({
                         isOverdue(nextTask.dueDate) ? 'text-red-600' : ''
                       }`}>
                         <Clock className="h-3 w-3" />
-                        <span>{formatDate(nextTask.dueDate, t, timezone)}</span>
+                        <span>{formatDate(nextTask.dueDate, t, 'Europe/Warsaw')}</span>
                         {isOverdue(nextTask.dueDate) && <AlertTriangle className="h-3 w-3" />}
                       </div>
                     )}

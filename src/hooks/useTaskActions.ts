@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Task } from '../types/Task';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useTimezone } from '../contexts/TimezoneContext';
 import { addHistoryEntry } from '../utils/helpers';
 import { sunshineService } from '../services/sunshineService';
 import { formatDateForApi } from '../utils/sunshineHelpers';
@@ -17,7 +16,6 @@ export const useTaskActions = (
   onSilentRefresh?: () => void
 ) => {
   const { t } = useLanguage();
-  const { timezone } = useTimezone();
   const { user } = useAuth();
   const [takenTasks, setTakenTasks] = useState<Set<string>>(new Set());
   const [takingTask, setTakingTask] = useState<string | null>(null);
@@ -364,7 +362,7 @@ export const useTaskActions = (
     const [hours, minutes] = postponeTime.split(':').map(Number);
     const [year, month, day] = postponeDate.split('-').map(Number);
 
-    const timezoneOffset = getTimezoneOffsetHours(timezone);
+    const timezoneOffset = getTimezoneOffsetHours('Europe/Warsaw');
     const utcHours = hours - timezoneOffset;
     const utcDateTime = new Date(Date.UTC(year, month - 1, day, utcHours, minutes));
 
@@ -375,7 +373,7 @@ export const useTaskActions = (
         await sunshineService.recordContact(caregiverId, 'note_only', postponeNotes);
       }
 
-      const updatedTask = addHistoryEntry(task, 'postponed', t.postponeDetails.replace('{date}', utcDateTime.toLocaleString('pl-PL', { timeZone: timezone })));
+      const updatedTask = addHistoryEntry(task, 'postponed', t.postponeDetails.replace('{date}', utcDateTime.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })));
       const updates: Partial<Task> = {
         status: 'pending',
         dueDate: utcDateTime,

@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { Task, TaskType, TaskPriority, TaskStatus } from '../types/Task';
 import { formatDate, isOverdue } from '../utils/helpers';
-import { useTimezone } from '../contexts/TimezoneContext';
 
 interface TaskCardProps {
   task: Task;
@@ -25,8 +24,6 @@ interface TaskCardProps {
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, onEdit }) => {
-  const { timezone } = useTimezone();
-  
   const getTypeIcon = (type: TaskType) => {
     switch (type) {
       case 'manual': return User;
@@ -105,7 +102,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, on
               {task.dueDate && (
                 <div className={`flex items-center space-x-1 ${overdue ? 'text-red-600' : ''}`}>
                   <Clock className="h-4 w-4" />
-                  <span>{formatDate(task.dueDate, undefined, timezone)}</span>
+                  <span>{formatDate(task.dueDate, undefined, 'Europe/Warsaw')}</span>
                 </div>
               )}
               
