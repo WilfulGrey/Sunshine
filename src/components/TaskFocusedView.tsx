@@ -231,6 +231,33 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   
   // Fetch latest contact note from logs/latest - single source of truth
   const [latestNote, setLatestNote] = useState<{ content: string; author: string; date: string } | null>(null);
+  const latestNoteRef = useRef(latestNote);
+  latestNoteRef.current = latestNote;
+
+  // Retry-based refresh: keeps fetching until API returns a newer note than what we currently have
+  const refreshLatestNote = useCallback(async (caregiverId: number, maxRetries = 5) => {
+    const currentContent = latestNoteRef.current?.content || '';
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+      try {
+        const response = await sunshineService.getLatestLog(caregiverId);
+        const log = response.data;
+        if (log) {
+          const CONTACT_TITLES = ['Note Only', 'Successfully', 'Not Successfully'];
+          if (CONTACT_TITLES.includes(log.title) && log.content !== currentContent) {
+            setLatestNote({
+              content: log.content,
+              author: log.custom_author_name || (log.author ? `${log.author.first_name} ${log.author.last_name}`.trim() : ''),
+              date: log.created_at,
+            });
+            return; // Got new data, done
+          }
+        }
+      } catch (err) {
+        console.error('Failed to refresh latest log (attempt', attempt + 1, '):', err);
+      }
+    }
+  }, []);
 
   // Interest job offer ID - fetched from logs when callbackSource is "Interest"
   const [interestJobOfferId, setInterestJobOfferId] = useState<number | null>(null);
@@ -354,16 +381,10 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     if (!dialogState.showPhoneDialog) return;
 
     const task = dialogState.showPhoneDialog;
+    const caregiverId = task.apiData?.caregiverId;
     taskActions.handlePhoneCall(task, reachable).then(() => {
-      if (!reachable) {
-        // Optimistic update — show "Nie odebrano" note immediately
-        const now = new Date();
-        const newCallTime = new Date(now.getTime() + 60 * 60 * 1000);
-        setLatestNote({
-          content: `Nie odebrano - ${now.toLocaleString('pl-PL')} - Oddzwonienie: ${newCallTime.toLocaleString('pl-PL')}`,
-          author: '',
-          date: now.toISOString(),
-        });
+      if (!reachable && caregiverId) {
+        refreshLatestNote(caregiverId);
       }
     });
     dialogState.closePhoneDialog();
@@ -421,17 +442,14 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   const handleCompletionConfirm = () => {
     if (!dialogState.showCompletionDialog) return;
 
-    const summary = dialogState.completionSummary;
+    const caregiverId = dialogState.showCompletionDialog.apiData?.caregiverId;
     taskActions.handleCompleteTask(
       dialogState.showCompletionDialog,
-      summary
+      dialogState.completionSummary
     ).then(() => {
-      // Optimistic update — set the note we just saved immediately
-      setLatestNote({
-        content: `${taskActions.currentUserName}: ${summary}`,
-        author: taskActions.currentUserName,
-        date: new Date().toISOString(),
-      });
+      if (caregiverId) {
+        refreshLatestNote(caregiverId);
+      }
     });
     dialogState.closeCompletionDialog();
     setRefreshDisabledAfterBoost(false);
