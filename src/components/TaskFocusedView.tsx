@@ -256,7 +256,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
     let cancelled = false;
 
-    (async () => {
+    const fetchLatestNote = async () => {
       try {
         const response = await sunshineService.getLatestLog(caregiverId);
         const log = response.data;
@@ -275,8 +275,17 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       } catch (err) {
         console.error('Failed to fetch latest log:', err);
       }
-    })();
+    };
 
+    // When triggered by a note save, delay to let API propagate the write
+    if (noteRefreshTrigger > 0) {
+      const timer = setTimeout(() => {
+        if (!cancelled) fetchLatestNote();
+      }, 800);
+      return () => { cancelled = true; clearTimeout(timer); };
+    }
+
+    fetchLatestNote();
     return () => { cancelled = true; };
   }, [nextTask?.id, nextTask?.apiData?.caregiverId, noteRefreshTrigger]);
 
@@ -357,7 +366,12 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     if (!dialogState.showPhoneDialog) return;
 
     const task = dialogState.showPhoneDialog;
-    taskActions.handlePhoneCall(task, reachable);
+    taskActions.handlePhoneCall(task, reachable).then(() => {
+      if (!reachable) {
+        // Refresh latest note after "Nie odebrano" is saved
+        setNoteRefreshTrigger(prev => prev + 1);
+      }
+    });
     dialogState.closePhoneDialog();
 
     if (reachable) {
