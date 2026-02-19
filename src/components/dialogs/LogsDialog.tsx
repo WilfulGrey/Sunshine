@@ -11,7 +11,7 @@ interface LogsDialogProps {
   loadingMore: boolean;
 }
 
-const CONTACT_TITLES = new Set(['Successfully', 'Not Successfully', 'Note Only', 'interest']);
+const CONTACT_TITLES = new Set(['Contact successfully', 'Contact not successfully', 'Note Only', 'interest']);
 
 function formatLogDate(dateStr: string): string {
   const date = new Date(dateStr);

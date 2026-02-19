@@ -230,7 +230,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   }
   
   // Fetch latest contact note from logs - single source of truth
-  const CONTACT_TITLES = ['Note Only', 'Successfully', 'Not Successfully'];
+  const CONTACT_TITLES = ['Note Only', 'Contact successfully', 'Contact not successfully'];
   const [latestNote, setLatestNote] = useState<{ content: string; author: string; date: string } | null>(null);
   const latestNoteRef = useRef(latestNote);
   latestNoteRef.current = latestNote;
@@ -655,12 +655,8 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
               </div>
             )}
 
-            {nextTask.description && (
-              <p className="text-gray-700 text-lg mb-4">{nextTask.description}</p>
-            )}
-
-            {/* Ostatni kontakt z logs/latest */}
-            {latestNote && (
+            {/* Latest contact note - prefer rich display from logs, fall back to task.description */}
+            {latestNote ? (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <div className="flex items-start space-x-2">
                   <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -676,7 +672,9 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                   </div>
                 </div>
               </div>
-            )}
+            ) : nextTask.description ? (
+              <p className="text-gray-700 text-lg mb-4">{nextTask.description}</p>
+            ) : null}
 
             {/* Callback source info */}
             {nextTask.apiData?.callbackSource && nextTask.apiData.callbackSource === 'Interest' ? (

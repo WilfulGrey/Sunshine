@@ -7,7 +7,7 @@ const makeMockLog = (overrides: Partial<SunshineLog> = {}): SunshineLog => ({
   id: 1,
   created_at: '2025-02-17T10:30:00Z',
   data: null,
-  title: 'Successfully',
+  title: 'Contact successfully',
   content: 'Rozmowa przebiegła pomyślnie',
   custom_author_name: null,
   logable_type: null,
@@ -57,8 +57,8 @@ describe('LogsDialog', () => {
 
   it('should render note entries with content', () => {
     const logs = [
-      makeMockLog({ id: 1, content: 'Pierwsza notatka', title: 'Successfully' }),
-      makeMockLog({ id: 2, content: 'Druga notatka', title: 'Not Successfully' }),
+      makeMockLog({ id: 1, content: 'Pierwsza notatka', title: 'Contact successfully' }),
+      makeMockLog({ id: 2, content: 'Druga notatka', title: 'Contact not successfully' }),
     ];
 
     render(<LogsDialog {...defaultProps} logs={logs} />);
@@ -69,8 +69,8 @@ describe('LogsDialog', () => {
 
   it('should not render tags/badges for log entries', () => {
     const logs = [
-      makeMockLog({ id: 1, title: 'Successfully' }),
-      makeMockLog({ id: 2, title: 'Not Successfully' }),
+      makeMockLog({ id: 1, title: 'Contact successfully' }),
+      makeMockLog({ id: 2, title: 'Contact not successfully' }),
       makeMockLog({ id: 3, title: 'Note Only' }),
     ];
 
@@ -163,7 +163,7 @@ describe('LogsDialog', () => {
 
     it('should filter out non-note entries by default', () => {
       const logs = [
-        makeMockLog({ id: 1, title: 'Successfully', content: 'Rozmowa OK' }),
+        makeMockLog({ id: 1, title: 'Contact successfully', content: 'Rozmowa OK' }),
         makeMockLog({ id: 2, title: 'callback_updated', content: 'Callback zmieniony' }),
         makeMockLog({ id: 3, title: 'Note Only', content: 'Zwykła notatka' }),
       ];
@@ -177,7 +177,7 @@ describe('LogsDialog', () => {
 
     it('should show all entries when "Wszystkie wpisy" is clicked', () => {
       const logs = [
-        makeMockLog({ id: 1, title: 'Successfully', content: 'Rozmowa OK' }),
+        makeMockLog({ id: 1, title: 'Contact successfully', content: 'Rozmowa OK' }),
         makeMockLog({ id: 2, title: 'callback_updated', content: 'Callback zmieniony' }),
         makeMockLog({ id: 3, title: 'caregiver_employee_updated', content: 'Rekruter przypisany' }),
       ];
@@ -194,7 +194,7 @@ describe('LogsDialog', () => {
 
     it('should switch back to notes only', () => {
       const logs = [
-        makeMockLog({ id: 1, title: 'Successfully', content: 'Rozmowa OK' }),
+        makeMockLog({ id: 1, title: 'Contact successfully', content: 'Rozmowa OK' }),
         makeMockLog({ id: 2, title: 'callback_updated', content: 'Callback zmieniony' }),
       ];
 
