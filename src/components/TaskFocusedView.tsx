@@ -413,7 +413,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   const handleCompletionConfirm = () => {
     if (!dialogState.showCompletionDialog) return;
 
-    taskActions.handleSaveNote(
+    taskActions.handleCompleteTask(
       dialogState.showCompletionDialog,
       dialogState.completionSummary
     ).then(() => {

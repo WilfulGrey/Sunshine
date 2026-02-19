@@ -225,8 +225,6 @@ export const useTaskActions = (
     try {
       const message = `${currentUserName}: ${completionSummary}`;
       await sunshineService.recordContact(caregiverId, 'successfully', message);
-
-      onRemoveLocalTask(task.id);
     } catch (error) {
       console.error('Complete task failed:', error);
       alert(`Błąd: ${error instanceof Error ? error.message : 'Nieznany błąd'}`);

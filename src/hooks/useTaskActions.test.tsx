@@ -420,7 +420,7 @@ describe('useTaskActions', () => {
   });
 
   describe('handleCompleteTask', () => {
-    it('should complete task via API and remove from local list', async () => {
+    it('should record successful contact via API without removing task', async () => {
       const { sunshineService } = await import('../services/sunshineService');
 
       const { result } = renderHook(
@@ -433,7 +433,7 @@ describe('useTaskActions', () => {
       });
 
       expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'successfully', 'Test User: Task completed successfully');
-      expect(mockOnRemoveLocalTask).toHaveBeenCalledWith('1');
+      expect(mockOnRemoveLocalTask).not.toHaveBeenCalled();
     });
 
     it('should include user name even with empty summary', async () => {
@@ -449,6 +449,7 @@ describe('useTaskActions', () => {
       });
 
       expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'successfully', 'Test User: ');
+      expect(mockOnRemoveLocalTask).not.toHaveBeenCalled();
     });
   });
 
