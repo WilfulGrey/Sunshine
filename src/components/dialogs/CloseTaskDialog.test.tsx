@@ -47,20 +47,45 @@ describe('CloseTaskDialog', () => {
     expect(screen.getByPlaceholderText('Dodatkowe informacje...')).toBeInTheDocument();
   });
 
-  it('should disable confirm button when no reason selected', () => {
+  it('should show disabled Zapisz button when no reason selected and notes empty', () => {
     render(<CloseTaskDialog {...defaultProps} />);
 
-    const confirmButton = screen.getByTestId('close-task-confirm');
-    expect(confirmButton).toBeDisabled();
+    const saveButton = screen.getByTestId('close-task-save-custom');
+    expect(saveButton).toBeDisabled();
+    expect(saveButton).toHaveTextContent('Zapisz');
   });
 
-  it('should enable confirm button after selecting a reason', () => {
+  it('should show Zamknij zadanie button after selecting a reason', () => {
     render(<CloseTaskDialog {...defaultProps} />);
 
     fireEvent.click(screen.getByTestId('reason-wklejka'));
 
     const confirmButton = screen.getByTestId('close-task-confirm');
     expect(confirmButton).not.toBeDisabled();
+    expect(confirmButton).toHaveTextContent('Zamknij zadanie');
+  });
+
+  it('should enable Zapisz button when notes are typed without reason', () => {
+    render(<CloseTaskDialog {...defaultProps} />);
+
+    fireEvent.change(screen.getByPlaceholderText('Dodatkowe informacje...'), {
+      target: { value: 'Mój własny powód' },
+    });
+
+    const saveButton = screen.getByTestId('close-task-save-custom');
+    expect(saveButton).not.toBeDisabled();
+  });
+
+  it('should call onConfirm with custom notes as reason via Zapisz', () => {
+    const onConfirm = vi.fn();
+    render(<CloseTaskDialog {...defaultProps} onConfirm={onConfirm} />);
+
+    fireEvent.change(screen.getByPlaceholderText('Dodatkowe informacje...'), {
+      target: { value: 'Mój własny powód' },
+    });
+    fireEvent.click(screen.getByTestId('close-task-save-custom'));
+
+    expect(onConfirm).toHaveBeenCalledWith('Mój własny powód', '');
   });
 
   it('should highlight selected reason', () => {

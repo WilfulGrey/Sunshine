@@ -28,6 +28,11 @@ export const CloseTaskDialog: React.FC<CloseTaskDialogProps> = ({
     onConfirm(reasonLabel, notes);
   };
 
+  const handleSaveCustom = () => {
+    if (!notes.trim()) return;
+    onConfirm(notes.trim(), '');
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
@@ -90,15 +95,26 @@ export const CloseTaskDialog: React.FC<CloseTaskDialogProps> = ({
           >
             Anuluj
           </button>
-          <button
-            onClick={handleConfirm}
-            disabled={!selectedReason}
-            className="flex-1 px-4 py-3 text-white rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: selectedReason ? '#AB4D95' : undefined }}
-            data-testid="close-task-confirm"
-          >
-            <span>Zamknij zadanie</span>
-          </button>
+          {selectedReason ? (
+            <button
+              onClick={handleConfirm}
+              className="flex-1 px-4 py-3 text-white rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+              style={{ backgroundColor: '#AB4D95' }}
+              data-testid="close-task-confirm"
+            >
+              <span>Zamknij zadanie</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleSaveCustom}
+              disabled={!notes.trim()}
+              className="flex-1 px-4 py-3 text-white rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: notes.trim() ? '#AB4D95' : undefined }}
+              data-testid="close-task-save-custom"
+            >
+              <span>Zapisz</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
