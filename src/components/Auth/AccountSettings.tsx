@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
-import { Eye, EyeOff, Lock, User, Mail, AlertCircle, CheckCircle2, ArrowLeft, Settings, Languages } from 'lucide-react'
+import { Eye, EyeOff, Lock, User, Mail, AlertCircle, CheckCircle2, ArrowLeft, Settings } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useLanguage } from '../../contexts/LanguageContext'
-import { Language } from '../../utils/translations'
 
 interface AccountSettingsProps {
   onBack: () => void
@@ -10,8 +9,8 @@ interface AccountSettingsProps {
 
 export const AccountSettings: React.FC<AccountSettingsProps> = ({ onBack }) => {
   const { user, updatePassword, updateProfile, signOut } = useAuth()
-  const { language, updateUserLanguage, t } = useLanguage()
-  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'language'>('profile')
+  const { t } = useLanguage()
+  const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile')
   
   // Profile form state
   const [fullName, setFullName] = useState(user?.user_metadata?.full_name || '')
@@ -96,22 +95,6 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ onBack }) => {
     }
   }
 
-  const handleLanguageUpdate = async (newLanguage: Language) => {
-    setLoading(true)
-    setError(null)
-    setSuccess(null)
-
-    try {
-      await updateUserLanguage(newLanguage)
-      setSuccess(t.languageChangedSuccess)
-    } catch (err) {
-      setError(t.failedToChangeLanguage)
-      console.error('Language update error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleSignOut = async () => {
     try {
       await signOut()
@@ -168,17 +151,6 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ onBack }) => {
                 }`}
               >
                 {t.password}
-              </button>
-              <button
-                onClick={() => setActiveTab('language')}
-                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center space-x-2 ${
-                  activeTab === 'language'
-                    ? 'border-purple-500 text-purple-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Languages className="h-4 w-4" />
-                <span>{t.language}</span>
               </button>
             </nav>
           </div>
@@ -320,66 +292,6 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ onBack }) => {
                   {loading ? t.changing : t.changePassword}
                 </button>
               </form>
-            )}
-
-            {activeTab === 'language' && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">{t.languagePreferences}</h3>
-                  <p className="text-sm text-gray-600 mb-6">
-                    {t.selectLanguageInterface}
-                  </p>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      onClick={() => handleLanguageUpdate('pl')}
-                      disabled={loading}
-                      className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-                        language === 'pl'
-                          ? 'border-purple-500 bg-purple-50 text-purple-700'
-                          : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                      } ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
-                    >
-                      <div className="text-center">
-                        <div className="text-2xl mb-2">🇵🇱</div>
-                        <div className="font-medium">{t.polish}</div>
-                        <div className="text-sm text-gray-500">{t.polishLanguage}</div>
-                        {language === 'pl' && (
-                          <div className="text-xs text-purple-600 mt-2 font-medium">✓ {t.active}</div>
-                        )}
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => handleLanguageUpdate('de')}
-                      disabled={loading}
-                      className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-                        language === 'de'
-                          ? 'border-purple-500 bg-purple-50 text-purple-700'
-                          : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                      } ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
-                    >
-                      <div className="text-center">
-                        <div className="text-2xl mb-2">🇩🇪</div>
-                        <div className="font-medium">{t.german}</div>
-                        <div className="text-sm text-gray-500">{t.germanLanguage}</div>
-                        {language === 'de' && (
-                          <div className="text-xs text-purple-600 mt-2 font-medium">✓ {t.active}</div>
-                        )}
-                      </div>
-                    </button>
-                  </div>
-
-                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-start space-x-3">
-                      <div className="text-blue-600 mt-0.5">ℹ️</div>
-                      <div className="text-sm text-blue-800">
-                        <strong>Informacja:</strong> {t.languageInfo}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             )}
 
             {/* Sekcja wylogowania */}
