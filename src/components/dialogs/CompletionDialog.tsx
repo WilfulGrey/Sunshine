@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { CheckCircle2, ArrowLeft, Save } from 'lucide-react';
 import { Task } from '../../types/Task';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -19,6 +19,11 @@ export const CompletionDialog: React.FC<CompletionDialogProps> = ({
   onBack
 }) => {
   const { t } = useLanguage();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -35,6 +40,7 @@ export const CompletionDialog: React.FC<CompletionDialogProps> = ({
             Podsumowanie rozmowy:
           </label>
           <textarea
+            ref={textareaRef}
             rows={4}
             value={completionSummary}
             onChange={(e) => setCompletionSummary(e.target.value)}
