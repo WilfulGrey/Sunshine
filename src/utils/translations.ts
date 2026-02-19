@@ -372,7 +372,6 @@ export const translations: Record<Language, Translations> = {
     removeWklejka: 'Wklejka entfernen (fehlgeschlagen)',
     agentNote: 'Agent-Notiz:',
     nextSteps: 'Nächste Schritte:',
-    urgent: 'DRINGEND',
     removeUrgentStatus: 'Dringend-Status entfernen',
     failedWklejka: 'Fehlgeschlagene Wklejka:',
     wklejkaOldWarning: 'Wklejka älter als 24h - prüfen Sie, ob sie verarbeitet wurde',
@@ -427,9 +426,8 @@ export const translations: Record<Language, Translations> = {
     assigningInProgress: 'Zuweisen...',
     verifyingAssignment: 'Zuweisung wird überprüft...',
     assignmentFailed: 'Zuweisungsfehler - bitte erneut versuchen',
-    
+
     // Account Settings
-    accountSettings: 'Kontoeinstellungen',
     manageProfile: 'Verwalten Sie Ihr Profil und Passwort',
     profile: 'Profil',
     password: 'Passwort',
@@ -650,7 +648,6 @@ export const translations: Record<Language, Translations> = {
     removeWklejka: 'Usuń wklejkę (nieudana)',
     agentNote: 'Notatka Agenta:',
     nextSteps: 'Następne kroki:',
-    urgent: 'PILNE',
     removeUrgentStatus: 'Usuń status pilny',
     failedWklejka: 'Nieudanych wklejek:',
     wklejkaOldWarning: 'Wklejka starsza niż 24h - sprawdź czy przeszła',
@@ -681,9 +678,8 @@ export const translations: Record<Language, Translations> = {
     assigningInProgress: 'Przypisuję...',
     verifyingAssignment: 'Weryfikuję przypisanie...',
     assignmentFailed: 'Błąd przypisania - spróbuj ponownie za chwilę',
-    
+
     // Account Settings
-    accountSettings: 'Ustawienia konta',
     manageProfile: 'Zarządzaj swoim profilem i hasłem',
     profile: 'Profil',
     password: 'Hasło',
