@@ -191,7 +191,7 @@ export const useTaskActions = (
       } else {
         const now = new Date();
         const newCallTime = new Date(now.getTime() + 60 * 60 * 1000);
-        const message = `Nicht erreicht - ${now.toLocaleString('de-DE')} - Wiedervorlage: ${newCallTime.toLocaleString('de-DE')}`;
+        const message = `Nie odebrano - ${now.toLocaleString('pl-PL')} - Oddzwonienie: ${newCallTime.toLocaleString('pl-PL')}`;
 
         await Promise.all([
           sunshineService.setCallback(caregiverId, formatDateForApi(newCallTime)),
@@ -375,7 +375,7 @@ export const useTaskActions = (
         await sunshineService.recordContact(caregiverId, 'note_only', postponeNotes);
       }
 
-      const updatedTask = addHistoryEntry(task, 'postponed', t.postponeDetails.replace('{date}', utcDateTime.toLocaleString('de-DE', { timeZone: timezone })));
+      const updatedTask = addHistoryEntry(task, 'postponed', t.postponeDetails.replace('{date}', utcDateTime.toLocaleString('pl-PL', { timeZone: timezone })));
       const updates: Partial<Task> = {
         status: 'pending',
         dueDate: utcDateTime,

@@ -20,7 +20,19 @@ export const useCallbacks = () => {
       const response = await sunshineService.getCallbacks(1, 100);
       const convertedTasks = response.data.map(convertCallbackToTask);
 
-      setTasks(convertedTasks);
+      setTasks(prev => {
+        if (prev.length === 0) return convertedTasks;
+        return convertedTasks.map(newTask => {
+          const existingTask = prev.find(t => t.id === newTask.id);
+          if (existingTask && existingTask.status === 'in_progress') {
+            return { ...newTask, status: 'in_progress' as const, history: existingTask.history };
+          }
+          if (existingTask && existingTask.priority === 'boosted') {
+            return { ...newTask, priority: existingTask.priority, history: existingTask.history };
+          }
+          return newTask;
+        });
+      });
       setLastRefresh(new Date());
     } catch (err) {
       console.error('Błąd podczas ładowania callbacks:', err);
@@ -47,7 +59,19 @@ export const useCallbacks = () => {
       const response = await sunshineService.getCallbacks(1, 100);
       const convertedTasks = response.data.map(convertCallbackToTask);
 
-      setTasks(convertedTasks);
+      setTasks(prev => {
+        return convertedTasks.map(newTask => {
+          const existingTask = prev.find(t => t.id === newTask.id);
+          // Preserve local-only states that API doesn't know about
+          if (existingTask && existingTask.status === 'in_progress') {
+            return { ...newTask, status: 'in_progress' as const, history: existingTask.history };
+          }
+          if (existingTask && existingTask.priority === 'boosted') {
+            return { ...newTask, priority: existingTask.priority, history: existingTask.history };
+          }
+          return newTask;
+        });
+      });
       setLastRefresh(new Date());
     } catch (err) {
       console.error('Silent refresh failed:', err);

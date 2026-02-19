@@ -28,16 +28,9 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     return users.find(u => u.id === currentUser.id) || null;
   }, [currentUser?.id, users]);
 
-  // Track if we've already set language from profile to prevent re-setting
-  const hasSetLanguageFromProfile = useRef(false);
-  
-  // Load user's preferred language when user data is available
-  useEffect(() => {
-    if (currentUserProfile?.preferred_language && !hasSetLanguageFromProfile.current) {
-      setLanguage(currentUserProfile.preferred_language);
-      hasSetLanguageFromProfile.current = true;
-    }
-  }, [currentUserProfile?.preferred_language]);
+  // Language is always PL - no switching
+  const _hasSetLanguageFromProfile = useRef(false);
+  void _hasSetLanguageFromProfile;
 
   const updateUserLanguage = async (newLanguage: Language): Promise<void> => {
     if (!currentUser) {

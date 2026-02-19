@@ -1,7 +1,6 @@
 import React from 'react';
 import { Settings, LogOut, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { LanguageSwitch } from './LanguageSwitch';
 import { TimezoneSelect } from './TimezoneSelect';
 import { TwilioConfig } from './TwilioConfig';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -34,8 +33,6 @@ export const Header: React.FC<HeaderProps> = ({ tasks, onConfigSaved, onShowSett
         </div>
 
         <div className="flex items-center space-x-4">
-          <LanguageSwitch />
-          
           <TimezoneSelect />
 
           <TwilioConfig onConfigSaved={onConfigSaved || (() => {})} />

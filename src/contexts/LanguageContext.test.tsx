@@ -96,7 +96,7 @@ describe('LanguageContext', () => {
     });
   });
 
-  it('should provide correct translations for German', () => {
+  it('should always use Polish even when user profile has German', () => {
     mockUseUsers.mockReturnValue({
       users: [{
         id: 'user1',
@@ -112,8 +112,9 @@ describe('LanguageContext', () => {
     });
 
     renderWithProviders(<TestComponent />);
-    
-    expect(screen.getByTestId('translated-text')).toHaveTextContent('Übernehmen');
+
+    expect(screen.getByTestId('current-language')).toHaveTextContent('pl');
+    expect(screen.getByTestId('translated-text')).toHaveTextContent('Biorę');
   });
 
   it('should provide correct translations for Polish', async () => {

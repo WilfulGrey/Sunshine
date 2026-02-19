@@ -390,7 +390,7 @@ describe('useTaskActions', () => {
       });
 
       expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String));
-      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'note_only', expect.stringContaining('Nicht erreicht'));
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'note_only', expect.stringContaining('Nie odebrano'));
 
       expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
         status: 'pending'
@@ -398,7 +398,7 @@ describe('useTaskActions', () => {
 
       const updateCall = mockOnUpdateLocalTask.mock.calls[0][1];
       expect(updateCall.dueDate).toBeInstanceOf(Date);
-      expect(updateCall.description).toContain('Nicht erreicht');
+      expect(updateCall.description).toContain('Nie odebrano');
     });
 
     it('should clear boosted priority when call is not reachable', async () => {
