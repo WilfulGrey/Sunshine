@@ -109,7 +109,7 @@ export const CloseTaskDialog: React.FC<CloseTaskDialogProps> = ({
               onClick={handleSaveCustom}
               disabled={!notes.trim()}
               className="flex-1 px-4 py-3 text-white rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: notes.trim() ? '#AB4D95' : undefined }}
+              style={{ backgroundColor: notes.trim() ? '#AB4D95' : '#9CA3AF' }}
               data-testid="close-task-save-custom"
             >
               <span>Zapisz</span>
