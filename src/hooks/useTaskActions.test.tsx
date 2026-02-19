@@ -452,6 +452,42 @@ describe('useTaskActions', () => {
     });
   });
 
+  describe('handleCloseTask', () => {
+    it('should close task with note_only contact type and remove from local list', async () => {
+      const { sunshineService } = await import('../services/sunshineService');
+
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handleCloseTask(mockTasks[0], 'Zrobiono wklejkę', 'Wklejka do rodziny Müller');
+      });
+
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'note_only', 'Test User zakończył task - Zrobiono wklejkę: Wklejka do rodziny Müller');
+      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, null);
+      expect(sunshineService.unassignEmployee).toHaveBeenCalledWith(123);
+      expect(mockOnRemoveLocalTask).toHaveBeenCalledWith('1');
+    });
+
+    it('should close task without notes', async () => {
+      const { sunshineService } = await import('../services/sunshineService');
+
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      await act(async () => {
+        await result.current.handleCloseTask(mockTasks[0], 'Dostępna później', '');
+      });
+
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'note_only', 'Test User zakończył task - Dostępna później');
+      expect(mockOnRemoveLocalTask).toHaveBeenCalledWith('1');
+    });
+  });
+
   describe('handleAbandonTask', () => {
     it('should abandon task via API and remove from local list', async () => {
       const { sunshineService } = await import('../services/sunshineService');

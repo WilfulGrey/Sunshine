@@ -252,11 +252,11 @@ export const useTaskActions = (
 
     try {
       const message = notes
-        ? `${currentUserName} - ${reason}: ${notes}`
-        : `${currentUserName} - ${reason}`;
+        ? `${currentUserName} zakończył task - ${reason}: ${notes}`
+        : `${currentUserName} zakończył task - ${reason}`;
 
       await Promise.all([
-        sunshineService.recordContact(caregiverId, 'successfully', message),
+        sunshineService.recordContact(caregiverId, 'note_only', message),
         sunshineService.setCallback(caregiverId, null),
         sunshineService.unassignEmployee(caregiverId),
       ]);
