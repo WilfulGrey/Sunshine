@@ -229,10 +229,21 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     console.log(`🚨 USER B DEBUG: currentUserName="${taskActions.currentUserName}", tasks=${tasks.length}`);
   }
   
-  // Fetch latest contact note from logs/latest - single source of truth
+  // Fetch latest contact note from logs - single source of truth
+  const CONTACT_TITLES = ['Note Only', 'Successfully', 'Not Successfully'];
   const [latestNote, setLatestNote] = useState<{ content: string; author: string; date: string } | null>(null);
   const latestNoteRef = useRef(latestNote);
   latestNoteRef.current = latestNote;
+
+  const findLatestContactNote = (logs: SunshineLog[]) => {
+    return logs.find(log => CONTACT_TITLES.includes(log.title)) || null;
+  };
+
+  const logToNote = (log: SunshineLog) => ({
+    content: log.content,
+    author: log.custom_author_name || (log.author ? `${log.author.first_name} ${log.author.last_name}`.trim() : ''),
+    date: log.created_at,
+  });
 
   // Retry-based refresh: keeps fetching until API returns a newer note than what we currently have
   const refreshLatestNote = useCallback(async (caregiverId: number, maxRetries = 5) => {
@@ -240,21 +251,16 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
       try {
-        const response = await sunshineService.getLatestLog(caregiverId);
-        const log = response.data;
-        if (log) {
-          const CONTACT_TITLES = ['Note Only', 'Successfully', 'Not Successfully'];
-          if (CONTACT_TITLES.includes(log.title) && log.content !== currentContent) {
-            setLatestNote({
-              content: log.content,
-              author: log.custom_author_name || (log.author ? `${log.author.first_name} ${log.author.last_name}`.trim() : ''),
-              date: log.created_at,
-            });
-            return; // Got new data, done
-          }
+        const response = await sunshineService.getLogs(caregiverId, 1, 10);
+        const contactNote = response.data.find(
+          (log: SunshineLog) => CONTACT_TITLES.includes(log.title)
+        );
+        if (contactNote && contactNote.content !== currentContent) {
+          setLatestNote(logToNote(contactNote));
+          return;
         }
       } catch (err) {
-        console.error('Failed to refresh latest log (attempt', attempt + 1, '):', err);
+        console.error('Failed to refresh latest note (attempt', attempt + 1, '):', err);
       }
     }
   }, []);
@@ -282,22 +288,19 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
     (async () => {
       try {
-        const response = await sunshineService.getLatestLog(caregiverId);
-        const log = response.data;
-        if (!cancelled && log) {
-          const CONTACT_TITLES = ['Note Only', 'Successfully', 'Not Successfully'];
-          if (CONTACT_TITLES.includes(log.title)) {
-            setLatestNote({
-              content: log.content,
-              author: log.custom_author_name || (log.author ? `${log.author.first_name} ${log.author.last_name}`.trim() : ''),
-              date: log.created_at,
-            });
+        const response = await sunshineService.getLogs(caregiverId, 1, 10);
+        if (!cancelled) {
+          const contactNote = response.data.find(
+            (log: SunshineLog) => CONTACT_TITLES.includes(log.title)
+          );
+          if (contactNote) {
+            setLatestNote(logToNote(contactNote));
           } else {
             setLatestNote(null);
           }
         }
       } catch (err) {
-        console.error('Failed to fetch latest log:', err);
+        console.error('Failed to fetch latest note:', err);
       }
     })();
 

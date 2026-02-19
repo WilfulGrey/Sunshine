@@ -459,6 +459,12 @@ describe('TaskFocusedView', () => {
 
     it('should show job offer link when interest log has job_offer_id', async () => {
       const { sunshineService } = await import('../services/sunshineService');
+      // First call: latest note fetch (uses getLogs now instead of getLatestLog)
+      vi.mocked(sunshineService.getLogs).mockResolvedValueOnce({
+        data: [],
+        meta: { current_page: 1, last_page: 1, total: 0 },
+      });
+      // Second call: interest log fetch
       vi.mocked(sunshineService.getLogs).mockResolvedValueOnce({
         data: [{
           id: 1, created_at: '2024-01-15T10:00:00Z', data: null,
