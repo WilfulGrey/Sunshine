@@ -10,6 +10,7 @@ export const useDialogState = () => {
   const [showTransferDialog, setShowTransferDialog] = useState<Task | null>(null);
   const [transferToUser, setTransferToUser] = useState('');
   const [transferReason, setTransferReason] = useState('');
+  const [showCloseTaskDialog, setShowCloseTaskDialog] = useState<Task | null>(null);
   const [showPostponeDialog, setShowPostponeDialog] = useState<string | null>(null);
   const [postponeDate, setPostponeDate] = useState('');
   const [postponeTime, setPostponeTime] = useState('');
@@ -55,6 +56,14 @@ export const useDialogState = () => {
     setTransferReason('');
   };
 
+  const openCloseTaskDialog = (task: Task) => {
+    setShowCloseTaskDialog(task);
+  };
+
+  const closeCloseTaskDialog = () => {
+    setShowCloseTaskDialog(null);
+  };
+
   const openPostponeDialog = (taskId: string) => {
     setShowPostponeDialog(taskId);
     setPostponeNotes('');
@@ -90,6 +99,10 @@ export const useDialogState = () => {
     openAbandonDialog,
     closeAbandonDialog,
     
+    showCloseTaskDialog,
+    openCloseTaskDialog,
+    closeCloseTaskDialog,
+
     showTransferDialog,
     transferToUser,
     setTransferToUser,

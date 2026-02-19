@@ -19,6 +19,7 @@ import { AbandonDialog } from './dialogs/AbandonDialog';
 import { TransferDialog } from './dialogs/TransferDialog';
 import { PostponeDialog } from './dialogs/PostponeDialog';
 import { LogsDialog } from './dialogs/LogsDialog';
+import { CloseTaskDialog } from './dialogs/CloseTaskDialog';
 import { SunshineLog } from '../services/sunshineService';
 
 interface TaskFocusedViewProps {
@@ -53,6 +54,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   isAnyDialogOpenRef.current = !!(
     dialogState.showPhoneDialog ||
     dialogState.showCompletionDialog ||
+    dialogState.showCloseTaskDialog ||
     dialogState.showAbandonDialog ||
     dialogState.showTransferDialog ||
     dialogState.showPostponeDialog ||
@@ -370,7 +372,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   const handleCompleteTask = (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
     if (task) {
-      dialogState.openCompletionDialog(task);
+      dialogState.openCloseTaskDialog(task);
     }
   };
 
@@ -395,6 +397,18 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     }
   };
 
+
+  const handleCloseTaskConfirm = (reason: string, notes: string) => {
+    if (!dialogState.showCloseTaskDialog) return;
+
+    taskActions.handleCloseTask(
+      dialogState.showCloseTaskDialog,
+      reason,
+      notes
+    );
+    dialogState.closeCloseTaskDialog();
+    setRefreshDisabledAfterBoost(false);
+  };
 
   const handleCompletionConfirm = () => {
     if (!dialogState.showCompletionDialog) return;
@@ -961,7 +975,16 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
         />
       )}
 
-      {/* Completion Summary Dialog */}
+      {/* Close Task Dialog (for "Zakończ" button) */}
+      {dialogState.showCloseTaskDialog && (
+        <CloseTaskDialog
+          task={dialogState.showCloseTaskDialog}
+          onConfirm={handleCloseTaskConfirm}
+          onClose={dialogState.closeCloseTaskDialog}
+        />
+      )}
+
+      {/* Completion Summary Dialog (for "Tak odebrała" flow) */}
       {dialogState.showCompletionDialog && (
         <CompletionDialog
           task={dialogState.showCompletionDialog}

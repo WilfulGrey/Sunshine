@@ -246,6 +246,28 @@ export const useTaskActions = (
     }
   };
 
+  const handleCloseTask = async (task: Task, reason: string, notes: string) => {
+    const caregiverId = getCaregiverId(task);
+    if (!caregiverId) return;
+
+    try {
+      const message = notes
+        ? `${currentUserName} - ${reason}: ${notes}`
+        : `${currentUserName} - ${reason}`;
+
+      await Promise.all([
+        sunshineService.recordContact(caregiverId, 'successfully', message),
+        sunshineService.setCallback(caregiverId, null),
+        sunshineService.unassignEmployee(caregiverId),
+      ]);
+
+      onRemoveLocalTask(task.id);
+    } catch (error) {
+      console.error('Close task failed:', error);
+      alert(`Błąd: ${error instanceof Error ? error.message : 'Nieznany błąd'}`);
+    }
+  };
+
   const handleAbandonTask = async (task: Task, abandonReason: string) => {
     const caregiverId = getCaregiverId(task);
     if (!caregiverId) return;
@@ -523,6 +545,7 @@ export const useTaskActions = (
     handlePhoneCall,
     handleCompleteTask,
     handleSaveNote,
+    handleCloseTask,
     handleAbandonTask,
     handleTransferTask,
     handleUnassignTask,

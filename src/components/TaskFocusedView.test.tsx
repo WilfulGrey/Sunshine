@@ -87,6 +87,7 @@ vi.mock('../hooks/useTaskActions', () => ({
     handleTakeTask: vi.fn(),
     handlePhoneCall: vi.fn(),
     handleCompleteTask: vi.fn(),
+    handleCloseTask: vi.fn(),
     handleAbandonTask: vi.fn(),
     handleTransferTask: vi.fn(),
     handlePostponeTask: vi.fn(),
@@ -107,6 +108,9 @@ vi.mock('../hooks/useDialogState', () => ({
     setCompletionSummary: vi.fn(),
     openCompletionDialog: vi.fn(),
     closeCompletionDialog: vi.fn(),
+    showCloseTaskDialog: null,
+    openCloseTaskDialog: vi.fn(),
+    closeCloseTaskDialog: vi.fn(),
     showAbandonDialog: null,
     abandonReason: '',
     setAbandonReason: vi.fn(),
@@ -182,6 +186,15 @@ vi.mock('./dialogs/PostponeDialog', () => ({
     <div data-testid={'postpone-dialog'}>
       <button onClick={onConfirm}>Confirm Postpone</button>
       <button onClick={onClose}>Close Postpone</button>
+    </div>
+  )
+}));
+
+vi.mock('./dialogs/CloseTaskDialog', () => ({
+  CloseTaskDialog: ({ onConfirm, onClose }: any) => (
+    <div data-testid={'close-task-dialog'}>
+      <button onClick={() => onConfirm('Zrobiono wklejkę', '')}>Confirm Close</button>
+      <button onClick={onClose}>Cancel Close</button>
     </div>
   )
 }));
