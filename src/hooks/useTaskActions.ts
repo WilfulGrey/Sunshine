@@ -294,6 +294,7 @@ export const useTaskActions = (
     }
 
     try {
+      await sunshineService.unassignEmployee(caregiverId);
       await sunshineService.assignEmployee(caregiverId, targetEmployee.employeeId);
 
       if (transferReason) {
