@@ -97,6 +97,19 @@ class SunshineService {
     );
   }
 
+  async getAllCallbacks(perPage = 100): Promise<SunshineCallbacksResponse> {
+    const first = await this.getCallbacks(1, perPage);
+    if (first.meta.last_page <= 1) return first;
+
+    const pages = Array.from({ length: first.meta.last_page - 1 }, (_, i) => i + 2);
+    const rest = await Promise.all(pages.map(p => this.getCallbacks(p, perPage)));
+
+    return {
+      data: [first.data, ...rest.map(r => r.data)].flat(),
+      meta: { ...first.meta, current_page: 1, last_page: 1, total: first.meta.total },
+    };
+  }
+
   async recordContact(caregiverId: number, type: ContactType, message: string): Promise<unknown> {
     return this.request(`/api/sunshine/caregivers/${caregiverId}/contact`, {
       method: 'POST',

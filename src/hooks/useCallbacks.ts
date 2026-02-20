@@ -17,7 +17,7 @@ export const useCallbacks = () => {
       setLoading(true);
       setError(null);
 
-      const response = await sunshineService.getCallbacks(1, 100);
+      const response = await sunshineService.getAllCallbacks();
       const convertedTasks = response.data.map(convertCallbackToTask);
 
       setTasks(prev => {
@@ -56,7 +56,7 @@ export const useCallbacks = () => {
 
   const silentRefresh = useCallback(async () => {
     try {
-      const response = await sunshineService.getCallbacks(1, 100);
+      const response = await sunshineService.getAllCallbacks();
       const convertedTasks = response.data.map(convertCallbackToTask);
 
       setTasks(prev => {
