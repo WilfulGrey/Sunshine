@@ -57,7 +57,13 @@ export const sortTasksByPriority = (tasks: Task[]) => {
     // In_progress tasks come SECOND
     if (a.status === 'in_progress' && b.status !== 'in_progress') return -1;
     if (a.status !== 'in_progress' && b.status === 'in_progress') return 1;
-    
+
+    // Interest (Like) tasks come THIRD - they are time-sensitive
+    const aIsInterest = a.apiData?.callbackSource === 'Interest';
+    const bIsInterest = b.apiData?.callbackSource === 'Interest';
+    if (aIsInterest && !bIsInterest) return -1;
+    if (!aIsInterest && bIsInterest) return 1;
+
     // Main sorting by due date
     if (a.dueDate && b.dueDate) {
       return a.dueDate.getTime() - b.dueDate.getTime();
