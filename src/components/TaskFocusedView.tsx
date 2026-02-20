@@ -657,25 +657,83 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
             )}
 
             {/* Latest contact note - prefer rich display from logs, fall back to task.description */}
-            {latestNote ? (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            {latestNote ? (() => {
+              const noteDate = new Date(latestNote.date && !latestNote.date.endsWith('Z') && latestNote.date.includes('T') ? latestNote.date + 'Z' : latestNote.date);
+              const ageDays = Math.floor((Date.now() - noteDate.getTime()) / 86400000);
+              const formattedDate = noteDate.toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+              const isOld = ageDays > 30;
+              const isStale = ageDays > 7 && ageDays <= 30;
+              const bgColor = isOld ? 'bg-gray-100' : isStale ? 'bg-amber-50' : 'bg-blue-50';
+              const borderColor = isOld ? 'border-gray-300' : isStale ? 'border-amber-200' : 'border-blue-200';
+              const iconBg = isOld ? 'bg-gray-200' : isStale ? 'bg-amber-100' : 'bg-blue-100';
+              const titleColor = isOld ? 'text-gray-700' : isStale ? 'text-amber-900' : 'text-blue-900';
+              const textColor = isOld ? 'text-gray-600' : isStale ? 'text-amber-800' : 'text-blue-800';
+              const dateColor = isOld ? 'text-gray-500' : isStale ? 'text-amber-600' : 'text-blue-600';
+              return (
+              <div className={`${bgColor} border ${borderColor} rounded-lg p-4 mb-6`} data-testid="agent-note">
                 <div className="flex items-start space-x-2">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-blue-600 text-sm">💡</span>
+                  <div className={`w-6 h-6 ${iconBg} rounded-full flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                    {isOld ? <AlertTriangle className="h-3.5 w-3.5 text-gray-500" /> : <span className={`${isStale ? 'text-amber-600' : 'text-blue-600'} text-sm`}>💡</span>}
                   </div>
-                  <div>
-                    <h4 className="font-medium text-blue-900 mb-2">
-                      Notatka Agenta{latestNote.author ? ` (${latestNote.author})` : ''}:
-                    </h4>
-                    <p className="text-blue-800 text-sm leading-relaxed whitespace-pre-wrap">
+                  <div className="flex-1">
+                    <div className="flex items-baseline justify-between flex-wrap gap-1 mb-2">
+                      <h4 className={`font-medium ${titleColor}`}>
+                        Notatka Agenta{latestNote.author ? ` (${latestNote.author})` : ''}:
+                      </h4>
+                      <span className={`text-xs ${dateColor}`}>{formattedDate}</span>
+                    </div>
+                    {isOld && <p className="text-xs text-gray-500 font-medium mb-1">⚠ Stara notatka</p>}
+                    {isStale && <p className={`text-xs ${dateColor} mb-1`}>{ageDays} dni temu</p>}
+                    <p className={`${textColor} text-sm leading-relaxed whitespace-pre-wrap`}>
                       {latestNote.content}
                     </p>
                   </div>
                 </div>
               </div>
-            ) : nextTask.description ? (
-              <p className="text-gray-700 text-lg mb-4">{nextTask.description}</p>
-            ) : null}
+              );
+            })() : nextTask.description ? (() => {
+              // Try to extract date from description text like "Podsumowanie (01.12.2025 09:55 - 01.12.2025 12:42):"
+              const dateMatch = nextTask.description!.match(/(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/);
+              let descAgeDays: number | null = null;
+              let descFormattedDate: string | null = null;
+              if (dateMatch) {
+                const descDate = new Date(Date.UTC(parseInt(dateMatch[3]), parseInt(dateMatch[2]) - 1, parseInt(dateMatch[1]), parseInt(dateMatch[4]), parseInt(dateMatch[5])));
+                if (!isNaN(descDate.getTime())) {
+                  descAgeDays = Math.floor((Date.now() - descDate.getTime()) / 86400000);
+                  descFormattedDate = descDate.toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                }
+              }
+              const isOld = descAgeDays !== null && descAgeDays > 30;
+              const isStale = descAgeDays !== null && descAgeDays > 7 && descAgeDays <= 30;
+              const bgColor = isOld ? 'bg-gray-100' : isStale ? 'bg-amber-50' : 'bg-blue-50';
+              const borderColor = isOld ? 'border-gray-300' : isStale ? 'border-amber-200' : 'border-blue-200';
+              const iconBg = isOld ? 'bg-gray-200' : isStale ? 'bg-amber-100' : 'bg-blue-100';
+              const titleColor = isOld ? 'text-gray-700' : isStale ? 'text-amber-900' : 'text-blue-900';
+              const textColor = isOld ? 'text-gray-600' : isStale ? 'text-amber-800' : 'text-blue-800';
+              const dateColor = isOld ? 'text-gray-500' : isStale ? 'text-amber-600' : 'text-blue-600';
+              return (
+              <div className={`${bgColor} border ${borderColor} rounded-lg p-4 mb-6`} data-testid="agent-note">
+                <div className="flex items-start space-x-2">
+                  <div className={`w-6 h-6 ${iconBg} rounded-full flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                    {isOld ? <AlertTriangle className="h-3.5 w-3.5 text-gray-500" /> : <span className={`${isStale ? 'text-amber-600' : 'text-blue-600'} text-sm`}>💡</span>}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-baseline justify-between flex-wrap gap-1 mb-2">
+                      <h4 className={`font-medium ${titleColor}`}>
+                        Notatka Agenta:
+                      </h4>
+                      {descFormattedDate && <span className={`text-xs ${dateColor}`}>{descFormattedDate}</span>}
+                    </div>
+                    {isOld && <p className="text-xs text-gray-500 font-medium mb-1">⚠ Stara notatka</p>}
+                    {isStale && descAgeDays !== null && <p className={`text-xs ${dateColor} mb-1`}>{descAgeDays} dni temu</p>}
+                    <p className={`${textColor} text-sm leading-relaxed whitespace-pre-wrap`}>
+                      {nextTask.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              );
+            })() : null}
 
             {/* Callback source info */}
             {nextTask.apiData?.callbackSource && nextTask.apiData.callbackSource === 'Interest' ? (
