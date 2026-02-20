@@ -8,7 +8,7 @@ export const convertCallbackToTask = (callback: SunshineCallback): Task => {
   // Parse callback_at: "2026-02-20 10:00:00"
   let dueDate: Date | undefined;
   if (callback.callback_at) {
-    const parsed = new Date(callback.callback_at.replace(' ', 'T'));
+    const parsed = new Date(callback.callback_at.replace(' ', 'T') + 'Z');
     if (!isNaN(parsed.getTime())) {
       dueDate = parsed;
     } else {
