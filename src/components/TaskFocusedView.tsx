@@ -958,7 +958,13 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
               </div>
               
               <button
-                onClick={dialogState.closePhoneDialog}
+                onClick={() => {
+                  const task = dialogState.showPhoneDialog;
+                  if (task) {
+                    onUpdateLocalTask(task.id, { status: 'pending' });
+                  }
+                  dialogState.closePhoneDialog();
+                }}
                 className="w-full px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
                 {t.cancel}
