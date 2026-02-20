@@ -178,12 +178,11 @@ export const useTaskActions = (
 
     try {
       if (reachable) {
-        // Don't send API call here - just change local status to in_progress.
-        // The actual recordContact will be sent when user submits the conversation summary
-        // via CompletionDialog (handleCompleteTask).
+        // Task is already in_progress from handleStartTask.
+        // Record history entry. The actual recordContact will be sent when user
+        // submits the conversation summary via CompletionDialog (handleCompleteTask).
         const updatedTask = addHistoryEntry(task, 'reachable', t.callSuccessfulDetails);
         onUpdateLocalTask(task.id, {
-          status: 'in_progress',
           history: updatedTask.history,
         });
       } else {

@@ -377,6 +377,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   }, [nextTask?.apiData?.caregiverId, logsPage, logsLoadingMore]);
 
   const handleStartTask = (task: Task) => {
+    onUpdateLocalTask(task.id, { status: 'in_progress' });
     dialogState.openPhoneDialog(task);
   };
 

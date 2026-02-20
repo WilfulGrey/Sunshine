@@ -348,7 +348,7 @@ describe('useTaskActions', () => {
   });
 
   describe('handlePhoneCall', () => {
-    it('should handle reachable call - update local status only, no API call', async () => {
+    it('should handle reachable call - add history only, no API call (status already set by handleStartTask)', async () => {
       const { sunshineService } = await import('../services/sunshineService');
 
       const { result } = renderHook(
@@ -363,7 +363,7 @@ describe('useTaskActions', () => {
       // Should NOT call recordContact - that happens later via handleCompleteTask
       expect(sunshineService.recordContact).not.toHaveBeenCalled();
       expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        status: 'in_progress'
+        history: expect.any(Array)
       }));
     });
 
