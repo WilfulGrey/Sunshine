@@ -251,10 +251,12 @@ export const useTaskActions = (
         ? `${currentUserName} zakończył task - ${reason}: ${notes}`
         : `${currentUserName} zakończył task - ${reason}`;
 
+      const isWklejka = reason === 'Zrobiono wklejkę';
+
       await Promise.all([
         sunshineService.recordContact(caregiverId, 'note_only', message),
         sunshineService.setCallback(caregiverId, null),
-        sunshineService.unassignEmployee(caregiverId),
+        ...(!isWklejka ? [sunshineService.unassignEmployee(caregiverId)] : []),
       ]);
 
       onRemoveLocalTask(task.id);

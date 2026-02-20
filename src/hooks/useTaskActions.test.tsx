@@ -458,7 +458,7 @@ describe('useTaskActions', () => {
 
       expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'note_only', 'Test User zakończył task - Zrobiono wklejkę: Wklejka do rodziny Müller');
       expect(sunshineService.setCallback).toHaveBeenCalledWith(123, null);
-      expect(sunshineService.unassignEmployee).toHaveBeenCalledWith(123);
+      expect(sunshineService.unassignEmployee).not.toHaveBeenCalled();
       expect(mockOnRemoveLocalTask).toHaveBeenCalledWith('1');
     });
 
