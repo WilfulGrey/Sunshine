@@ -188,12 +188,11 @@ export const useTaskActions = (
       } else {
         const now = new Date();
         const newCallTime = new Date(now.getTime() + 60 * 60 * 1000);
-        const message = `Nie odebrano - ${now.toLocaleString('pl-PL')} - Oddzwonienie: ${newCallTime.toLocaleString('pl-PL')}`;
+        const message = `${currentUserName}: Nie odebrano - ${now.toLocaleString('pl-PL')} - Oddzwonienie: ${newCallTime.toLocaleString('pl-PL')}`;
 
-        await Promise.all([
-          sunshineService.setCallback(caregiverId, formatDateForApi(newCallTime)),
-          sunshineService.recordContact(caregiverId, 'note_only', message),
-        ]);
+        // Record contact FIRST (critical for CG profile), then set callback
+        await sunshineService.recordContact(caregiverId, 'not_successfully', message);
+        await sunshineService.setCallback(caregiverId, formatDateForApi(newCallTime));
 
         const updatedTask = addHistoryEntry(task, 'not_reachable', t.callUnsuccessfulDetails);
         const updates: Partial<Task> = {

@@ -380,7 +380,7 @@ describe('useTaskActions', () => {
       });
 
       expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String));
-      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'note_only', expect.stringContaining('Nie odebrano'));
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'not_successfully', expect.stringContaining('Nie odebrano'));
 
       expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
         status: 'pending'
