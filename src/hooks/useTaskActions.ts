@@ -8,6 +8,27 @@ import { formatDateForApi } from '../utils/sunshineHelpers';
 import { getEmployeeId, findEmployeeByName } from '../config/employeeMapping';
 import { supabase } from '../lib/supabase';
 
+/**
+ * Convert a Warsaw-local date/time to a UTC Date object.
+ * Uses Intl.DateTimeFormat to dynamically resolve the Warsaw offset (handles CET/CEST automatically).
+ */
+function warsawToUTC(year: number, month: number, day: number, hours: number, minutes: number): Date {
+  // Start with a rough UTC guess (assume the target hours are UTC)
+  const guess = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+  // Ask Intl what Warsaw hour/minute it shows for that UTC moment
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Warsaw',
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', hour12: false,
+  }).formatToParts(guess);
+  const get = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0');
+  const warsawHour = get('hour') === 24 ? 0 : get('hour');
+  const warsawMinute = get('minute');
+  // Difference between desired Warsaw time and what Warsaw shows at our guess
+  const diffMs = ((hours - warsawHour) * 60 + (minutes - warsawMinute)) * 60000;
+  return new Date(guess.getTime() + diffMs);
+}
+
 export const useTaskActions = (
   tasks: Task[],
   onUpdateLocalTask: (taskId: string, updates: Partial<Task>) => void,
@@ -363,21 +384,20 @@ export const useTaskActions = (
     const [hours, minutes] = postponeTime.split(':').map(Number);
     const [year, month, day] = postponeDate.split('-').map(Number);
 
-    const timezoneOffset = getTimezoneOffsetHours('Europe/Warsaw');
-    const utcHours = hours - timezoneOffset;
-    const utcDateTime = new Date(Date.UTC(year, month - 1, day, utcHours, minutes));
+    // Times in the app are always Warsaw time — convert to UTC using actual Warsaw offset
+    const warsawDateTime = warsawToUTC(year, month, day, hours, minutes);
 
     try {
-      await sunshineService.setCallback(caregiverId, formatDateForApi(utcDateTime));
+      await sunshineService.setCallback(caregiverId, formatDateForApi(warsawDateTime));
 
       if (postponeNotes) {
         await sunshineService.recordContact(caregiverId, 'note_only', postponeNotes);
       }
 
-      const updatedTask = addHistoryEntry(task, 'postponed', t.postponeDetails.replace('{date}', utcDateTime.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })));
+      const updatedTask = addHistoryEntry(task, 'postponed', t.postponeDetails.replace('{date}', warsawDateTime.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })));
       const updates: Partial<Task> = {
         status: 'pending',
-        dueDate: utcDateTime,
+        dueDate: warsawDateTime,
         history: updatedTask.history,
       };
 
@@ -500,28 +520,6 @@ export const useTaskActions = (
 
   const handleRemoveUrgent = (_taskId: string) => {
     // Urgent flag is no longer in the API model - no-op
-  };
-
-  const getTimezoneOffsetHours = (tz: string): number => {
-    const offsets: Record<string, number> = {
-      'Europe/Warsaw': 2,
-      'Europe/Berlin': 2,
-      'Europe/London': 1,
-      'America/New_York': -4,
-      'America/Los_Angeles': -7,
-      'Asia/Tokyo': 9,
-      'Australia/Sydney': 10,
-      'UTC': 0,
-    };
-
-    const now = new Date();
-    const isWinter = now.getMonth() < 2 || now.getMonth() > 9;
-
-    if (tz.startsWith('Europe/') && isWinter && tz !== 'UTC') {
-      return (offsets[tz] || 0) - 1;
-    }
-
-    return offsets[tz] || 0;
   };
 
   return {
