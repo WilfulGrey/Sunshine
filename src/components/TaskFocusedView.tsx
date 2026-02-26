@@ -19,7 +19,7 @@ import { TransferDialog } from './dialogs/TransferDialog';
 import { PostponeDialog } from './dialogs/PostponeDialog';
 import { LogsDialog } from './dialogs/LogsDialog';
 import { CloseTaskDialog } from './dialogs/CloseTaskDialog';
-import { SunshineLog } from '../services/sunshineService';
+import { SunshineLog, SimilarJob } from '../services/sunshineService';
 
 interface TaskFocusedViewProps {
   tasks: Task[];
@@ -267,6 +267,9 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
   // Interest job offer ID - fetched from logs when callbackSource is "Interest"
   const [interestJobOfferId, setInterestJobOfferId] = useState<number | null>(null);
+  const [jobActive, setJobActive] = useState<boolean | null>(null);
+  const [similarJobs, setSimilarJobs] = useState<SimilarJob[]>([]);
+  const [jobStatusLoading, setJobStatusLoading] = useState(false);
 
   // Logs dialog state (declared here so logsData etc. are available below)
   const [logsData, setLogsData] = useState<SunshineLog[]>([]);
@@ -336,6 +339,49 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
     return () => { cancelled = true; };
   }, [nextTask?.id, nextTask?.apiData?.caregiverId, nextTask?.apiData?.callbackSource]);
+
+  // Check job status and fetch similar jobs when interestJobOfferId is available
+  useEffect(() => {
+    const caregiverId = nextTask?.apiData?.caregiverId;
+
+    if (interestJobOfferId === null || !caregiverId) {
+      setJobActive(null);
+      setSimilarJobs([]);
+      setJobStatusLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setJobStatusLoading(true);
+    setJobActive(null);
+    setSimilarJobs([]);
+
+    (async () => {
+      try {
+        const status = await sunshineService.checkJobStatus(interestJobOfferId);
+        if (cancelled) return;
+        setJobActive(status.active);
+
+        if (!status.active) {
+          const similar = await sunshineService.getSimilarJobs(caregiverId, interestJobOfferId);
+          if (!cancelled) {
+            setSimilarJobs(similar.slice(0, 3));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to check job status:', err);
+        if (!cancelled) {
+          setJobActive(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setJobStatusLoading(false);
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [interestJobOfferId, nextTask?.apiData?.caregiverId]);
 
   const handleOpenLogs = useCallback(async () => {
     const caregiverId = nextTask?.apiData?.caregiverId;
@@ -741,19 +787,67 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                 <div className="flex items-center space-x-2">
                   <Heart className="h-5 w-5 text-pink-500" />
                   <span className="font-medium text-pink-800">Zainteresowanie zleceniem</span>
-                  {interestJobOfferId && (
-                    <a
-                      href={`https://portal.mamamia.app/caregiver-agency/job-market/${interestJobOfferId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center space-x-1 text-sm text-pink-600 hover:text-pink-800 hover:underline ml-2"
-                      data-testid="interest-job-offer-link"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      <span>Zobacz zlecenie #{interestJobOfferId}</span>
-                    </a>
-                  )}
                 </div>
+                {interestJobOfferId && (
+                  <div className="mt-2">
+                    <div className="flex items-center space-x-2">
+                      <a
+                        href={`https://portal.mamamia.app/caregiver-agency/job-market/${interestJobOfferId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center space-x-1 text-sm text-pink-600 hover:text-pink-800 hover:underline"
+                        data-testid="interest-job-offer-link"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        <span>Zobacz zlecenie #{interestJobOfferId}</span>
+                      </a>
+                      {jobStatusLoading && (
+                        <Loader2 className="h-4 w-4 text-pink-400 animate-spin" data-testid="job-status-loading" />
+                      )}
+                      {!jobStatusLoading && jobActive === true && (
+                        <span className="inline-flex items-center space-x-1 text-sm text-green-700" data-testid="job-status-active">
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>Zlecenie aktywne</span>
+                        </span>
+                      )}
+                      {!jobStatusLoading && jobActive === false && (
+                        <span className="inline-flex items-center space-x-1 text-sm text-red-600" data-testid="job-status-inactive">
+                          <XCircle className="h-4 w-4" />
+                          <span>Zlecenie nieaktywne</span>
+                        </span>
+                      )}
+                    </div>
+                    {!jobStatusLoading && jobActive === false && similarJobs.length > 0 && (
+                      <div className="mt-3" data-testid="similar-jobs">
+                        <p className="text-sm font-medium text-pink-800 mb-2">Podobne aktywne zlecenia:</p>
+                        <div className="space-y-2">
+                          {similarJobs.map((job) => (
+                            <div key={job.job_offer_id} className="flex items-center flex-wrap gap-2 bg-white border border-pink-100 rounded-md px-3 py-2">
+                              <a
+                                href={`https://portal.mamamia.app/caregiver-agency/job-market/${job.job_offer_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center space-x-1 text-sm text-pink-600 hover:text-pink-800 hover:underline"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                <span>Zlecenie #{job.job_offer_id}</span>
+                              </a>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
+                                {job.matching_percentage}%
+                              </span>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${job.is_date_match ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
+                                📅 {job.is_date_match ? '✓' : '✗'}
+                              </span>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${job.is_price_match ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
+                                💰 {job.is_price_match ? '✓' : '✗'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : nextTask.apiData?.callbackSource ? (
               <div className="mb-6">
