@@ -175,9 +175,10 @@ class SunshineService {
   }
 
   async getSimilarJobs(caregiverId: number, jobId: number): Promise<SimilarJob[]> {
-    return this.request<SimilarJob[]>(
+    const response = await this.request<{ data: SimilarJob[] }>(
       `/api/sunshine/caregivers/${caregiverId}/jobs/${jobId}/similar`
     );
+    return response.data;
   }
 
   isConfigured(): boolean {
