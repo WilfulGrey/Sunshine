@@ -363,9 +363,13 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
         setJobActive(status.active);
 
         if (!status.active) {
-          const similar = await sunshineService.getSimilarJobs(caregiverId, interestJobOfferId);
-          if (!cancelled) {
-            setSimilarJobs(similar.slice(0, 3));
+          try {
+            const similar = await sunshineService.getSimilarJobs(caregiverId, interestJobOfferId);
+            if (!cancelled) {
+              setSimilarJobs(similar.slice(0, 3));
+            }
+          } catch (similarErr) {
+            console.error('Failed to fetch similar jobs:', similarErr);
           }
         }
       } catch (err) {
