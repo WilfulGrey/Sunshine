@@ -168,9 +168,9 @@ class SunshineService {
     );
   }
 
-  async checkJobStatus(jobOfferId: number): Promise<{ active: boolean }> {
+  async checkJobStatus(jobOfferId: number, caregiverId: number): Promise<{ active: boolean }> {
     return this.request<{ active: boolean }>(
-      `/api/sunshine/jobs/${jobOfferId}/status`
+      `/api/sunshine/jobs/${jobOfferId}/status?caregiverId=${caregiverId}`
     );
   }
 
