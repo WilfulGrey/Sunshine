@@ -124,10 +124,14 @@ class SunshineService {
     });
   }
 
-  async setCallback(caregiverId: number, callbackAt: string | null): Promise<unknown> {
+  async setCallback(caregiverId: number, callbackAt: string | null, callbackSource?: string): Promise<unknown> {
+    const body: Record<string, string | null> = { callback_at: callbackAt };
+    if (callbackSource) {
+      body.callback_source = callbackSource;
+    }
     return this.request(`/api/sunshine/caregivers/${caregiverId}/callback`, {
       method: 'POST',
-      body: JSON.stringify({ callback_at: callbackAt }),
+      body: JSON.stringify(body),
     });
   }
 

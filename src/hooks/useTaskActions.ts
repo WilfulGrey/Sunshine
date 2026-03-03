@@ -213,7 +213,7 @@ export const useTaskActions = (
 
         // Record contact FIRST (critical for CG profile), then set callback
         await sunshineService.recordContact(caregiverId, 'not_successfully', message);
-        await sunshineService.setCallback(caregiverId, formatDateForApi(newCallTime));
+        await sunshineService.setCallback(caregiverId, formatDateForApi(newCallTime), task.apiData?.callbackSource);
 
         const updatedTask = addHistoryEntry(task, 'not_reachable', t.callUnsuccessfulDetails);
         const updates: Partial<Task> = {

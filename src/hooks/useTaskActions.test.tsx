@@ -379,7 +379,7 @@ describe('useTaskActions', () => {
         await result.current.handlePhoneCall(mockTasks[0], false);
       });
 
-      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String));
+      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String), undefined);
       expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'not_successfully', expect.stringContaining('Nie odebrano'));
 
       expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
