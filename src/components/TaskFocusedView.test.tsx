@@ -363,13 +363,8 @@ describe('TaskFocusedView', () => {
   });
 
   describe('Caregiver links', () => {
-    it('should show profile, chat, and notes links when caregiverId exists', () => {
+    it('should show chat and notes links when caregiverId exists', () => {
       render(<TaskFocusedView {...defaultProps} />);
-
-      const profileLink = screen.getByTestId('profile-link');
-      expect(profileLink).toBeInTheDocument();
-      expect(profileLink).toHaveAttribute('href', 'https://portal.mamamia.app/caregiver-agency/caregivers/123');
-      expect(profileLink).toHaveAttribute('target', '_blank');
 
       const chatLink = screen.getByTestId('chat-link');
       expect(chatLink).toBeInTheDocument();

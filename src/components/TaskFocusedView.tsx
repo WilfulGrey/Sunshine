@@ -444,8 +444,11 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     dialogState.closePhoneDialog();
 
     if (reachable) {
-      // Immediately open the conversation summary dialog
-      dialogState.openCompletionDialog(task);
+      const caregiverId = task.apiData?.caregiverId;
+      if (caregiverId) {
+        window.open(`https://portal.mamamia.app/caregiver-agency/caregivers/${caregiverId}`, '_blank');
+      }
+      setRefreshDisabledAfterBoost(false);
     } else {
       setRefreshDisabledAfterBoost(false);
       console.log('✅ REFRESH ENABLED po phone call (nie odebrał)');
@@ -672,17 +675,6 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
             {/* Profile / Chat / Logs links */}
             {nextTask.apiData?.caregiverId && (
               <div className="flex items-center space-x-4 mb-3" data-testid="caregiver-links">
-                <a
-                  href={`https://portal.mamamia.app/caregiver-agency/caregivers/${nextTask.apiData.caregiverId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-1 text-sm font-medium transition-colors hover:underline"
-                  style={{ color: '#AB4D95' }}
-                  data-testid="profile-link"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  <span>Profil</span>
-                </a>
                 <a
                   href={`https://portal.mamamia.app/caregiver-agency/messages/${nextTask.apiData.caregiverId}`}
                   target="_blank"
