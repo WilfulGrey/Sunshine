@@ -5,12 +5,16 @@ import { generateId } from './helpers';
 export const convertCallbackToTask = (callback: SunshineCallback): Task => {
   const fullName = `${callback.first_name} ${callback.last_name}`;
 
-  // Parse callback_at: "2026-02-20 10:00:00"
+  // Parse callback_at: "2026-02-20 10:00:00" (Warsaw time from API)
   let dueDate: Date | undefined;
   if (callback.callback_at) {
-    const parsed = new Date(callback.callback_at.replace(' ', 'T') + 'Z');
-    if (!isNaN(parsed.getTime())) {
-      dueDate = parsed;
+    // API returns Warsaw time — parse as UTC then subtract Warsaw offset to get correct UTC
+    const asUtc = new Date(callback.callback_at.replace(' ', 'T') + 'Z');
+    if (!isNaN(asUtc.getTime())) {
+      const utcStr = asUtc.toLocaleString('en-US', { timeZone: 'UTC' });
+      const warsawStr = asUtc.toLocaleString('en-US', { timeZone: 'Europe/Warsaw' });
+      const offset = new Date(warsawStr).getTime() - new Date(utcStr).getTime();
+      dueDate = new Date(asUtc.getTime() - offset);
     } else {
       console.warn(`Failed to parse callback_at "${callback.callback_at}" for ${fullName}`);
     }
@@ -96,15 +100,16 @@ export const formatCallbackDate = (dateStr: string): string => {
 };
 
 /**
- * Format a Date object to the API expected format: "YYYY-MM-DD HH:mm:ss" in UTC.
- * The API stores times in UTC, and convertCallbackToTask parses them as UTC (appends 'Z').
+ * Format a Date object to the API expected format: "YYYY-MM-DD HH:mm:ss" in Warsaw time.
+ * The API stores and returns times in Europe/Warsaw timezone.
  */
 export const formatDateForApi = (date: Date): string => {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const hours = String(date.getUTCHours()).padStart(2, '0');
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Warsaw',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: string) => parts.find(p => p.type === type)?.value || '00';
+  return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
 };
