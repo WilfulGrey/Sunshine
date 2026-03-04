@@ -236,18 +236,16 @@ describe('LogsDialog', () => {
       expect(screen.getByText('Aplikacja na zlecenie')).toBeInTheDocument();
     });
 
-    it('should show job offer link when job_offer_id is present', () => {
+    it('should show job offer number when job_offer_id is present', () => {
       const logs = [
         makeMockLog({ id: 10, title: 'interest', content: '', job_offer_id: 5678 }),
       ];
 
       render(<LogsDialog {...defaultProps} logs={logs} />);
 
-      const link = screen.getByTestId('job-offer-link-10');
-      expect(link).toBeInTheDocument();
-      expect(link).toHaveAttribute('href', 'https://portal.mamamia.app/caregiver-agency/job-market/5678');
-      expect(link).toHaveAttribute('target', '_blank');
-      expect(screen.getByText('Zlecenie #5678')).toBeInTheDocument();
+      const jobLabel = screen.getByTestId('job-offer-link-10');
+      expect(jobLabel).toBeInTheDocument();
+      expect(jobLabel).toHaveTextContent('Zlecenie #5678');
     });
 
     it('should not show job offer link when job_offer_id is null', () => {

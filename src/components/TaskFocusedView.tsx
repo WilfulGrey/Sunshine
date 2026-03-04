@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, Phone, X, Skull, XCircle, Eye, Loader2, RefreshCw, ExternalLink, MessageSquare, ScrollText, Heart } from 'lucide-react';
+import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, Phone, X, Skull, XCircle, Eye, Loader2, RefreshCw, MessageSquare, ScrollText, Heart } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useUsers } from '../hooks/useUsers';
 import { useAuth } from '../contexts/AuthContext';
@@ -774,16 +774,9 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                 {interestJobOfferId && (
                   <div className="mt-2">
                     <div className="flex items-center space-x-2">
-                      <a
-                        href={`https://portal.mamamia.app/caregiver-agency/job-market/${interestJobOfferId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center space-x-1 text-sm text-pink-600 hover:text-pink-800 hover:underline"
-                        data-testid="interest-job-offer-link"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        <span>Zobacz zlecenie #{interestJobOfferId}</span>
-                      </a>
+                      <span className="text-sm text-pink-700" data-testid="interest-job-offer-id">
+                        Zlecenie #{interestJobOfferId}
+                      </span>
                       {jobStatusLoading && (
                         <Loader2 className="h-4 w-4 text-pink-400 animate-spin" data-testid="job-status-loading" />
                       )}

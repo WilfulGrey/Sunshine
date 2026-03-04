@@ -491,9 +491,9 @@ describe('TaskFocusedView', () => {
       render(<TaskFocusedView tasks={interestTasks} onUpdateLocalTask={mockOnUpdateLocalTask} onRemoveLocalTask={mockOnRemoveLocalTask} />);
 
       await waitFor(() => {
-        const link = screen.getByTestId('interest-job-offer-link');
-        expect(link).toBeInTheDocument();
-        expect(link).toHaveAttribute('href', 'https://portal.mamamia.app/caregiver-agency/job-market/9999');
+        const jobId = screen.getByTestId('interest-job-offer-id');
+        expect(jobId).toBeInTheDocument();
+        expect(jobId).toHaveTextContent('Zlecenie #9999');
       });
     });
   });

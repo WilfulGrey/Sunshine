@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, ScrollText, Loader2, ExternalLink, Heart } from 'lucide-react';
+import { X, ScrollText, Loader2, Heart } from 'lucide-react';
 import { SunshineLog } from '../../services/sunshineService';
 
 interface LogsDialogProps {
@@ -118,16 +118,9 @@ export const LogsDialog: React.FC<LogsDialogProps> = ({
                       <Heart className="h-3.5 w-3.5 text-pink-500" />
                       <span className="text-xs font-medium text-pink-700">Aplikacja na zlecenie</span>
                       {log.job_offer_id && (
-                        <a
-                          href={`https://portal.mamamia.app/caregiver-agency/job-market/${log.job_offer_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center space-x-1 text-xs text-pink-600 hover:text-pink-800 hover:underline ml-1"
-                          data-testid={`job-offer-link-${log.id}`}
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          <span>Zlecenie #{log.job_offer_id}</span>
-                        </a>
+                        <span className="text-xs text-pink-700 ml-1" data-testid={`job-offer-link-${log.id}`}>
+                          Zlecenie #{log.job_offer_id}
+                        </span>
                       )}
                     </div>
                   )}
