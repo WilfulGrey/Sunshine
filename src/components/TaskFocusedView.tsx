@@ -19,7 +19,7 @@ import { TransferDialog } from './dialogs/TransferDialog';
 import { PostponeDialog } from './dialogs/PostponeDialog';
 import { LogsDialog } from './dialogs/LogsDialog';
 import { CloseTaskDialog } from './dialogs/CloseTaskDialog';
-import { SunshineLog, SimilarJob } from '../services/sunshineService';
+import { SunshineLog } from '../services/sunshineService';
 
 interface TaskFocusedViewProps {
   tasks: Task[];
@@ -268,7 +268,6 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   // Interest job offer ID - fetched from logs when callbackSource is "Interest"
   const [interestJobOfferId, setInterestJobOfferId] = useState<number | null>(null);
   const [jobActive, setJobActive] = useState<boolean | null>(null);
-  const [similarJobs, setSimilarJobs] = useState<SimilarJob[]>([]);
   const [jobStatusLoading, setJobStatusLoading] = useState(false);
 
   // Logs dialog state (declared here so logsData etc. are available below)
@@ -340,13 +339,12 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     return () => { cancelled = true; };
   }, [nextTask?.id, nextTask?.apiData?.caregiverId, nextTask?.apiData?.callbackSource]);
 
-  // Check job status and fetch similar jobs when interestJobOfferId is available
+  // Check job status when interestJobOfferId is available
   useEffect(() => {
     const caregiverId = nextTask?.apiData?.caregiverId;
 
     if (interestJobOfferId === null || !caregiverId) {
       setJobActive(null);
-      setSimilarJobs([]);
       setJobStatusLoading(false);
       return;
     }
@@ -354,23 +352,12 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     let cancelled = false;
     setJobStatusLoading(true);
     setJobActive(null);
-    setSimilarJobs([]);
 
     (async () => {
       try {
         const status = await sunshineService.checkJobStatus(interestJobOfferId, caregiverId);
-        if (cancelled) return;
-        setJobActive(status.active);
-
-        if (!status.active) {
-          try {
-            const similar = await sunshineService.getSimilarJobs(caregiverId, interestJobOfferId);
-            if (!cancelled) {
-              setSimilarJobs(similar.slice(0, 3));
-            }
-          } catch (similarErr) {
-            console.error('Failed to fetch similar jobs:', similarErr);
-          }
+        if (!cancelled) {
+          setJobActive(status.active);
         }
       } catch (err) {
         console.error('Failed to check job status:', err);
@@ -813,35 +800,6 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                         </span>
                       )}
                     </div>
-                    {!jobStatusLoading && jobActive === false && similarJobs.length > 0 && (
-                      <div className="mt-3" data-testid="similar-jobs">
-                        <p className="text-sm font-medium text-pink-800 mb-2">Podobne aktywne zlecenia:</p>
-                        <div className="space-y-2">
-                          {similarJobs.map((job) => (
-                            <div key={job.job_offer_id} className="flex items-center flex-wrap gap-2 bg-white border border-pink-100 rounded-md px-3 py-2">
-                              <a
-                                href={`https://portal.mamamia.app/caregiver-agency/job-market/${job.job_offer_id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center space-x-1 text-sm text-pink-600 hover:text-pink-800 hover:underline"
-                              >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                                <span>Zlecenie #{job.job_offer_id}</span>
-                              </a>
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
-                                {job.matching_percentage}%
-                              </span>
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${job.is_date_match ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
-                                📅 {job.is_date_match ? '✓' : '✗'}
-                              </span>
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${job.is_price_match ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
-                                💰 {job.is_price_match ? '✓' : '✗'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>

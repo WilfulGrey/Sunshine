@@ -49,13 +49,6 @@ export interface SunshineLogsResponse {
   };
 }
 
-export interface SimilarJob {
-  job_offer_id: number;
-  matching_percentage: number;
-  is_date_match: boolean;
-  is_price_match: boolean;
-}
-
 class SunshineService {
   private baseUrl: string;
   private token: string;
@@ -176,13 +169,6 @@ class SunshineService {
     return this.request<{ active: boolean }>(
       `/api/sunshine/jobs/${jobOfferId}/status?caregiverId=${caregiverId}`
     );
-  }
-
-  async getSimilarJobs(caregiverId: number, jobId: number): Promise<SimilarJob[]> {
-    const response = await this.request<{ data: SimilarJob[] }>(
-      `/api/sunshine/caregivers/${caregiverId}/jobs/${jobId}/similar`
-    );
-    return response.data;
   }
 
   isConfigured(): boolean {
