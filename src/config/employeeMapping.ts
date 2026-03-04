@@ -30,6 +30,8 @@ const EMPLOYEES: Employee[] = [
   { name: 'Marek Styn', email: 'marek.styn@vitanas.pl', employeeId: 31719, role: 'Rekruter', team: 'Rekiny' },
   { name: 'Kinga Chorągwicka', email: 'kinga.choragwicka@vitanas.pl', employeeId: 32458, role: 'Rekruter', team: 'Nieprzypisany' },
   { name: 'Adriana Lekawska', email: 'adriana.lekawska@vitanas.pl', employeeId: 32459, role: 'Rekruter', team: 'Nieprzypisany' },
+  { name: 'Marcin Wysocki', email: 'martin@mamamia.app', employeeId: 32715, role: 'Rekruter', team: 'Nieprzypisany' },
+  { name: 'Mateusz Wysocki', email: 'info@vitanas24.pl', employeeId: 32390, role: 'Rekruter', team: 'Nieprzypisany' },
 ];
 
 const emailToIdMap = new Map<string, number>();
