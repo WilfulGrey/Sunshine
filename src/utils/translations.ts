@@ -11,8 +11,6 @@ export interface Translations {
   workTasksInOrder: string;
   newTask: string;
   newTasks: string;
-  resetTestTasks: string;
-  resetTestTasksDescription: string;
   currentTasks: string;
 
   // Task form
@@ -131,26 +129,6 @@ export interface Translations {
   total: string;
   overdueStatus: string;
 
-  // Sample tasks
-  sampleTask1Title: string;
-  sampleTask1Description: string;
-  sampleTask2Title: string;
-  sampleTask2Description: string;
-  sampleTask3Title: string;
-  sampleTask3Description: string;
-  sampleTask4Title: string;
-  sampleTask4Description: string;
-  sampleTask5Title: string;
-  sampleTask5Description: string;
-  sampleTask6Title: string;
-  sampleTask6Description: string;
-  sampleTask7Title: string;
-  sampleTask7Description: string;
-  sampleTask8Title: string;
-  sampleTask8Description: string;
-  sampleTask9Title: string;
-  sampleTask9Description: string;
-
   // Action buttons
   take: string;
   taking: string;
@@ -233,8 +211,6 @@ export const translations: Record<Language, Translations> = {
     workTasksInOrder: 'Arbeiten Sie Ihre Aufgaben der Reihe nach ab',
     newTask: 'Neue Aufgabe',
     newTasks: 'neue Aufgaben',
-    resetTestTasks: 'Test-Aufgaben neu erstellen',
-    resetTestTasksDescription: 'Erstellt die 9 Test-Aufgaben neu zum Testen (Aktuell: {count} Aufgaben)',
     currentTasks: 'Aufgaben',
 
     // Task form
@@ -353,10 +329,6 @@ export const translations: Record<Language, Translations> = {
     unexpectedError: 'Ein unerwarteter Fehler ist aufgetreten',
     passwordChangeWarning: 'Passwort wurde möglicherweise geändert. Bitte prüfen Sie, ob das neue Passwort funktioniert.',
 
-    // Sample tasks
-    hideSampleTasks: 'Beispielaufgaben ausblenden',
-    showSampleTasks: 'Beispielaufgaben anzeigen',
-
     // Reset Password Form
     passwordsNotIdentical: 'Passwörter sind nicht identisch',
     passwordMinLength: 'Passwort muss mindestens 6 Zeichen haben',
@@ -385,26 +357,6 @@ export const translations: Record<Language, Translations> = {
     // Status overview
     total: 'Gesamt',
     overdueStatus: 'Überfällig',
-
-    // Sample tasks
-    sampleTask1Title: 'Max Mustermann - Abgelehnt',
-    sampleTask1Description: 'CG über Ablehnung informieren, Gründe erfragen und alternative Jobmöglichkeiten präsentieren. Motivation aufrechterhalten und nächste passende Positionen vorschlagen.',
-    sampleTask2Title: 'Anna Weber - Vom Kunden angefragt',
-    sampleTask2Description: 'Kundenanfrage bearbeiten und CG kontaktieren. Job-Details besprechen, Verfügbarkeit prüfen und bei Interesse weitere passende Positionen aus dem Portfolio vorstellen.',
-    sampleTask3Title: 'Sarah Schmidt - Job geliked (bekannt)',
-    sampleTask3Description: 'CG hat Interesse an Position gezeigt. Sofort beim Kunden vorschlagen, Profil übermitteln und Matching-Prozess einleiten. Feedback vom Kunden einholen.',
-    sampleTask4Title: 'Michael Bauer - Job geliked (unbekannt)',
-    sampleTask4Description: 'Neue CG hat Job geliked. Anrufen, Profil vervollständigen, Qualifikationen abklären und bei Eignung beim Kunden vorschlagen. Erwartungen und Konditionen besprechen.',
-    sampleTask5Title: 'Lisa Müller - Status: WILL ARBEITEN',
-    sampleTask5Description: 'CG hat Status auf "WILL ARBEITEN" geändert. Sofort kontaktieren, aktuelle Verfügbarkeit besprechen und passende Jobs aus dem aktuellen Portfolio präsentieren.',
-    sampleTask6Title: 'Thomas Klein - Telefontermin',
-    sampleTask6Description: 'Vereinbarter Telefontermin einhalten. Aktuelle Situation besprechen, Wünsche und Anforderungen abklären und passende Jobmöglichkeiten präsentieren.',
-    sampleTask7Title: 'Jennifer Wagner - Neuer LEAD',
-    sampleTask7Description: 'Neuen Lead bearbeiten. Vollständiges Profil erstellen, Qualifikationen und Erfahrungen erfassen, über Mamamia aufklären und erste passende Jobvorschläge unterbreiten.',
-    sampleTask8Title: 'Robert Fischer - Nach Einsatz abgereist',
-    sampleTask8Description: 'Follow-up nach abgeschlossenem Einsatz. Zufriedenheit mit Job und Kunde erfragen, Feedback dokumentieren, nächste Verfügbarkeit klären und neue Einsätze anbieten.',
-    sampleTask9Title: 'Sandra Hoffmann - Bekannt, ohne Einsatz',
-    sampleTask9Description: 'Regelmäßiger Check-in mit bekannter CG ohne aktuellen Einsatz. Situation erfragen, Unterstützungsbedarf klären und neue Jobmöglichkeiten anbieten.',
 
     // Action buttons
     take: 'Übernehmen',
@@ -485,8 +437,6 @@ export const translations: Record<Language, Translations> = {
     workTasksInOrder: 'Wykonuj swoje zadania po kolei',
     newTask: 'Nowe zadanie',
     newTasks: 'nowe zadania',
-    resetTestTasks: 'Utwórz ponownie zadania testowe',
-    resetTestTasksDescription: 'Tworzy ponownie 9 zadań testowych do testowania (Obecnie: {count} zadań)',
     currentTasks: 'Zadania',
 
     // Task form
@@ -605,33 +555,9 @@ export const translations: Record<Language, Translations> = {
     total: 'Łącznie',
     overdueStatus: 'Przeterminowane',
 
-    // Sample tasks
-    sampleTask1Title: 'Max Mustermann - Odrzucony',
-    sampleTask1Description: 'Poinformować CG o odrzuceniu, zapytać o powody i przedstawić alternatywne możliwości pracy. Utrzymać motywację i zaproponować następne odpowiednie pozycje.',
-    sampleTask2Title: 'Anna Weber - Zapytanie od klienta',
-    sampleTask2Description: 'Przetworzyć zapytanie klienta i skontaktować się z CG. Omówić szczegóły pracy, sprawdzić dostępność i w przypadku zainteresowania przedstawić dalsze odpowiednie pozycje z portfolio.',
-    sampleTask3Title: 'Sarah Schmidt - Polubiono pracę (znana)',
-    sampleTask3Description: 'CG wykazała zainteresowanie pozycją. Natychmiast zaproponować klientowi, przesłać profil i rozpocząć proces dopasowania. Uzyskać opinię od klienta.',
-    sampleTask4Title: 'Michael Bauer - Polubiono pracę (nieznany)',
-    sampleTask4Description: 'Nowy CG polubił pracę. Zadzwonić, uzupełnić profil, wyjaśnić kwalifikacje i w przypadku odpowiedniości zaproponować klientowi. Omówić oczekiwania i warunki.',
-    sampleTask5Title: 'Lisa Müller - Status: CHCE PRACOWAĆ',
-    sampleTask5Description: 'CG zmieniła status na "CHCE PRACOWAĆ". Natychmiast skontaktować się, omówić aktualną dostępność i przedstawić odpowiednie prace z aktualnego portfolio.',
-    sampleTask6Title: 'Thomas Klein - Termin telefoniczny',
-    sampleTask6Description: 'Dotrzymać umówionego terminu telefonicznego. Omówić aktualną sytuację, wyjaśnić życzenia i wymagania oraz przedstawić odpowiednie możliwości pracy.',
-    sampleTask7Title: 'Jennifer Wagner - Nowy LEAD',
-    sampleTask7Description: 'Przetworzyć nowy lead. Utworzyć kompletny profil, zarejestrować kwalifikacje i doświadczenia, poinformować o Mamamia i przedstawić pierwsze odpowiednie propozycje pracy.',
-    sampleTask8Title: 'Robert Fischer - Wyjechał po zadaniu',
-    sampleTask8Description: 'Follow-up po zakończonym zadaniu. Zapytać o zadowolenie z pracy i klienta, udokumentować opinię, wyjaśnić następną dostępność i zaoferować nowe zadania.',
-    sampleTask9Title: 'Sandra Hoffmann - Znana, bez zadania',
-    sampleTask9Description: 'Regularne sprawdzenie ze znanym CG bez aktualnego zadania. Zapytać o sytuację, wyjaśnić potrzeby wsparcia i zaoferować nowe możliwości pracy.',
-
     // Account Settings
     unexpectedError: 'Wystąpił nieoczekiwany błąd',
     passwordChangeWarning: 'Hasło mogło zostać zmienione. Sprawdź czy nowe hasło działa.',
-
-    // Sample tasks
-    hideSampleTasks: 'Ukryj przykładowe zadania',
-    showSampleTasks: 'Pokaż przykładowe zadania',
 
     // Reset Password Form
     passwordsNotIdentical: 'Hasła nie są identyczne',

@@ -403,7 +403,7 @@ describe('TaskFocusedView', () => {
     it('should show interest block instead of generic badge when callbackSource is Interest', async () => {
       const interestTasks: Task[] = [{
         id: '1',
-        title: 'Anna Kowalska - Zainteresowanie zleceniem',
+        title: 'Anna Kowalska - Aplikacja na zlecenie',
         status: 'pending',
         priority: 'medium',
         type: 'manual',
@@ -422,7 +422,7 @@ describe('TaskFocusedView', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('interest-block')).toBeInTheDocument();
-        expect(screen.getByText('Zainteresowanie zleceniem')).toBeInTheDocument();
+        expect(screen.getByText('Aplikacja na zlecenie')).toBeInTheDocument();
       });
       // Should NOT show generic badge
       expect(screen.queryByText('Callback: Interest')).not.toBeInTheDocument();
@@ -473,7 +473,7 @@ describe('TaskFocusedView', () => {
 
       const interestTasks: Task[] = [{
         id: '1',
-        title: 'Anna Kowalska - Zainteresowanie zleceniem',
+        title: 'Anna Kowalska - Aplikacja na zlecenie',
         status: 'pending',
         priority: 'medium',
         type: 'manual',

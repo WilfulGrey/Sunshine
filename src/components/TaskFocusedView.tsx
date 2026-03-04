@@ -782,7 +782,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
               <div className="bg-pink-50 border border-pink-200 rounded-lg p-4 mb-6" data-testid="interest-block">
                 <div className="flex items-center space-x-2">
                   <Heart className="h-5 w-5 text-pink-500" />
-                  <span className="font-medium text-pink-800">Zainteresowanie zleceniem</span>
+                  <span className="font-medium text-pink-800">Aplikacja na zlecenie</span>
                 </div>
                 {interestJobOfferId && (
                   <div className="mt-2">

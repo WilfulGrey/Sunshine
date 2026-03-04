@@ -116,7 +116,7 @@ export const LogsDialog: React.FC<LogsDialogProps> = ({
                   {log.title === 'interest' && (
                     <div className="flex items-center space-x-1 mb-2">
                       <Heart className="h-3.5 w-3.5 text-pink-500" />
-                      <span className="text-xs font-medium text-pink-700">Zainteresowanie zleceniem</span>
+                      <span className="text-xs font-medium text-pink-700">Aplikacja na zlecenie</span>
                       {log.job_offer_id && (
                         <a
                           href={`https://portal.mamamia.app/caregiver-agency/job-market/${log.job_offer_id}`}

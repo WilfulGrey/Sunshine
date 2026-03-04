@@ -39,7 +39,7 @@ export const convertCallbackToTask = (callback: SunshineCallback): Task => {
   }
 
   const title = callback.callback_source === 'Interest'
-    ? `${fullName} - Zainteresowanie zleceniem`
+    ? `${fullName} - Aplikacja na zlecenie`
     : `${fullName} - Kontakt telefoniczny`;
 
   return {

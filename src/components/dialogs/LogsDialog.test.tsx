@@ -219,7 +219,7 @@ describe('LogsDialog', () => {
       render(<LogsDialog {...defaultProps} logs={logs} />);
 
       // Interest entry visible in notes-only mode (default)
-      expect(screen.getByText('Zainteresowanie zleceniem')).toBeInTheDocument();
+      expect(screen.getByText('Aplikacja na zlecenie')).toBeInTheDocument();
       // Non-note entry hidden
       expect(screen.queryByText('Callback zmieniony')).not.toBeInTheDocument();
     });
@@ -233,7 +233,7 @@ describe('LogsDialog', () => {
 
       render(<LogsDialog {...defaultProps} logs={logs} />);
 
-      expect(screen.getByText('Zainteresowanie zleceniem')).toBeInTheDocument();
+      expect(screen.getByText('Aplikacja na zlecenie')).toBeInTheDocument();
     });
 
     it('should show job offer link when job_offer_id is present', () => {
@@ -257,7 +257,7 @@ describe('LogsDialog', () => {
 
       render(<LogsDialog {...defaultProps} logs={logs} />);
 
-      expect(screen.getByText('Zainteresowanie zleceniem')).toBeInTheDocument();
+      expect(screen.getByText('Aplikacja na zlecenie')).toBeInTheDocument();
       expect(screen.queryByTestId('job-offer-link-10')).not.toBeInTheDocument();
     });
   });
