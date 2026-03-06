@@ -671,7 +671,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                   data-testid="profile-link"
                 >
                   <ExternalLink className="h-4 w-4" />
-                  <span>{t.profilePortalLink}</span>
+                  <span>Profil</span>
                 </a>
                 <a
                   href={`https://portal.mamamia.app/caregiver-agency/messages/${nextTask.apiData.caregiverId}`}
