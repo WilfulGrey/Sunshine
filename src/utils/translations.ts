@@ -285,9 +285,9 @@ export const translations: Record<Language, Translations> = {
     startCall: 'Anruf starten',
     phoneNumber: 'Telefonnummer:',
     clickToCall: 'Klicken zum Anrufen',
-    wasPersonReachable: 'War die Person erreichbar?',
-    yesReachable: 'Ja, erreichbar',
-    notReachable: 'Nicht erreichbar',
+    wasPersonReachable: 'Hat sie ans Telefon gegangen?',
+    yesReachable: 'Abgenommen',
+    notReachable: 'Nicht abgenommen',
 
     // Postpone dialog
     setPostpone: 'Wiedervorlage festlegen',
@@ -511,9 +511,9 @@ export const translations: Record<Language, Translations> = {
     startCall: 'Rozpocznij połączenie',
     phoneNumber: 'Numer telefonu:',
     clickToCall: 'Kliknij aby zadzwonić',
-    wasPersonReachable: 'Czy osoba była dostępna?',
-    yesReachable: 'Tak, dostępna',
-    notReachable: 'Niedostępna',
+    wasPersonReachable: 'Czy odebrała telefon?',
+    yesReachable: 'Odebrała',
+    notReachable: 'Nie odebrała',
 
     // Postpone dialog
     setPostpone: 'Ustaw przypomnienie',

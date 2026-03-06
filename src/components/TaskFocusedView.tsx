@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, Phone, X, Skull, XCircle, Eye, Loader2, RefreshCw, MessageSquare, ScrollText, Heart } from 'lucide-react';
+import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, Phone, X, Skull, XCircle, Eye, Loader2, RefreshCw, ExternalLink, MessageSquare, ScrollText, Heart } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useUsers } from '../hooks/useUsers';
 import { useAuth } from '../contexts/AuthContext';
@@ -662,6 +662,17 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
             {/* Profile / Chat / Logs links */}
             {nextTask.apiData?.caregiverId && (
               <div className="flex items-center space-x-4 mb-3" data-testid="caregiver-links">
+                <a
+                  href={`https://portal.mamamia.app/caregiver-agency/caregivers/${nextTask.apiData.caregiverId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-1 text-sm font-medium transition-colors hover:underline"
+                  style={{ color: '#AB4D95' }}
+                  data-testid="profile-link"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span>{t.profilePortalLink}</span>
+                </a>
                 <a
                   href={`https://portal.mamamia.app/caregiver-agency/messages/${nextTask.apiData.caregiverId}`}
                   target="_blank"
