@@ -12,6 +12,7 @@ import { useDialogState } from '../hooks/useDialogState';
 import { useActivityRefresh } from '../hooks/useActivityRefresh';
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh';
 import { useSmartPolling } from '../hooks/useSmartPolling';
+import { useVersionCheck } from '../hooks/useVersionCheck';
 import { getTypeIcon, getTypeColor, getPriorityColor, getProcessedTasks, isTaskDueToday } from '../utils/taskUtils';
 import { CompletionDialog } from './dialogs/CompletionDialog';
 import { AbandonDialog } from './dialogs/AbandonDialog';
@@ -44,6 +45,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   
   const taskActions = useTaskActions(tasks, onUpdateLocalTask, onRemoveLocalTask, onLoadContacts, onSilentRefresh);
   const dialogState = useDialogState();
+  const { reloadIfUpdateAvailable } = useVersionCheck();
   const [showFutureTasks, setShowFutureTasks] = useState(false);
   const [showLogsDialog, setShowLogsDialog] = useState(false);
 
@@ -431,8 +433,9 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     const task = dialogState.showPhoneDialog;
     const caregiverId = task.apiData?.caregiverId;
     taskActions.handlePhoneCall(task, reachable).then(() => {
-      if (!reachable && caregiverId) {
-        refreshLatestNote(caregiverId);
+      if (!reachable) {
+        if (reloadIfUpdateAvailable()) return;
+        if (caregiverId) refreshLatestNote(caregiverId);
       }
     });
     dialogState.closePhoneDialog();
@@ -469,7 +472,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
           dialogState.postponeDate,
           dialogState.postponeTime,
           dialogState.postponeNotes
-        );
+        ).then(() => reloadIfUpdateAvailable());
       }
       dialogState.closePostponeDialog();
       setRefreshDisabledAfterBoost(false);
@@ -485,7 +488,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       dialogState.showCloseTaskDialog,
       reason,
       notes
-    );
+    ).then(() => reloadIfUpdateAvailable());
     dialogState.closeCloseTaskDialog();
     setRefreshDisabledAfterBoost(false);
   };
@@ -498,9 +501,8 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       dialogState.showCompletionDialog,
       dialogState.completionSummary
     ).then(() => {
-      if (caregiverId) {
-        refreshLatestNote(caregiverId);
-      }
+      if (reloadIfUpdateAvailable()) return;
+      if (caregiverId) refreshLatestNote(caregiverId);
     });
     dialogState.closeCompletionDialog();
     setRefreshDisabledAfterBoost(false);
@@ -519,7 +521,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     taskActions.handleAbandonTask(
       dialogState.showAbandonDialog,
       dialogState.abandonReason
-    );
+    ).then(() => reloadIfUpdateAvailable());
     dialogState.closeAbandonDialog();
     setRefreshDisabledAfterBoost(false);
     console.log('✅ REFRESH ENABLED po abandon - user porzucił zadanie');
@@ -539,7 +541,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       dialogState.showTransferDialog,
       dialogState.transferToUser,
       dialogState.transferReason
-    );
+    ).then(() => reloadIfUpdateAvailable());
     dialogState.closeTransferDialog();
     setRefreshDisabledAfterBoost(false);
     console.log('✅ REFRESH ENABLED po transfer - user przekazał zadanie');
