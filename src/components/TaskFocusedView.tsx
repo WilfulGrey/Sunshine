@@ -234,6 +234,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   const [latestNote, setLatestNote] = useState<{ content: string; author: string; date: string } | null>(null);
   const latestNoteRef = useRef(latestNote);
   latestNoteRef.current = latestNote;
+  const activeCaregiverIdRef = useRef<number | null>(null);
 
   const findLatestContactNote = (logs: SunshineLog[]) => {
     return logs.find(log => CONTACT_TITLES.includes(log.title)) || null;
@@ -250,12 +251,14 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     const currentContent = latestNoteRef.current?.content || '';
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+      if (activeCaregiverIdRef.current !== caregiverId) return;
       try {
         const response = await sunshineService.getLogs(caregiverId, 1, 10);
         const contactNote = response.data.find(
           (log: SunshineLog) => CONTACT_TITLES.includes(log.title)
         );
         if (contactNote && contactNote.content !== currentContent) {
+          if (activeCaregiverIdRef.current !== caregiverId) return;
           setLatestNote(logToNote(contactNote));
           return;
         }
@@ -280,12 +283,16 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   const { nextTask, upcomingTasks, hiddenFutureTasksCount } = getProcessedTasks(tasks, taskActions.takenTasks, taskActions.currentEmployeeId, showFutureTasks);
 
   useEffect(() => {
-    const caregiverId = nextTask?.apiData?.caregiverId;
+    const caregiverId = nextTask?.apiData?.caregiverId ?? null;
+    activeCaregiverIdRef.current = caregiverId;
+
     if (!caregiverId) {
       setLatestNote(null);
+      setLogsData([]);
       return;
     }
 
+    setLogsData([]);
     let cancelled = false;
 
     (async () => {
