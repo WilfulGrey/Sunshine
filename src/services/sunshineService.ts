@@ -174,7 +174,7 @@ class SunshineService {
 
   async checkCaregiver(caregiverId: number): Promise<CaregiverCheckResponse> {
     return this.request<CaregiverCheckResponse>(
-      `/api/sunshine/caregiver/${caregiverId}/check`
+      `/api/sunshine/caregivers/${caregiverId}/status`
     );
   }
 
