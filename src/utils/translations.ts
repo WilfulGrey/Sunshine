@@ -197,6 +197,13 @@ export interface Translations {
   inDays: string;
   daysAgo: string;
   nextTask: string;
+
+  // Caregiver check panel
+  applicationLabel: string;
+  noApplication: string;
+  checkingCaregiver: string;
+  photo: string;
+  hpProfile: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -425,6 +432,13 @@ export const translations: Record<Language, Translations> = {
     inDays: 'In {days} Tagen',
     daysAgo: 'Vor {days} Tagen',
     nextTask: 'Nächste Aufgabe',
+
+    // Caregiver check panel
+    applicationLabel: 'Bewerbung',
+    noApplication: 'Ohne Bewerbung',
+    checkingCaregiver: 'Prüfe...',
+    photo: 'Foto',
+    hpProfile: 'HP',
   },
   pl: {
     // Header
@@ -651,6 +665,13 @@ export const translations: Record<Language, Translations> = {
     inDays: 'Za {days} dni',
     daysAgo: '{days} dni temu',
     nextTask: 'Następne zadanie',
+
+    // Caregiver check panel
+    applicationLabel: 'Wklejka',
+    noApplication: 'Bez wklejki',
+    checkingCaregiver: 'Sprawdzam...',
+    photo: 'foto',
+    hpProfile: 'HP',
   }
 };
 

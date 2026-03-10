@@ -50,6 +50,12 @@ export interface SunshineLogsResponse {
   };
 }
 
+export interface CaregiverCheckResponse {
+  application_created_at?: string;
+  has_photo?: number;
+  has_hp_profile?: number;
+}
+
 class SunshineService {
   private baseUrl: string;
   private token: string;
@@ -163,6 +169,12 @@ class SunshineService {
   async getLatestLog(caregiverId: number): Promise<{ data: SunshineLog }> {
     return this.request<{ data: SunshineLog }>(
       `/api/sunshine/caregivers/${caregiverId}/logs/latest`
+    );
+  }
+
+  async checkCaregiver(caregiverId: number): Promise<CaregiverCheckResponse> {
+    return this.request<CaregiverCheckResponse>(
+      `/api/sunshine/caregiver/${caregiverId}/check`
     );
   }
 

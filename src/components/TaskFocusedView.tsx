@@ -20,7 +20,7 @@ import { TransferDialog } from './dialogs/TransferDialog';
 import { PostponeDialog } from './dialogs/PostponeDialog';
 import { LogsDialog } from './dialogs/LogsDialog';
 import { CloseTaskDialog } from './dialogs/CloseTaskDialog';
-import { SunshineLog } from '../services/sunshineService';
+import { SunshineLog, CaregiverCheckResponse } from '../services/sunshineService';
 
 interface TaskFocusedViewProps {
   tasks: Task[];
@@ -48,6 +48,8 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   const { reloadIfUpdateAvailable } = useVersionCheck();
   const [showFutureTasks, setShowFutureTasks] = useState(false);
   const [showLogsDialog, setShowLogsDialog] = useState(false);
+  const [caregiverCheck, setCaregiverCheck] = useState<CaregiverCheckResponse | null>(null);
+  const [caregiverCheckLoading, setCaregiverCheckLoading] = useState(false);
 
   // 🛡️ Track if any dialog is open - blocks refresh to prevent state overwrite
   const isAnyDialogOpenRef = useRef(false);
@@ -383,6 +385,38 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     return () => { cancelled = true; };
   }, [interestJobOfferId, nextTask?.apiData?.caregiverId]);
 
+  // Fetch caregiver check (wklejka / photo / HP)
+  useEffect(() => {
+    const caregiverId = nextTask?.apiData?.caregiverId;
+
+    if (!caregiverId) {
+      setCaregiverCheck(null);
+      setCaregiverCheckLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setCaregiverCheckLoading(true);
+    setCaregiverCheck(null);
+
+    (async () => {
+      try {
+        const result = await sunshineService.checkCaregiver(caregiverId);
+        if (!cancelled) {
+          setCaregiverCheck(result);
+        }
+      } catch (err) {
+        console.error('Failed to check caregiver:', err);
+      } finally {
+        if (!cancelled) {
+          setCaregiverCheckLoading(false);
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [nextTask?.id, nextTask?.apiData?.caregiverId]);
+
   const handleOpenLogs = useCallback(async () => {
     const caregiverId = nextTask?.apiData?.caregiverId;
     if (!caregiverId) return;
@@ -666,44 +700,113 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
           </div>
 
           <div className="flex-1">
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">{nextTask.title}</h3>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">{nextTask.title}</h3>
 
-            {/* Profile / Chat / Logs links */}
-            {nextTask.apiData?.caregiverId && (
-              <div className="flex items-center space-x-4 mb-3" data-testid="caregiver-links">
-                <a
-                  href={`https://portal.mamamia.app/caregiver-agency/caregivers/${nextTask.apiData.caregiverId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-1 text-sm font-medium transition-colors hover:underline"
-                  style={{ color: '#AB4D95' }}
-                  data-testid="profile-link"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  <span>Profil</span>
-                </a>
-                <a
-                  href={`https://portal.mamamia.app/caregiver-agency/messages/${nextTask.apiData.caregiverId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-1 text-sm font-medium transition-colors hover:underline"
-                  style={{ color: '#AB4D95' }}
-                  data-testid="chat-link"
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  <span>Chat</span>
-                </a>
-                <button
-                  onClick={handleOpenLogs}
-                  className="inline-flex items-center space-x-1 text-sm font-medium transition-colors hover:underline"
-                  style={{ color: '#AB4D95' }}
-                  data-testid="logs-button"
-                >
-                  <ScrollText className="h-4 w-4" />
-                  <span>Notatki</span>
-                </button>
+                {/* Profile / Chat / Logs links */}
+                {nextTask.apiData?.caregiverId && (
+                  <div className="flex items-center space-x-4 mb-3" data-testid="caregiver-links">
+                    <a
+                      href={`https://portal.mamamia.app/caregiver-agency/caregivers/${nextTask.apiData.caregiverId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center space-x-1 text-sm font-medium transition-colors hover:underline"
+                      style={{ color: '#AB4D95' }}
+                      data-testid="profile-link"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span>Profil</span>
+                    </a>
+                    <a
+                      href={`https://portal.mamamia.app/caregiver-agency/messages/${nextTask.apiData.caregiverId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center space-x-1 text-sm font-medium transition-colors hover:underline"
+                      style={{ color: '#AB4D95' }}
+                      data-testid="chat-link"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span>Chat</span>
+                    </a>
+                    <button
+                      onClick={handleOpenLogs}
+                      className="inline-flex items-center space-x-1 text-sm font-medium transition-colors hover:underline"
+                      style={{ color: '#AB4D95' }}
+                      data-testid="logs-button"
+                    >
+                      <ScrollText className="h-4 w-4" />
+                      <span>Notatki</span>
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+
+              {/* Caregiver check info panel */}
+              {nextTask.apiData?.caregiverId && (
+                <div className="flex-shrink-0" data-testid="caregiver-check-panel">
+                  {caregiverCheckLoading ? (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 flex items-center space-x-2">
+                      <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
+                      <span className="text-gray-500 text-sm">{t.checkingCaregiver}</span>
+                    </div>
+                  ) : caregiverCheck ? (() => {
+                    const hasApplication = !!caregiverCheck.application_created_at;
+                    const applicationAgeDays = hasApplication
+                      ? Math.floor((Date.now() - new Date(caregiverCheck.application_created_at!).getTime()) / 86400000)
+                      : null;
+                    const isFresh = applicationAgeDays !== null && applicationAgeDays <= 30;
+
+                    if (hasApplication && isFresh) {
+                      return (
+                        <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2">
+                          <div className="flex items-center space-x-1.5">
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            <span className="text-green-700 font-medium text-sm">{t.applicationLabel}</span>
+                          </div>
+                          <p className="text-green-600 text-xs mt-0.5">{t.daysAgo.replace('{days}', String(applicationAgeDays))}</p>
+                        </div>
+                      );
+                    }
+
+                    if (hasApplication && !isFresh) {
+                      return (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
+                          <div className="flex items-center space-x-1.5">
+                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                            <span className="text-amber-700 font-medium text-sm">{t.applicationLabel}</span>
+                          </div>
+                          <p className="text-amber-600 text-xs mt-0.5">{t.daysAgo.replace('{days}', String(applicationAgeDays!))}</p>
+                        </div>
+                      );
+                    }
+
+                    // No application — show photo + HP status
+                    const hasPhoto = caregiverCheck.has_photo === 1;
+                    const hasHp = caregiverCheck.has_hp_profile === 1;
+                    const allGood = hasPhoto && hasHp;
+                    const panelBg = allGood ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200';
+                    const textColor = allGood ? 'text-amber-700' : 'text-red-700';
+
+                    return (
+                      <div className={`${panelBg} border rounded-lg px-4 py-2`}>
+                        <p className={`${textColor} font-medium text-sm`}>{t.noApplication}</p>
+                        <div className="flex items-center space-x-3 mt-0.5">
+                          <span className="text-xs">
+                            <span className={hasPhoto ? 'text-green-600' : 'text-red-500'}>{hasPhoto ? '✓' : '✗'}</span>
+                            {' '}{t.photo}
+                          </span>
+                          <span className="text-xs">
+                            <span className={hasHp ? 'text-green-600' : 'text-red-500'}>{hasHp ? '✓' : '✗'}</span>
+                            {' '}{t.hpProfile}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })() : null}
+                </div>
+              )}
+            </div>
 
             {/* Latest contact note - prefer rich display from logs, fall back to task.description */}
             {latestNote ? (() => {
