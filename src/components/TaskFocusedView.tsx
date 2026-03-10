@@ -50,6 +50,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   const [showLogsDialog, setShowLogsDialog] = useState(false);
   const [caregiverCheck, setCaregiverCheck] = useState<CaregiverCheckResponse | null>(null);
   const [caregiverCheckLoading, setCaregiverCheckLoading] = useState(false);
+  const [caregiverCheckError, setCaregiverCheckError] = useState(false);
 
   // 🛡️ Track if any dialog is open - blocks refresh to prevent state overwrite
   const isAnyDialogOpenRef = useRef(false);
@@ -392,12 +393,14 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     if (!caregiverId) {
       setCaregiverCheck(null);
       setCaregiverCheckLoading(false);
+      setCaregiverCheckError(false);
       return;
     }
 
     let cancelled = false;
     setCaregiverCheckLoading(true);
     setCaregiverCheck(null);
+    setCaregiverCheckError(false);
 
     (async () => {
       try {
@@ -407,6 +410,9 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
         }
       } catch (err) {
         console.error('Failed to check caregiver:', err);
+        if (!cancelled) {
+          setCaregiverCheckError(true);
+        }
       } finally {
         if (!cancelled) {
           setCaregiverCheckLoading(false);
@@ -749,6 +755,10 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                     <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 flex items-center space-x-2">
                       <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
                       <span className="text-gray-500 text-sm">{t.checkingCaregiver}</span>
+                    </div>
+                  ) : caregiverCheckError ? (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
+                      <span className="text-gray-400 text-sm">—</span>
                     </div>
                   ) : caregiverCheck ? (() => {
                     const hasApplication = !!caregiverCheck.application_created_at;
