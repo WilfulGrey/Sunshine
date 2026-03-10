@@ -2,6 +2,11 @@ import { Task, TaskPriority } from '../types/Task';
 import { SunshineCallback } from '../services/sunshineService';
 import { generateId } from './helpers';
 
+const BLOCKED_STATUSES = ['Black List', 'Niewłaściwy'];
+
+export const isBlockedStatus = (status: string): boolean =>
+  BLOCKED_STATUSES.includes(status);
+
 export const convertCallbackToTask = (callback: SunshineCallback): Task => {
   const fullName = `${callback.first_name} ${callback.last_name}`;
 
@@ -65,6 +70,7 @@ export const convertCallbackToTask = (callback: SunshineCallback): Task => {
       callbackSource: callback.callback_source,
       latestContactContent: callback.latest_contact_content || undefined,
       recruiterName: callback.recruiter_name || undefined,
+      caregiverStatus: callback.status,
     },
   };
 };

@@ -28,6 +28,7 @@ export interface Task {
     callbackSource?: string;
     latestContactContent?: string;
     recruiterName?: string;
+    caregiverStatus?: string;
   };
 }
 

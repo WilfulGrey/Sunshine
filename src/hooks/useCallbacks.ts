@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Task } from '../types/Task';
 import { sunshineService } from '../services/sunshineService';
-import { convertCallbackToTask } from '../utils/sunshineHelpers';
+import { convertCallbackToTask, isBlockedStatus } from '../utils/sunshineHelpers';
 import { getAllEmployees } from '../config/employeeMapping';
 
 export const useCallbacks = () => {
@@ -18,7 +18,18 @@ export const useCallbacks = () => {
       setError(null);
 
       const response = await sunshineService.getAllCallbacks();
-      const convertedTasks = response.data.map(convertCallbackToTask);
+
+      // Filter out blocked statuses and silently clear their callbacks
+      const blockedCallbacks = response.data.filter(cb => isBlockedStatus(cb.status));
+      const activeCallbacks = response.data.filter(cb => !isBlockedStatus(cb.status));
+
+      blockedCallbacks.forEach(cb => {
+        sunshineService.setCallback(cb.caregiver_id, null).catch(err => {
+          console.warn(`Failed to clear blocked callback for caregiver ${cb.caregiver_id}:`, err);
+        });
+      });
+
+      const convertedTasks = activeCallbacks.map(convertCallbackToTask);
 
       setTasks(prev => {
         if (prev.length === 0) return convertedTasks;
@@ -57,7 +68,17 @@ export const useCallbacks = () => {
   const silentRefresh = useCallback(async () => {
     try {
       const response = await sunshineService.getAllCallbacks();
-      const convertedTasks = response.data.map(convertCallbackToTask);
+
+      const blockedCallbacks = response.data.filter(cb => isBlockedStatus(cb.status));
+      const activeCallbacks = response.data.filter(cb => !isBlockedStatus(cb.status));
+
+      blockedCallbacks.forEach(cb => {
+        sunshineService.setCallback(cb.caregiver_id, null).catch(err => {
+          console.warn(`Failed to clear blocked callback for caregiver ${cb.caregiver_id}:`, err);
+        });
+      });
+
+      const convertedTasks = activeCallbacks.map(convertCallbackToTask);
 
       setTasks(prev => {
         return convertedTasks.map(newTask => {

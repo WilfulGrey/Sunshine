@@ -10,6 +10,7 @@ export interface SunshineCallback {
   latest_contact_content: string | null;
   callback_source: string;
   recruiter_name: string | null;
+  status: string;
 }
 
 export interface SunshineCallbacksResponse {
