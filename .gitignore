@@ -27,6 +27,7 @@ dist-ssr
 
 # Puppeteer test files and screenshots (may contain sensitive data)
 test-*.js
+test-*.cjs
 test-console-analysis.js
 temp_debug.js
 *.png
@@ -40,11 +41,24 @@ temp_debug.js
 *SESSION*.md
 SOLUTION-*.md
 
-# SQL debug files (may contain sensitive data)  
+# SQL debug files (may contain sensitive data)
 *.sql
 
 # Backup files
 *.backup
+
+# Temp API data (may contain personal data)
+callbacks_tmp*.json
+cb_*.json
+
+# Build/test output files
+build-output.txt
+test-out.txt
+test-output.txt
+nul
+
+# Supabase temp files
+supabase/.temp/
 
 # Internal Claude Code documentation (private)
 CLAUDE.md
