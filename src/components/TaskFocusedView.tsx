@@ -367,7 +367,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
     (async () => {
       try {
-        const status = await sunshineService.checkJobStatus(interestJobOfferId, caregiverId);
+        const status = await sunshineService.checkJobStatus(interestJobOfferId, caregiverId, taskActions.currentEmployeeId);
         if (!cancelled) {
           setJobActive(status.active);
         }

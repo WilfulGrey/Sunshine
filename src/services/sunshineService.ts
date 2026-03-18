@@ -98,13 +98,13 @@ class SunshineService {
     return response.json();
   }
 
-  async getCallbacks(page = 1, perPage = 100): Promise<SunshineCallbacksResponse> {
+  async getCallbacks(page = 1, perPage = 1000): Promise<SunshineCallbacksResponse> {
     return this.request<SunshineCallbacksResponse>(
       `/api/sunshine/callbacks?page=${page}&per_page=${perPage}`
     );
   }
 
-  async getAllCallbacks(perPage = 100): Promise<SunshineCallbacksResponse> {
+  async getAllCallbacks(perPage = 1000): Promise<SunshineCallbacksResponse> {
     const first = await this.getCallbacks(1, perPage);
     if (first.meta.last_page <= 1) return first;
 
@@ -178,10 +178,10 @@ class SunshineService {
     );
   }
 
-  async checkJobStatus(jobOfferId: number, caregiverId: number): Promise<{ active: boolean }> {
-    return this.request<{ active: boolean }>(
-      `/api/sunshine/jobs/${jobOfferId}/status?caregiverId=${caregiverId}`
-    );
+  async checkJobStatus(jobOfferId: number, caregiverId: number, employeeId?: number | null): Promise<{ active: boolean }> {
+    let url = `/api/sunshine/jobs/${jobOfferId}/status?caregiverId=${caregiverId}`;
+    if (employeeId) url += `&employee_id=${employeeId}`;
+    return this.request<{ active: boolean }>(url);
   }
 
   isConfigured(): boolean {
