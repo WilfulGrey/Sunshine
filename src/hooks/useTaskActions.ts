@@ -290,7 +290,7 @@ export const useTaskActions = (
     if (!caregiverId) return;
 
     try {
-      const message = `${currentUserName}: ${abandonReason}`;
+      const message = `${currentUserName} - porzucono kontakt, powód: ${abandonReason}`;
       await sunshineService.recordContact(caregiverId, 'not_successfully', message);
       await sunshineService.unassignEmployee(caregiverId);
       await sunshineService.setCallback(caregiverId, null);
@@ -317,9 +317,10 @@ export const useTaskActions = (
       await sunshineService.unassignEmployee(caregiverId);
       await sunshineService.assignEmployee(caregiverId, targetEmployee.employeeId);
 
-      if (transferReason) {
-        await sunshineService.recordContact(caregiverId, 'note_only', `Transfer do ${transferToUser}: ${transferReason}`);
-      }
+      const transferMessage = transferReason
+        ? `${currentUserName} - przekazano do ${transferToUser}, powód: ${transferReason}`
+        : `${currentUserName} - przekazano do ${transferToUser}`;
+      await sunshineService.recordContact(caregiverId, 'note_only', transferMessage);
 
       onRemoveLocalTask(task.id);
 
@@ -341,6 +342,8 @@ export const useTaskActions = (
     if (!caregiverId) return;
 
     try {
+      const message = `${currentUserName} - odpięto się od opiekunki`;
+      await sunshineService.recordContact(caregiverId, 'note_only', message);
       await sunshineService.unassignEmployee(caregiverId);
 
       onUpdateLocalTask(task.id, {

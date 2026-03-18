@@ -492,7 +492,7 @@ describe('useTaskActions', () => {
         await result.current.handleAbandonTask(mockTasks[0], 'Wrong contact');
       });
 
-      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'not_successfully', 'Test User: Wrong contact');
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'not_successfully', 'Test User - porzucono kontakt, powód: Wrong contact');
       expect(sunshineService.unassignEmployee).toHaveBeenCalledWith(123);
       expect(mockOnRemoveLocalTask).toHaveBeenCalledWith('1');
     });
