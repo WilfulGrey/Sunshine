@@ -481,10 +481,6 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     dialogState.closePhoneDialog();
 
     if (reachable) {
-      const caregiverId = task.apiData?.caregiverId;
-      if (caregiverId) {
-        window.open(`https://portal.mamamia.app/caregiver-agency/caregivers/${caregiverId}`, '_blank');
-      }
       setRefreshDisabledAfterBoost(false);
     } else {
       setRefreshDisabledAfterBoost(false);
