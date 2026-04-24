@@ -211,6 +211,110 @@ describe('taskUtils', () => {
     });
   });
 
+  describe('sortTasksByPriority - Manual callback priority (recruiter-set, due soon)', () => {
+    const makeTask = (id: string, overrides: Partial<Task> = {}): Task => ({
+      id,
+      title: `Task ${id}`,
+      description: '',
+      status: 'pending',
+      priority: 'medium',
+      type: 'manual',
+      createdAt: new Date(),
+      history: [],
+      ...overrides,
+    });
+
+    it('should prioritize Manual task due in 3 min over Interest task due now', () => {
+      const now = Date.now();
+      const manualTask = makeTask('manual', {
+        dueDate: new Date(now + 3 * 60 * 1000), // due in 3 min
+        apiData: { caregiverId: 1, callbackSource: 'Manual' },
+      });
+      const interestTask = makeTask('interest', {
+        dueDate: new Date(now - 1000), // due now/past
+        apiData: { caregiverId: 2, callbackSource: 'Interest' },
+      });
+      const result = sortTasksByPriority([interestTask, manualTask]);
+      expect(result[0].id).toBe('manual');
+      expect(result[1].id).toBe('interest');
+    });
+
+    it('should NOT prioritize Manual task due in 2 hours over Interest task due now', () => {
+      const now = Date.now();
+      const manualTaskFuture = makeTask('manual', {
+        dueDate: new Date(now + 2 * 60 * 60 * 1000), // due in 2h
+        apiData: { caregiverId: 1, callbackSource: 'Manual' },
+      });
+      const interestTaskDue = makeTask('interest', {
+        dueDate: new Date(now - 1000), // due now/past
+        apiData: { caregiverId: 2, callbackSource: 'Interest' },
+      });
+      const result = sortTasksByPriority([manualTaskFuture, interestTaskDue]);
+      expect(result[0].id).toBe('interest');
+      expect(result[1].id).toBe('manual');
+    });
+
+    it('should NOT prioritize Manual-due-soon over in_progress task', () => {
+      const now = Date.now();
+      const manualTask = makeTask('manual', {
+        dueDate: new Date(now + 3 * 60 * 1000),
+        apiData: { caregiverId: 1, callbackSource: 'Manual' },
+      });
+      const inProgressTask = makeTask('inprogress', {
+        status: 'in_progress',
+        dueDate: new Date(now + 60 * 60 * 1000), // due in 1h
+      });
+      const result = sortTasksByPriority([manualTask, inProgressTask]);
+      expect(result[0].id).toBe('inprogress');
+      expect(result[1].id).toBe('manual');
+    });
+
+    it('should NOT prioritize Manual-due-soon over boosted task', () => {
+      const now = Date.now();
+      const manualTask = makeTask('manual', {
+        dueDate: new Date(now + 3 * 60 * 1000),
+        apiData: { caregiverId: 1, callbackSource: 'Manual' },
+      });
+      const boostedTask = makeTask('boosted', {
+        priority: 'boosted',
+        dueDate: new Date(now + 60 * 60 * 1000),
+      });
+      const result = sortTasksByPriority([manualTask, boostedTask]);
+      expect(result[0].id).toBe('boosted');
+      expect(result[1].id).toBe('manual');
+    });
+
+    it('should sort two Manual-due-soon tasks by dueDate ascending', () => {
+      const now = Date.now();
+      const laterManual = makeTask('later', {
+        dueDate: new Date(now + 4 * 60 * 1000),
+        apiData: { caregiverId: 1, callbackSource: 'Manual' },
+      });
+      const earlierManual = makeTask('earlier', {
+        dueDate: new Date(now + 1 * 60 * 1000),
+        apiData: { caregiverId: 2, callbackSource: 'Manual' },
+      });
+      const result = sortTasksByPriority([laterManual, earlierManual]);
+      expect(result[0].id).toBe('earlier');
+      expect(result[1].id).toBe('later');
+    });
+
+    it('should prioritize Manual due 1 min ago over Manual due in 4 min', () => {
+      const now = Date.now();
+      const pastManual = makeTask('past', {
+        dueDate: new Date(now - 60 * 1000),
+        apiData: { caregiverId: 1, callbackSource: 'Manual' },
+      });
+      const futureManual = makeTask('future', {
+        dueDate: new Date(now + 4 * 60 * 1000),
+        apiData: { caregiverId: 2, callbackSource: 'Manual' },
+      });
+      const result = sortTasksByPriority([futureManual, pastManual]);
+      expect(result[0].id).toBe('past');
+      expect(result[1].id).toBe('future');
+    });
+  });
+
   describe('getProcessedTasks', () => {
     const MY_ID = 42;
 

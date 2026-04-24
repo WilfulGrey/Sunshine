@@ -58,8 +58,21 @@ export const sortTasksByPriority = (tasks: Task[]) => {
     if (a.status === 'in_progress' && b.status !== 'in_progress') return -1;
     if (a.status !== 'in_progress' && b.status === 'in_progress') return 1;
 
-    // Interest (Like) tasks come THIRD - but only when their callback is due (not in the future)
     const now = new Date();
+
+    // Manual callbacks (set by recruiter in MamaMia panel) come THIRD - when due within 5 minutes
+    // Recruiter-set commitments trump Interest and other sources when their time is near
+    const fiveMinFromNow = now.getTime() + 5 * 60 * 1000;
+    const aIsManualDueSoon = a.apiData?.callbackSource === 'Manual' && a.dueDate && a.dueDate.getTime() <= fiveMinFromNow;
+    const bIsManualDueSoon = b.apiData?.callbackSource === 'Manual' && b.dueDate && b.dueDate.getTime() <= fiveMinFromNow;
+    if (aIsManualDueSoon && !bIsManualDueSoon) return -1;
+    if (!aIsManualDueSoon && bIsManualDueSoon) return 1;
+    // If both are Manual-due-soon, sort by dueDate ascending (earliest callback first)
+    if (aIsManualDueSoon && bIsManualDueSoon) {
+      return a.dueDate!.getTime() - b.dueDate!.getTime();
+    }
+
+    // Interest (Like) tasks come FOURTH - but only when their callback is due (not in the future)
     const aIsInterestDue = a.apiData?.callbackSource === 'Interest' && a.dueDate && a.dueDate.getTime() <= now.getTime();
     const bIsInterestDue = b.apiData?.callbackSource === 'Interest' && b.dueDate && b.dueDate.getTime() <= now.getTime();
     if (aIsInterestDue && !bIsInterestDue) return -1;
