@@ -501,6 +501,9 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
   const handlePostponeConfirm = () => {
     if (dialogState.showPostponeDialog && dialogState.postponeDate && dialogState.postponeTime) {
+      // Reload if a new version is available BEFORE running the action.
+      if (reloadIfUpdateAvailable()) return;
+
       const task = tasks.find(t => t.id === dialogState.showPostponeDialog);
       if (task) {
         taskActions.handlePostponeTask(
@@ -519,6 +522,10 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
   const handleCloseTaskConfirm = (reason: string, notes: string) => {
     if (!dialogState.showCloseTaskDialog) return;
+
+    // Reload if a new version is available BEFORE running the action,
+    // so we never run the API call with stale code.
+    if (reloadIfUpdateAvailable()) return;
 
     taskActions.handleCloseTask(
       dialogState.showCloseTaskDialog,
@@ -553,7 +560,10 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
   const handleAbandonConfirm = () => {
     if (!dialogState.showAbandonDialog) return;
-    
+
+    // Reload if a new version is available BEFORE running the action.
+    if (reloadIfUpdateAvailable()) return;
+
     taskActions.handleAbandonTask(
       dialogState.showAbandonDialog,
       dialogState.abandonReason
@@ -572,7 +582,10 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
   const handleTransferConfirm = () => {
     if (!dialogState.showTransferDialog || !dialogState.transferToUser) return;
-    
+
+    // Reload if a new version is available BEFORE running the action.
+    if (reloadIfUpdateAvailable()) return;
+
     taskActions.handleTransferTask(
       dialogState.showTransferDialog,
       dialogState.transferToUser,
@@ -948,6 +961,10 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                     <button
                       disabled={taskActions.takingTask === nextTask.id}
                       onClick={() => {
+                        // Reload if a new version is available BEFORE taking a new task.
+                        // This is the "between tasks" boundary — recruiters should never
+                        // start a new task on stale code.
+                        if (reloadIfUpdateAvailable()) return;
                         taskActions.handleTakeTask(nextTask.id);
                         setRefreshDisabledAfterBoost(false);
                         console.log('✅ REFRESH ENABLED - user wziął zadanie, koniec disable po boost');
