@@ -270,12 +270,12 @@ export const useTaskActions = (
         ? `${currentUserName} zakończył task - ${reason}: ${notes}`
         : `${currentUserName} zakończył task - ${reason}`;
 
-      const isWklejka = reason === 'Zrobiono wklejkę';
-
+      // Closing a task means the recruiter completed it successfully and is still
+      // taking care of the caregiver — do NOT unassign. Only handleAbandonTask and
+      // handleUnassignTask explicitly unassign.
       await Promise.all([
         sunshineService.recordContact(caregiverId, 'note_only', message),
         sunshineService.setCallback(caregiverId, null),
-        ...(!isWklejka ? [sunshineService.unassignEmployee(caregiverId)] : []),
       ]);
 
       onRemoveLocalTask(task.id);

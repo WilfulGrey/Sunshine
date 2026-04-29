@@ -477,6 +477,24 @@ describe('useTaskActions', () => {
       expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'note_only', 'Test User zakończył task - Dostępna później');
       expect(mockOnRemoveLocalTask).toHaveBeenCalledWith('1');
     });
+
+    it('should NOT unassign employee for any close reason (recruiter keeps the caregiver)', async () => {
+      const { sunshineService } = await import('../services/sunshineService');
+
+      const { result } = renderHook(
+        () => useTaskActions(mockTasks, mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+        { wrapper: Wrapper }
+      );
+
+      // Test all three close reasons — none should trigger unassign
+      for (const reason of ['Ustawiono alert', 'Dostępna później', 'Custom note']) {
+        vi.mocked(sunshineService.unassignEmployee).mockClear();
+        await act(async () => {
+          await result.current.handleCloseTask(mockTasks[0], reason, '');
+        });
+        expect(sunshineService.unassignEmployee).not.toHaveBeenCalled();
+      }
+    });
   });
 
   describe('handleAbandonTask', () => {
