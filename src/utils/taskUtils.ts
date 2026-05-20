@@ -59,22 +59,47 @@ export const sortTasksByPriority = (tasks: Task[]) => {
     if (a.status !== 'in_progress' && b.status === 'in_progress') return 1;
 
     const now = new Date();
+    const nowMs = now.getTime();
 
-    // Manual callbacks (set by recruiter in MamaMia panel) come THIRD - when due within 5 minutes
+    // TIER 3: Reapply callbacks come FIRST among due callbacks
+    // (highest priority — these are automated reapply workflow tasks)
+    const aIsReapplyDue = a.apiData?.callbackType === 'reapply' && a.dueDate && a.dueDate.getTime() <= nowMs;
+    const bIsReapplyDue = b.apiData?.callbackType === 'reapply' && b.dueDate && b.dueDate.getTime() <= nowMs;
+    if (aIsReapplyDue && !bIsReapplyDue) return -1;
+    if (!aIsReapplyDue && bIsReapplyDue) return 1;
+    if (aIsReapplyDue && bIsReapplyDue) {
+      return a.dueDate!.getTime() - b.dueDate!.getTime();
+    }
+
+    // TIER 4: Manual callbacks (set by recruiter in MamaMia panel) - when due within 5 minutes
     // Recruiter-set commitments trump Interest and other sources when their time is near
-    const fiveMinFromNow = now.getTime() + 5 * 60 * 1000;
+    const fiveMinFromNow = nowMs + 5 * 60 * 1000;
     const aIsManualDueSoon = a.apiData?.callbackSource === 'Manual' && a.dueDate && a.dueDate.getTime() <= fiveMinFromNow;
     const bIsManualDueSoon = b.apiData?.callbackSource === 'Manual' && b.dueDate && b.dueDate.getTime() <= fiveMinFromNow;
     if (aIsManualDueSoon && !bIsManualDueSoon) return -1;
     if (!aIsManualDueSoon && bIsManualDueSoon) return 1;
-    // If both are Manual-due-soon, sort by dueDate ascending (earliest callback first)
     if (aIsManualDueSoon && bIsManualDueSoon) {
       return a.dueDate!.getTime() - b.dueDate!.getTime();
     }
 
-    // Interest (Like) tasks come FOURTH - but only when their callback is due (not in the future)
-    const aIsInterestDue = a.apiData?.callbackSource === 'Interest' && a.dueDate && a.dueDate.getTime() <= now.getTime();
-    const bIsInterestDue = b.apiData?.callbackSource === 'Interest' && b.dueDate && b.dueDate.getTime() <= now.getTime();
+    // TIER 5: pre_arrival / post_arrival / pre_departure - when callback is due
+    // Time-sensitive process-related callbacks (3 days before arrival / 1 day after / 7 days before departure)
+    const PROCESS_TYPES = new Set(['pre_arrival', 'post_arrival', 'pre_departure']);
+    const aIsProcessDue = a.apiData?.callbackType
+      && PROCESS_TYPES.has(a.apiData.callbackType)
+      && a.dueDate && a.dueDate.getTime() <= nowMs;
+    const bIsProcessDue = b.apiData?.callbackType
+      && PROCESS_TYPES.has(b.apiData.callbackType)
+      && b.dueDate && b.dueDate.getTime() <= nowMs;
+    if (aIsProcessDue && !bIsProcessDue) return -1;
+    if (!aIsProcessDue && bIsProcessDue) return 1;
+    if (aIsProcessDue && bIsProcessDue) {
+      return a.dueDate!.getTime() - b.dueDate!.getTime();
+    }
+
+    // TIER 6: Interest (Like) tasks - but only when their callback is due (not in the future)
+    const aIsInterestDue = a.apiData?.callbackSource === 'Interest' && a.dueDate && a.dueDate.getTime() <= nowMs;
+    const bIsInterestDue = b.apiData?.callbackSource === 'Interest' && b.dueDate && b.dueDate.getTime() <= nowMs;
     if (aIsInterestDue && !bIsInterestDue) return -1;
     if (!aIsInterestDue && bIsInterestDue) return 1;
 

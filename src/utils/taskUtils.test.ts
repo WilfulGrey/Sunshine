@@ -315,6 +315,141 @@ describe('taskUtils', () => {
     });
   });
 
+  describe('sortTasksByPriority - new callback types (reapply, pre_*)', () => {
+    const makeTask = (id: string, overrides: Partial<Task> = {}): Task => ({
+      id,
+      title: `Task ${id}`,
+      description: '',
+      status: 'pending',
+      priority: 'medium',
+      type: 'manual',
+      createdAt: new Date(),
+      history: [],
+      ...overrides,
+    });
+
+    it('reapply (due now) beats Manual (due in 3 min)', () => {
+      const now = Date.now();
+      const reapply = makeTask('reapply', {
+        dueDate: new Date(now - 1000),
+        apiData: { caregiverId: 1, callbackType: 'reapply' },
+      });
+      const manual = makeTask('manual', {
+        dueDate: new Date(now + 3 * 60 * 1000),
+        apiData: { caregiverId: 2, callbackSource: 'Manual' },
+      });
+      const result = sortTasksByPriority([manual, reapply]);
+      expect(result[0].id).toBe('reapply');
+      expect(result[1].id).toBe('manual');
+    });
+
+    it('reapply (due now) beats pre_arrival (due now)', () => {
+      const now = Date.now();
+      const reapply = makeTask('reapply', {
+        dueDate: new Date(now - 1000),
+        apiData: { caregiverId: 1, callbackType: 'reapply' },
+      });
+      const preArrival = makeTask('pre_arrival', {
+        dueDate: new Date(now - 1000),
+        apiData: { caregiverId: 2, callbackType: 'pre_arrival' },
+      });
+      const result = sortTasksByPriority([preArrival, reapply]);
+      expect(result[0].id).toBe('reapply');
+      expect(result[1].id).toBe('pre_arrival');
+    });
+
+    it('Manual (due in 3 min) beats pre_arrival (due now)', () => {
+      const now = Date.now();
+      const manual = makeTask('manual', {
+        dueDate: new Date(now + 3 * 60 * 1000),
+        apiData: { caregiverId: 1, callbackSource: 'Manual' },
+      });
+      const preArrival = makeTask('pre_arrival', {
+        dueDate: new Date(now - 1000),
+        apiData: { caregiverId: 2, callbackType: 'pre_arrival' },
+      });
+      const result = sortTasksByPriority([preArrival, manual]);
+      expect(result[0].id).toBe('manual');
+      expect(result[1].id).toBe('pre_arrival');
+    });
+
+    it('pre_departure (due now) beats Interest (due now)', () => {
+      const now = Date.now();
+      const preDeparture = makeTask('pre_departure', {
+        dueDate: new Date(now - 1000),
+        apiData: { caregiverId: 1, callbackType: 'pre_departure' },
+      });
+      const interest = makeTask('interest', {
+        dueDate: new Date(now - 1000),
+        apiData: { caregiverId: 2, callbackSource: 'Interest', callbackType: 'interest' },
+      });
+      const result = sortTasksByPriority([interest, preDeparture]);
+      expect(result[0].id).toBe('pre_departure');
+      expect(result[1].id).toBe('interest');
+    });
+
+    it('post_arrival (future) does NOT get tier 5 priority', () => {
+      const now = Date.now();
+      const futurePostArrival = makeTask('postarr', {
+        dueDate: new Date(now + 2 * 60 * 60 * 1000), // due in 2h
+        apiData: { caregiverId: 1, callbackType: 'post_arrival' },
+      });
+      const interestDueNow = makeTask('interest', {
+        dueDate: new Date(now - 1000),
+        apiData: { caregiverId: 2, callbackSource: 'Interest', callbackType: 'interest' },
+      });
+      const result = sortTasksByPriority([futurePostArrival, interestDueNow]);
+      // interest (due) wins over post_arrival (not yet due)
+      expect(result[0].id).toBe('interest');
+    });
+
+    it('three reapply tasks sort by dueDate ascending', () => {
+      const now = Date.now();
+      const r1 = makeTask('r1', {
+        dueDate: new Date(now - 10 * 1000),
+        apiData: { caregiverId: 1, callbackType: 'reapply' },
+      });
+      const r2 = makeTask('r2', {
+        dueDate: new Date(now - 60 * 1000),
+        apiData: { caregiverId: 2, callbackType: 'reapply' },
+      });
+      const r3 = makeTask('r3', {
+        dueDate: new Date(now - 30 * 1000),
+        apiData: { caregiverId: 3, callbackType: 'reapply' },
+      });
+      const result = sortTasksByPriority([r1, r2, r3]);
+      expect(result.map(t => t.id)).toEqual(['r2', 'r3', 'r1']);
+    });
+
+    it('boosted still beats reapply', () => {
+      const now = Date.now();
+      const boosted = makeTask('boosted', {
+        priority: 'boosted',
+        dueDate: new Date(now + 60 * 60 * 1000),
+      });
+      const reapply = makeTask('reapply', {
+        dueDate: new Date(now - 1000),
+        apiData: { caregiverId: 1, callbackType: 'reapply' },
+      });
+      const result = sortTasksByPriority([reapply, boosted]);
+      expect(result[0].id).toBe('boosted');
+    });
+
+    it('in_progress still beats reapply', () => {
+      const now = Date.now();
+      const inProgress = makeTask('inprog', {
+        status: 'in_progress',
+        dueDate: new Date(now + 60 * 60 * 1000),
+      });
+      const reapply = makeTask('reapply', {
+        dueDate: new Date(now - 1000),
+        apiData: { caregiverId: 1, callbackType: 'reapply' },
+      });
+      const result = sortTasksByPriority([reapply, inProgress]);
+      expect(result[0].id).toBe('inprog');
+    });
+  });
+
   describe('getProcessedTasks', () => {
     const MY_ID = 42;
 

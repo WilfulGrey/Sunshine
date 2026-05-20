@@ -379,7 +379,7 @@ describe('useTaskActions', () => {
         await result.current.handlePhoneCall(mockTasks[0], false);
       });
 
-      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String), undefined);
+      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String), undefined, undefined, expect.any(Number));
       expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'not_successfully', expect.stringContaining('Nie odebrano'));
 
       expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
@@ -457,7 +457,7 @@ describe('useTaskActions', () => {
       });
 
       expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'note_only', 'Test User zakończył task - Zrobiono wklejkę: Wklejka do rodziny Müller');
-      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, null);
+      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, null, undefined, undefined, expect.any(Number));
       expect(sunshineService.unassignEmployee).not.toHaveBeenCalled();
       expect(mockOnRemoveLocalTask).toHaveBeenCalledWith('1');
     });
@@ -571,7 +571,7 @@ describe('useTaskActions', () => {
         );
       });
 
-      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String));
+      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String), undefined, undefined, expect.any(Number));
       expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'note_only', 'Need more time');
       expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
         status: 'pending',
@@ -599,7 +599,7 @@ describe('useTaskActions', () => {
         );
       });
 
-      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String));
+      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String), undefined, undefined, expect.any(Number));
       expect(sunshineService.recordContact).not.toHaveBeenCalled();
     });
 
@@ -676,7 +676,7 @@ describe('useTaskActions', () => {
 
       // Task already assigned to me - should NOT call assignEmployee, only setCallback
       expect(sunshineService.assignEmployee).not.toHaveBeenCalledWith(123, 28442);
-      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String));
+      expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String), undefined, undefined, expect.any(Number));
     });
 
     it('should boost urgent task and assign user', async () => {

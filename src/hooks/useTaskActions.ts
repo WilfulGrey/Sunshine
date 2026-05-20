@@ -213,7 +213,13 @@ export const useTaskActions = (
 
         // Record contact FIRST (critical for CG profile), then set callback
         await sunshineService.recordContact(caregiverId, 'not_successfully', message);
-        await sunshineService.setCallback(caregiverId, formatDateForApi(newCallTime), task.apiData?.callbackSource);
+        await sunshineService.setCallback(
+          caregiverId,
+          formatDateForApi(newCallTime),
+          task.apiData?.callbackSource,
+          task.apiData?.callbackId,
+          currentEmployeeId,
+        );
 
         const updatedTask = addHistoryEntry(task, 'not_reachable', t.callUnsuccessfulDetails);
         const updates: Partial<Task> = {
@@ -275,7 +281,13 @@ export const useTaskActions = (
       // handleUnassignTask explicitly unassign.
       await Promise.all([
         sunshineService.recordContact(caregiverId, 'note_only', message),
-        sunshineService.setCallback(caregiverId, null),
+        sunshineService.setCallback(
+          caregiverId,
+          null,
+          task.apiData?.callbackSource,
+          task.apiData?.callbackId,
+          currentEmployeeId,
+        ),
       ]);
 
       onRemoveLocalTask(task.id);
@@ -293,7 +305,13 @@ export const useTaskActions = (
       const message = `${currentUserName} - porzucono kontakt, powód: ${abandonReason}`;
       await sunshineService.recordContact(caregiverId, 'not_successfully', message);
       await sunshineService.unassignEmployee(caregiverId);
-      await sunshineService.setCallback(caregiverId, null);
+      await sunshineService.setCallback(
+        caregiverId,
+        null,
+        task.apiData?.callbackSource,
+        task.apiData?.callbackId,
+        currentEmployeeId,
+      );
 
       onRemoveLocalTask(task.id);
     } catch (error) {
@@ -391,7 +409,14 @@ export const useTaskActions = (
     const warsawDateTime = warsawToUTC(year, month, day, hours, minutes);
 
     try {
-      await sunshineService.setCallback(caregiverId, formatDateForApi(warsawDateTime));
+      // Bonus fix: preserve callback_source on postpone (was being lost)
+      await sunshineService.setCallback(
+        caregiverId,
+        formatDateForApi(warsawDateTime),
+        task.apiData?.callbackSource,
+        task.apiData?.callbackId,
+        currentEmployeeId,
+      );
 
       if (postponeNotes) {
         await sunshineService.recordContact(caregiverId, 'note_only', postponeNotes);
@@ -451,7 +476,14 @@ export const useTaskActions = (
       if (!alreadyMine) {
         await sunshineService.assignEmployee(caregiverId, currentEmployeeId);
       }
-      await sunshineService.setCallback(caregiverId, formatDateForApi(now));
+      // Bonus fix: preserve callback_source on boost (was being lost)
+      await sunshineService.setCallback(
+        caregiverId,
+        formatDateForApi(now),
+        task.apiData?.callbackSource,
+        task.apiData?.callbackId,
+        currentEmployeeId,
+      );
 
       const updatedTask = addHistoryEntry(task, 'started', `Zadanie przeniesione na pierwszą pozycję`);
       onUpdateLocalTask(taskId, {
@@ -503,7 +535,14 @@ export const useTaskActions = (
       if (!alreadyMine) {
         await sunshineService.assignEmployee(caregiverId, currentEmployeeId);
       }
-      await sunshineService.setCallback(caregiverId, formatDateForApi(now));
+      // Bonus fix: preserve callback_source on boost (was being lost)
+      await sunshineService.setCallback(
+        caregiverId,
+        formatDateForApi(now),
+        task.apiData?.callbackSource,
+        task.apiData?.callbackId,
+        currentEmployeeId,
+      );
 
       const updatedTask = addHistoryEntry(task, 'started', `Zadanie przeniesione na pierwszą pozycję`);
       onUpdateLocalTask(taskId, {
