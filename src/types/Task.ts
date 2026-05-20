@@ -23,6 +23,9 @@ export interface Task {
   history?: TaskHistoryEntry[];
   apiData?: {
     caregiverId: number;
+    callbackId?: number;
+    callbackType?: import('../services/sunshineService').CallbackType;
+    dlv?: number;
     employeeId?: number | null;
     phoneNumber?: string;
     callbackSource?: string;

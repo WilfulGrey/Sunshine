@@ -1,6 +1,25 @@
 export type ContactType = 'successfully' | 'not_successfully' | 'note_only';
 
+export type CallbackType =
+  | 'interest'
+  | 'pre_arrival'
+  | 'post_arrival'
+  | 'pre_departure'
+  | 'reapply'
+  | 'general';
+
+export type ConfirmArrivalStatus = '0' | '1';
+export type ConfirmDepartureStatus = '0' | '1' | '2';
+
+export type RejectionReason =
+  | 'tooLittleMoney'
+  | 'poorPatientCondition'
+  | 'caregiverTakingBreak'
+  | 'badChemistry'
+  | 'caregiverHasOtherPlacement';
+
 export interface SunshineCallback {
+  callback_id?: number;
   caregiver_id: number;
   callback_at: string;
   employee_id: number | null;
@@ -11,6 +30,8 @@ export interface SunshineCallback {
   callback_source: string;
   recruiter_name: string | null;
   status: string;
+  type?: CallbackType;
+  dlv?: number;
 }
 
 export interface SunshineCallbacksResponse {
@@ -124,12 +145,55 @@ class SunshineService {
     });
   }
 
-  async setCallback(caregiverId: number, callbackAt: string | null, callbackSource?: string): Promise<unknown> {
-    const body: Record<string, string | null> = { callback_at: callbackAt };
-    if (callbackSource) {
-      body.callback_source = callbackSource;
-    }
+  async setCallback(
+    caregiverId: number,
+    callbackAt: string | null,
+    callbackSource?: string,
+    callbackId?: number | null,
+    resolvedBy?: number | null,
+  ): Promise<unknown> {
+    const body: Record<string, string | number | null> = { callback_at: callbackAt };
+    if (callbackSource) body.callback_source = callbackSource;
+    if (callbackId) body.callback_id = callbackId;
+    if (resolvedBy) body.resolved_by = resolvedBy;
     return this.request(`/api/sunshine/caregivers/${caregiverId}/callback`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async confirmPreArrival(callbackId: number): Promise<unknown> {
+    return this.request(`/api/sunshine/callbacks/${callbackId}/pre-arrival`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async confirmPostArrival(
+    callbackId: number,
+    confirmArrivalStatus: ConfirmArrivalStatus,
+    dlv?: number,
+  ): Promise<unknown> {
+    const body: Record<string, string | number> = { confirm_arrival_status: confirmArrivalStatus };
+    if (dlv !== undefined) body.dlv = dlv;
+    return this.request(`/api/sunshine/callbacks/${callbackId}/post-arrival`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async confirmPreDeparture(
+    callbackId: number,
+    confirmDepartureStatus: ConfirmDepartureStatus,
+    comebackDate?: string,
+    comebackDepartureDate?: string,
+    rejectionReasons?: RejectionReason[],
+  ): Promise<unknown> {
+    const body: Record<string, string | string[]> = { confirm_departure_status: confirmDepartureStatus };
+    if (comebackDate) body.comeback_date = comebackDate;
+    if (comebackDepartureDate) body.comeback_departure_date = comebackDepartureDate;
+    if (rejectionReasons && rejectionReasons.length > 0) body.rejection_reasons = rejectionReasons;
+    return this.request(`/api/sunshine/callbacks/${callbackId}/pre-departure`, {
       method: 'POST',
       body: JSON.stringify(body),
     });

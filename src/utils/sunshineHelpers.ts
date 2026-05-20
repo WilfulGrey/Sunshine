@@ -1,6 +1,24 @@
 import { Task, TaskPriority } from '../types/Task';
-import { SunshineCallback } from '../services/sunshineService';
+import { SunshineCallback, CallbackType } from '../services/sunshineService';
 import { generateId } from './helpers';
+
+const titleForType = (fullName: string, type: CallbackType): string => {
+  switch (type) {
+    case 'interest':
+      return `${fullName} - Aplikacja na zlecenie`;
+    case 'reapply':
+      return `${fullName} - Reapply`;
+    case 'pre_arrival':
+      return `${fullName} - Potwierdzenie przyjazdu`;
+    case 'post_arrival':
+      return `${fullName} - Potwierdzenie pobytu`;
+    case 'pre_departure':
+      return `${fullName} - Potwierdzenie wyjazdu`;
+    case 'general':
+    default:
+      return `${fullName} - Kontakt telefoniczny`;
+  }
+};
 
 const BLOCKED_STATUSES = ['Black List', 'Niewłaściwy'];
 
@@ -47,12 +65,18 @@ export const convertCallbackToTask = (callback: SunshineCallback): Task => {
     }
   }
 
-  const title = callback.callback_source === 'Interest'
-    ? `${fullName} - Aplikacja na zlecenie`
-    : `${fullName} - Kontakt telefoniczny`;
+  // Defensive default: missing type means legacy/general callback
+  const callbackType: CallbackType = callback.type ?? 'general';
+  const title = titleForType(fullName, callbackType);
+
+  // Task ID prefers callback_id (unique per callback) over caregiver_id
+  // (a single caregiver may have multiple callbacks in different process stages)
+  const taskId = callback.callback_id != null
+    ? String(callback.callback_id)
+    : String(callback.caregiver_id);
 
   return {
-    id: String(callback.caregiver_id),
+    id: taskId,
     title,
     description: callback.latest_contact_content || undefined,
     type: 'manual',
@@ -65,6 +89,9 @@ export const convertCallbackToTask = (callback: SunshineCallback): Task => {
     history: [],
     apiData: {
       caregiverId: callback.caregiver_id,
+      callbackId: callback.callback_id,
+      callbackType,
+      dlv: callback.dlv,
       employeeId: callback.employee_id,
       phoneNumber: callback.phone_number,
       callbackSource: callback.callback_source,
