@@ -468,20 +468,13 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   }, [nextTask?.apiData?.caregiverId, logsPage, logsLoadingMore]);
 
   // Open the appropriate dialog when the recruiter confirms the caregiver answered.
-  // Auto-assigns the task if not already assigned. Routes by callbackType:
+  // PRECONDITION: task must already be assigned to the current recruiter (handled by UI guard).
+  // The assignment lock ensures only one recruiter works with a caregiver at a time.
+  // Routes by callbackType:
   //   pre_arrival/post_arrival/pre_departure → dedicated dialog
   //   everything else → standard CompletionDialog
-  const handleReachable = async (task: Task) => {
+  const handleReachable = (task: Task) => {
     if (reloadIfUpdateAvailable()) return;
-
-    // Auto-take if not already assigned to me
-    if (!taskActions.isTaskAssignedToMe(task)) {
-      if (!taskActions.canTakeTask(task)) {
-        alert(`To zadanie jest już przypisane do: ${task.apiData?.recruiterName || 'inny użytkownik'}`);
-        return;
-      }
-      await taskActions.handleTakeTask(task.id);
-    }
 
     onUpdateLocalTask(task.id, { status: 'in_progress' });
 
@@ -500,17 +493,9 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   };
 
   // Record the unsuccessful call attempt + reschedule callback (+1h). No dialog.
+  // PRECONDITION: task must already be assigned to the current recruiter.
   const handleUnreachable = async (task: Task) => {
     if (reloadIfUpdateAvailable()) return;
-
-    // Auto-take if not already assigned to me
-    if (!taskActions.isTaskAssignedToMe(task)) {
-      if (!taskActions.canTakeTask(task)) {
-        alert(`To zadanie jest już przypisane do: ${task.apiData?.recruiterName || 'inny użytkownik'}`);
-        return;
-      }
-      await taskActions.handleTakeTask(task.id);
-    }
 
     const caregiverId = task.apiData?.caregiverId;
     await taskActions.handlePhoneCall(task, false);
@@ -1117,12 +1102,49 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                   <XCircle className="h-5 w-5" />
                   <span>{t.assignmentFailed}</span>
                 </div>
+              ) : !taskActions.isTaskAssignedToMe(nextTask) ? (
+                // Task is free (not assigned to anyone) — recruiter must claim it first
+                // so that only one recruiter works with a caregiver at a time.
+                <>
+                  <button
+                    disabled={taskActions.takingTask === nextTask.id}
+                    onClick={() => {
+                      if (reloadIfUpdateAvailable()) return;
+                      taskActions.handleTakeTask(nextTask.id);
+                      setRefreshDisabledAfterBoost(false);
+                    }}
+                    className="px-6 py-3 text-white rounded-lg font-medium transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: '#AB4D95' }}
+                    onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#9A3D85')}
+                    onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#AB4D95')}
+                    data-testid="action-take"
+                  >
+                    <User className="h-5 w-5" />
+                    <span>{taskActions.takingTask === nextTask.id ? t.taking : t.take}</span>
+                  </button>
+
+                  <button
+                    onClick={() => handlePostponeTask(nextTask.id)}
+                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center space-x-2"
+                  >
+                    <Pause className="h-5 w-5" />
+                    <span>{t.postpone}</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleTransferTask(nextTask.id)}
+                    className="px-6 py-3 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition-colors flex items-center space-x-2"
+                  >
+                    <ArrowRight className="h-5 w-5" />
+                    <span>{t.transfer}</span>
+                  </button>
+                </>
               ) : (
+                // Task is assigned to me — show full action set including Odebrała/Nie odebrała
                 <>
                   <button
                     onClick={() => handleReachable(nextTask)}
-                    disabled={taskActions.takingTask === nextTask.id}
-                    className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                    className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
                     data-testid="action-reachable"
                   >
                     <CheckCircle2 className="h-5 w-5" />
@@ -1131,8 +1153,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
                   <button
                     onClick={() => handleUnreachable(nextTask)}
-                    disabled={taskActions.takingTask === nextTask.id}
-                    className="px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                    className="px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center space-x-2"
                     data-testid="action-unreachable"
                   >
                     <XCircle className="h-5 w-5" />
