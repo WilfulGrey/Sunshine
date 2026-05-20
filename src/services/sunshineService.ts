@@ -153,7 +153,10 @@ class SunshineService {
     resolvedBy?: number | null,
   ): Promise<unknown> {
     const body: Record<string, string | number | null> = { callback_at: callbackAt };
-    if (callbackSource) body.callback_source = callbackSource;
+    // callback_source only matters when SETTING a new callback (not when resolving).
+    // Sending it on resolve (callback_at=null) confused the backend for Reapply Agent
+    // callbacks, causing them to survive abandon/close.
+    if (callbackSource && callbackAt !== null) body.callback_source = callbackSource;
     if (callbackId) body.callback_id = callbackId;
     if (resolvedBy) body.resolved_by = resolvedBy;
     return this.request(`/api/sunshine/caregivers/${caregiverId}/callback`, {

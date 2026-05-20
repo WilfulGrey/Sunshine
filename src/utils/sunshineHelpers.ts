@@ -65,8 +65,14 @@ export const convertCallbackToTask = (callback: SunshineCallback): Task => {
     }
   }
 
-  // Defensive default: missing type means legacy/general callback
-  const callbackType: CallbackType = callback.type ?? 'general';
+  // Defensive default: missing type means legacy/general callback.
+  // Special case: backend currently returns type='general' for Reapply Agent
+  // callbacks (the 'reapply' type value isn't set yet). Treat them as reapply
+  // based on callback_source so sorting/title/badge work properly today.
+  let callbackType: CallbackType = callback.type ?? 'general';
+  if (callback.callback_source === 'Reapply Agent' && callbackType === 'general') {
+    callbackType = 'reapply';
+  }
   const title = titleForType(fullName, callbackType);
 
   // Task ID prefers callback_id (unique per callback) over caregiver_id
