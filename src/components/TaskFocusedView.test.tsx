@@ -57,6 +57,7 @@ vi.mock('../hooks/useUsers', () => ({
 vi.mock('../utils/helpers', () => ({
   formatDate: vi.fn((date) => date.toLocaleDateString()),
   isOverdue: vi.fn((date) => date < new Date()),
+  formatPhoneNumber: vi.fn((phone) => phone || ''),
   addHistoryEntry: vi.fn((task, type, description) => ({
     ...task,
     history: [...(task.history || []), { type, description, timestamp: new Date() }]
@@ -279,7 +280,9 @@ describe('TaskFocusedView', () => {
     it('should display task action buttons', () => {
       render(<TaskFocusedView {...defaultProps} />);
 
-      expect(screen.getByText('Start Now')).toBeInTheDocument();
+      // After phone-flow refactor: Biorę/Rozpocznij replaced by Odebrała/Nie odebrała
+      expect(screen.getByText('Yes, reachable')).toBeInTheDocument();
+      expect(screen.getByText('Not reachable')).toBeInTheDocument();
       expect(screen.getByText('Postpone')).toBeInTheDocument();
     });
   });
@@ -307,11 +310,12 @@ describe('TaskFocusedView', () => {
   });
 
   describe('Task actions', () => {
-    it('should handle start task action', () => {
+    it('should handle reachable button click', () => {
       render(<TaskFocusedView {...defaultProps} />);
 
-      const startButton = screen.getByText('Start Now');
-      fireEvent.click(startButton);
+      // After phone-flow refactor: click "Odebrała" opens completion / specialized dialog
+      const reachableBtn = screen.getByText('Yes, reachable');
+      fireEvent.click(reachableBtn);
     });
 
     it('should handle postpone task action', () => {

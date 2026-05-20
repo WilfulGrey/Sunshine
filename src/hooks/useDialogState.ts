@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Task } from '../types/Task';
 
 export const useDialogState = () => {
-  const [showPhoneDialog, setShowPhoneDialog] = useState<Task | null>(null);
   const [showCompletionDialog, setShowCompletionDialog] = useState<Task | null>(null);
   const [completionSummary, setCompletionSummary] = useState('');
   const [showAbandonDialog, setShowAbandonDialog] = useState<Task | null>(null);
@@ -15,14 +14,10 @@ export const useDialogState = () => {
   const [postponeDate, setPostponeDate] = useState('');
   const [postponeTime, setPostponeTime] = useState('');
   const [postponeNotes, setPostponeNotes] = useState('');
-
-  const openPhoneDialog = (task: Task) => {
-    setShowPhoneDialog(task);
-  };
-
-  const closePhoneDialog = () => {
-    setShowPhoneDialog(null);
-  };
+  // New dialogs for callback type-specific flows
+  const [showPreArrivalDialog, setShowPreArrivalDialog] = useState<Task | null>(null);
+  const [showPostArrivalDialog, setShowPostArrivalDialog] = useState<Task | null>(null);
+  const [showPreDepartureDialog, setShowPreDepartureDialog] = useState<Task | null>(null);
 
   const openCompletionDialog = (task: Task) => {
     setShowCompletionDialog(task);
@@ -67,7 +62,7 @@ export const useDialogState = () => {
   const openPostponeDialog = (taskId: string) => {
     setShowPostponeDialog(taskId);
     setPostponeNotes('');
-    
+
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(9, 0, 0, 0);
@@ -82,23 +77,28 @@ export const useDialogState = () => {
     setPostponeNotes('');
   };
 
+  const openPreArrivalDialog = (task: Task) => setShowPreArrivalDialog(task);
+  const closePreArrivalDialog = () => setShowPreArrivalDialog(null);
+
+  const openPostArrivalDialog = (task: Task) => setShowPostArrivalDialog(task);
+  const closePostArrivalDialog = () => setShowPostArrivalDialog(null);
+
+  const openPreDepartureDialog = (task: Task) => setShowPreDepartureDialog(task);
+  const closePreDepartureDialog = () => setShowPreDepartureDialog(null);
+
   return {
-    showPhoneDialog,
-    openPhoneDialog,
-    closePhoneDialog,
-    
     showCompletionDialog,
     completionSummary,
     setCompletionSummary,
     openCompletionDialog,
     closeCompletionDialog,
-    
+
     showAbandonDialog,
     abandonReason,
     setAbandonReason,
     openAbandonDialog,
     closeAbandonDialog,
-    
+
     showCloseTaskDialog,
     openCloseTaskDialog,
     closeCloseTaskDialog,
@@ -110,7 +110,7 @@ export const useDialogState = () => {
     setTransferReason,
     openTransferDialog,
     closeTransferDialog,
-    
+
     showPostponeDialog,
     postponeDate,
     setPostponeDate,
@@ -119,6 +119,18 @@ export const useDialogState = () => {
     postponeNotes,
     setPostponeNotes,
     openPostponeDialog,
-    closePostponeDialog
+    closePostponeDialog,
+
+    showPreArrivalDialog,
+    openPreArrivalDialog,
+    closePreArrivalDialog,
+
+    showPostArrivalDialog,
+    openPostArrivalDialog,
+    closePostArrivalDialog,
+
+    showPreDepartureDialog,
+    openPreDepartureDialog,
+    closePreDepartureDialog,
   };
 };

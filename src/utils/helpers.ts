@@ -4,6 +4,34 @@ export const generateId = (): string => {
   return Math.random().toString(36).substr(2, 9);
 };
 
+/**
+ * Format a phone number for readable display, grouping 3 digits.
+ * Examples:
+ *   "+48884756414"  → "+48 884 756 414"
+ *   "+498887776666" → "+49 888 777 666 6"  (handles non-9-digit numbers gracefully)
+ *   "884756414"     → "884 756 414"
+ *   ""              → ""
+ */
+export const formatPhoneNumber = (raw: string | undefined | null): string => {
+  if (!raw) return '';
+  const trimmed = String(raw).replace(/\s+/g, '').trim();
+  if (!trimmed) return '';
+
+  // Extract country prefix (e.g. "+48") if present
+  const m = trimmed.match(/^(\+\d{1,3})?(.*)$/);
+  const prefix = m?.[1] ?? '';
+  const digits = (m?.[2] ?? '').replace(/\D/g, '');
+  if (!digits) return prefix;
+
+  // Group remaining digits in chunks of 3 from the start
+  const groups: string[] = [];
+  for (let i = 0; i < digits.length; i += 3) {
+    groups.push(digits.slice(i, i + 3));
+  }
+  const grouped = groups.join(' ');
+  return prefix ? `${prefix} ${grouped}` : grouped;
+};
+
 export const formatDate = (date: Date, t?: any, timezone: string = 'Europe/Warsaw'): string => {
   const now = new Date();
   

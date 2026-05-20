@@ -18,11 +18,13 @@ describe('useDialogState', () => {
   it('should initialize with all dialogs closed', () => {
     const { result } = renderHook(() => useDialogState());
 
-    expect(result.current.showPhoneDialog).toBeNull();
     expect(result.current.showCompletionDialog).toBeNull();
     expect(result.current.showAbandonDialog).toBeNull();
     expect(result.current.showTransferDialog).toBeNull();
     expect(result.current.showPostponeDialog).toBeNull();
+    expect(result.current.showPreArrivalDialog).toBeNull();
+    expect(result.current.showPostArrivalDialog).toBeNull();
+    expect(result.current.showPreDepartureDialog).toBeNull();
   });
 
   it('should initialize with empty form values', () => {
@@ -37,29 +39,29 @@ describe('useDialogState', () => {
     expect(result.current.postponeNotes).toBe('');
   });
 
-  describe('Phone Dialog', () => {
-    it('should open phone dialog with task', () => {
+  describe('Pre-arrival / Post-arrival / Pre-departure Dialogs', () => {
+    it('should open and close pre-arrival dialog', () => {
       const { result } = renderHook(() => useDialogState());
-
-      act(() => {
-        result.current.openPhoneDialog(mockTask);
-      });
-
-      expect(result.current.showPhoneDialog).toBe(mockTask);
+      act(() => result.current.openPreArrivalDialog(mockTask));
+      expect(result.current.showPreArrivalDialog).toBe(mockTask);
+      act(() => result.current.closePreArrivalDialog());
+      expect(result.current.showPreArrivalDialog).toBeNull();
     });
 
-    it('should close phone dialog', () => {
+    it('should open and close post-arrival dialog', () => {
       const { result } = renderHook(() => useDialogState());
+      act(() => result.current.openPostArrivalDialog(mockTask));
+      expect(result.current.showPostArrivalDialog).toBe(mockTask);
+      act(() => result.current.closePostArrivalDialog());
+      expect(result.current.showPostArrivalDialog).toBeNull();
+    });
 
-      act(() => {
-        result.current.openPhoneDialog(mockTask);
-      });
-
-      act(() => {
-        result.current.closePhoneDialog();
-      });
-
-      expect(result.current.showPhoneDialog).toBeNull();
+    it('should open and close pre-departure dialog', () => {
+      const { result } = renderHook(() => useDialogState());
+      act(() => result.current.openPreDepartureDialog(mockTask));
+      expect(result.current.showPreDepartureDialog).toBe(mockTask);
+      act(() => result.current.closePreDepartureDialog());
+      expect(result.current.showPreDepartureDialog).toBeNull();
     });
   });
 

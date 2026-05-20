@@ -5,7 +5,7 @@ import { useUsers } from '../hooks/useUsers';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Task } from '../types/Task';
-import { formatDate, isOverdue } from '../utils/helpers';
+import { formatDate, isOverdue, formatPhoneNumber } from '../utils/helpers';
 import { useTaskActions } from '../hooks/useTaskActions';
 import { sunshineService } from '../services/sunshineService';
 import { useDialogState } from '../hooks/useDialogState';
@@ -20,7 +20,10 @@ import { TransferDialog } from './dialogs/TransferDialog';
 import { PostponeDialog } from './dialogs/PostponeDialog';
 import { LogsDialog } from './dialogs/LogsDialog';
 import { CloseTaskDialog } from './dialogs/CloseTaskDialog';
-import { SunshineLog, CaregiverCheckResponse } from '../services/sunshineService';
+import { PreArrivalDialog } from './dialogs/PreArrivalDialog';
+import { PostArrivalDialog } from './dialogs/PostArrivalDialog';
+import { PreDepartureDialog } from './dialogs/PreDepartureDialog';
+import { SunshineLog, CaregiverCheckResponse, ConfirmArrivalStatus, ConfirmDepartureStatus, RejectionReason } from '../services/sunshineService';
 
 interface TaskFocusedViewProps {
   tasks: Task[];
@@ -55,12 +58,14 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   // 🛡️ Track if any dialog is open - blocks refresh to prevent state overwrite
   const isAnyDialogOpenRef = useRef(false);
   isAnyDialogOpenRef.current = !!(
-    dialogState.showPhoneDialog ||
     dialogState.showCompletionDialog ||
     dialogState.showCloseTaskDialog ||
     dialogState.showAbandonDialog ||
     dialogState.showTransferDialog ||
     dialogState.showPostponeDialog ||
+    dialogState.showPreArrivalDialog ||
+    dialogState.showPostArrivalDialog ||
+    dialogState.showPreDepartureDialog ||
     showLogsDialog
   );
 
@@ -462,29 +467,150 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     }
   }, [nextTask?.apiData?.caregiverId, logsPage, logsLoadingMore]);
 
-  const handleStartTask = (task: Task) => {
+  // Open the appropriate dialog when the recruiter confirms the caregiver answered.
+  // Auto-assigns the task if not already assigned. Routes by callbackType:
+  //   pre_arrival/post_arrival/pre_departure → dedicated dialog
+  //   everything else → standard CompletionDialog
+  const handleReachable = async (task: Task) => {
+    if (reloadIfUpdateAvailable()) return;
+
+    // Auto-take if not already assigned to me
+    if (!taskActions.isTaskAssignedToMe(task)) {
+      if (!taskActions.canTakeTask(task)) {
+        alert(`To zadanie jest już przypisane do: ${task.apiData?.recruiterName || 'inny użytkownik'}`);
+        return;
+      }
+      await taskActions.handleTakeTask(task.id);
+    }
+
     onUpdateLocalTask(task.id, { status: 'in_progress' });
-    dialogState.openPhoneDialog(task);
+
+    const type = task.apiData?.callbackType;
+    if (type === 'pre_arrival') {
+      dialogState.openPreArrivalDialog(task);
+    } else if (type === 'post_arrival') {
+      dialogState.openPostArrivalDialog(task);
+    } else if (type === 'pre_departure') {
+      dialogState.openPreDepartureDialog(task);
+    } else {
+      dialogState.openCompletionDialog(task);
+    }
+
+    setRefreshDisabledAfterBoost(false);
   };
 
-  const handlePhoneCall = (reachable: boolean) => {
-    if (!dialogState.showPhoneDialog) return;
+  // Record the unsuccessful call attempt + reschedule callback (+1h). No dialog.
+  const handleUnreachable = async (task: Task) => {
+    if (reloadIfUpdateAvailable()) return;
 
-    const task = dialogState.showPhoneDialog;
-    const caregiverId = task.apiData?.caregiverId;
-    taskActions.handlePhoneCall(task, reachable).then(() => {
-      if (!reachable) {
-        if (reloadIfUpdateAvailable()) return;
-        if (caregiverId) refreshLatestNote(caregiverId);
+    // Auto-take if not already assigned to me
+    if (!taskActions.isTaskAssignedToMe(task)) {
+      if (!taskActions.canTakeTask(task)) {
+        alert(`To zadanie jest już przypisane do: ${task.apiData?.recruiterName || 'inny użytkownik'}`);
+        return;
       }
-    });
-    dialogState.closePhoneDialog();
+      await taskActions.handleTakeTask(task.id);
+    }
 
-    if (reachable) {
-      setRefreshDisabledAfterBoost(false);
-    } else {
-      setRefreshDisabledAfterBoost(false);
-      console.log('✅ REFRESH ENABLED po phone call (nie odebrał)');
+    const caregiverId = task.apiData?.caregiverId;
+    await taskActions.handlePhoneCall(task, false);
+    if (caregiverId) refreshLatestNote(caregiverId);
+
+    setRefreshDisabledAfterBoost(false);
+    console.log('✅ REFRESH ENABLED po phone call (nie odebrała)');
+  };
+
+  // Pre/Post/PreDeparture confirmations
+  const handlePreArrivalConfirm = async () => {
+    const task = dialogState.showPreArrivalDialog;
+    if (!task) return;
+    const callbackId = task.apiData?.callbackId;
+    const caregiverId = task.apiData?.caregiverId;
+    if (!callbackId || !caregiverId) {
+      alert('Brak callback_id lub caregiver_id - nie można potwierdzić.');
+      return;
+    }
+    if (reloadIfUpdateAvailable()) return;
+
+    try {
+      await sunshineService.confirmPreArrival(callbackId);
+      // Log the action so it shows up in caregiver history
+      await sunshineService.recordContact(
+        caregiverId,
+        'note_only',
+        `${taskActions.currentUserName}: Potwierdzono przyjazd`,
+      );
+      onRemoveLocalTask(task.id);
+    } catch (err) {
+      console.error('Pre-arrival confirm failed:', err);
+      alert(`Błąd: ${err instanceof Error ? err.message : 'Nieznany błąd'}`);
+    } finally {
+      dialogState.closePreArrivalDialog();
+    }
+  };
+
+  const handlePostArrivalConfirm = async (status: ConfirmArrivalStatus, dlv?: number) => {
+    const task = dialogState.showPostArrivalDialog;
+    if (!task) return;
+    const callbackId = task.apiData?.callbackId;
+    const caregiverId = task.apiData?.caregiverId;
+    if (!callbackId || !caregiverId) {
+      alert('Brak callback_id lub caregiver_id - nie można potwierdzić.');
+      return;
+    }
+    if (reloadIfUpdateAvailable()) return;
+
+    try {
+      await sunshineService.confirmPostArrival(callbackId, status, dlv);
+      const statusLabel = status === '1' ? 'Wszystko OK' : 'Problemy z pobytem';
+      const dlvLabel = dlv != null ? `, DLV: ${dlv}€` : '';
+      await sunshineService.recordContact(
+        caregiverId,
+        'note_only',
+        `${taskActions.currentUserName}: Potwierdzono pobyt - status: ${statusLabel}${dlvLabel}`,
+      );
+      onRemoveLocalTask(task.id);
+    } catch (err) {
+      console.error('Post-arrival confirm failed:', err);
+      alert(`Błąd: ${err instanceof Error ? err.message : 'Nieznany błąd'}`);
+    } finally {
+      dialogState.closePostArrivalDialog();
+    }
+  };
+
+  const handlePreDepartureConfirm = async (
+    status: ConfirmDepartureStatus,
+    comebackDate?: string,
+    comebackDepartureDate?: string,
+    rejectionReasons?: RejectionReason[],
+  ) => {
+    const task = dialogState.showPreDepartureDialog;
+    if (!task) return;
+    const callbackId = task.apiData?.callbackId;
+    const caregiverId = task.apiData?.caregiverId;
+    if (!callbackId || !caregiverId) {
+      alert('Brak callback_id lub caregiver_id - nie można potwierdzić.');
+      return;
+    }
+    if (reloadIfUpdateAvailable()) return;
+
+    try {
+      await sunshineService.confirmPreDeparture(callbackId, status, comebackDate, comebackDepartureDate, rejectionReasons);
+      let message = `${taskActions.currentUserName}: Potwierdzono wyjazd`;
+      if (status === '1' && comebackDate && comebackDepartureDate) {
+        message += ` - wraca ${comebackDate}, jedzie na kolejne ${comebackDepartureDate}`;
+      } else if (status === '2') {
+        message += ' - wróci później';
+      } else if (status === '0' && rejectionReasons && rejectionReasons.length > 0) {
+        message += ` - rezygnacja, powody: ${rejectionReasons.join(', ')}`;
+      }
+      await sunshineService.recordContact(caregiverId, 'note_only', message);
+      onRemoveLocalTask(task.id);
+    } catch (err) {
+      console.error('Pre-departure confirm failed:', err);
+      alert(`Błąd: ${err instanceof Error ? err.message : 'Nieznany błąd'}`);
+    } finally {
+      dialogState.closePreDepartureDialog();
     }
   };
 
@@ -552,10 +678,9 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   };
 
   const handleCompletionBack = () => {
-    if (!dialogState.showCompletionDialog) return;
-    const task = dialogState.showCompletionDialog;
+    // After phone-dialog removal, "Wróć" simply closes the completion dialog.
+    // The recruiter sees the task again and can click Odebrała/Nie odebrała.
     dialogState.closeCompletionDialog();
-    dialogState.openPhoneDialog(task);
   };
 
   const handleAbandonConfirm = () => {
@@ -717,7 +842,29 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
           <div className="flex-1">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">{nextTask.title}</h3>
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                  <h3 className="text-2xl font-bold text-gray-900">{nextTask.title}</h3>
+                  {nextTask.apiData?.callbackType === 'reapply' && (
+                    <span
+                      className="px-2.5 py-1 rounded-md text-xs font-bold text-white bg-gradient-to-r from-purple-500 to-fuchsia-500 shadow-sm"
+                      data-testid="reapply-badge"
+                    >
+                      REAPPLY
+                    </span>
+                  )}
+                </div>
+
+                {/* Phone number — large, easy to read, click-to-call */}
+                {nextTask.apiData?.phoneNumber && (
+                  <a
+                    href={`tel:${nextTask.apiData.phoneNumber.replace(/\s+/g, '')}`}
+                    className="inline-flex items-center space-x-2 mb-3 text-xl font-semibold text-gray-800 hover:text-blue-700 transition-colors"
+                    data-testid="phone-link"
+                  >
+                    <Phone className="h-5 w-5" />
+                    <span>{formatPhoneNumber(nextTask.apiData.phoneNumber)}</span>
+                  </a>
+                )}
 
                 {/* Profile / Chat / Logs links */}
                 {nextTask.apiData?.caregiverId && (
@@ -954,95 +1101,52 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
               </div>
             )}
 
-            <div className="flex space-x-3">
-              {nextTask.status === 'pending' && (
+            <div className="flex flex-wrap gap-3">
+              {taskActions.isTaskAssignedToSomeoneElse(nextTask) ? (
+                <div className="px-6 py-3 bg-gray-100 text-gray-600 rounded-lg font-medium flex items-center space-x-2">
+                  <User className="h-5 w-5" />
+                  <span>{t.assignedTo.replace('{name}', nextTask.assignedTo || nextTask.apiData?.recruiterName || '')}</span>
+                </div>
+              ) : taskActions.isTaskVerifying(nextTask) ? (
+                <div className="px-6 py-3 bg-yellow-100 text-yellow-800 rounded-lg font-medium flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-600"></div>
+                  <span>{t.verifyingAssignment}</span>
+                </div>
+              ) : taskActions.isTaskFailed(nextTask) ? (
+                <div className="px-6 py-3 bg-red-100 text-red-800 rounded-lg font-medium flex items-center space-x-2">
+                  <XCircle className="h-5 w-5" />
+                  <span>{t.assignmentFailed}</span>
+                </div>
+              ) : (
                 <>
-                  {taskActions.canTakeTask(nextTask) ? (
-                    <button
-                      disabled={taskActions.takingTask === nextTask.id}
-                      onClick={() => {
-                        // Reload if a new version is available BEFORE taking a new task.
-                        // This is the "between tasks" boundary — recruiters should never
-                        // start a new task on stale code.
-                        if (reloadIfUpdateAvailable()) return;
-                        taskActions.handleTakeTask(nextTask.id);
-                        setRefreshDisabledAfterBoost(false);
-                        console.log('✅ REFRESH ENABLED - user wziął zadanie, koniec disable po boost');
-                      }}
-                      className="px-6 py-3 text-white rounded-lg font-medium transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ backgroundColor: '#AB4D95' }}
-                      onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#9A3D85')}
-                      onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#AB4D95')}
-                    >
-                      <User className="h-5 w-5" />
-                      <span>{taskActions.takingTask === nextTask.id ? t.taking : t.take}</span>
-                    </button>
-                  ) : taskActions.isTaskVerifying(nextTask) ? (
-                    <div className="px-6 py-3 bg-yellow-100 text-yellow-800 rounded-lg font-medium flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-600"></div>
-                      <span>{t.verifyingAssignment}</span>
-                    </div>
-                  ) : taskActions.isTaskFailed(nextTask) ? (
-                    <div className="px-6 py-3 bg-red-100 text-red-800 rounded-lg font-medium flex items-center space-x-2">
-                      <XCircle className="h-5 w-5" />
-                      <span>{t.assignmentFailed}</span>
-                    </div>
-                  ) : taskActions.isTaskAssignedToSomeoneElse(nextTask) ? (
-                    <div className="px-6 py-3 bg-gray-100 text-gray-600 rounded-lg font-medium flex items-center space-x-2">
-                      <User className="h-5 w-5" />
-                      <span>{t.assignedTo.replace('{name}', nextTask.assignedTo || nextTask.apiData?.recruiterName || '')}</span>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => handleStartTask(nextTask)}
-                        className="px-6 py-3 text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
-                        style={{ backgroundColor: '#AB4D95' }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#9A3D85'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#AB4D95'}
-                      >
-                        <Phone className="h-5 w-5" />
-                        <span>{t.startNow}</span>
-                      </button>
-                      
-                      <button
-                        onClick={() => handlePostponeTask(nextTask.id)}
-                        className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center space-x-2"
-                      >
-                        <Pause className="h-5 w-5" />
-                        <span>{t.postpone}</span>
-                      </button>
-                      
-                      <button
-                        onClick={() => handleTransferTask(nextTask.id)}
-                        className="px-6 py-3 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition-colors flex items-center space-x-2"
-                      >
-                        <ArrowRight className="h-5 w-5" />
-                        <span>{t.transfer}</span>
-                      </button>
-                      
-                      <button
-                        onClick={() => handleAbandonTask(nextTask.id)}
-                        className="px-6 py-3 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition-colors flex items-center space-x-2"
-                      >
-                        <Skull className="h-5 w-5" />
-                        <span>{t.abandon}</span>
-                      </button>
-                    </>
-                  )}
-                </>
-              )}
-              
-              {nextTask.status === 'in_progress' && (
-                <div className="flex space-x-3">
+                  <button
+                    onClick={() => handleReachable(nextTask)}
+                    disabled={taskActions.takingTask === nextTask.id}
+                    className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                    data-testid="action-reachable"
+                  >
+                    <CheckCircle2 className="h-5 w-5" />
+                    <span>{t.yesReachable}</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleUnreachable(nextTask)}
+                    disabled={taskActions.takingTask === nextTask.id}
+                    className="px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                    data-testid="action-unreachable"
+                  >
+                    <XCircle className="h-5 w-5" />
+                    <span>{t.notReachable}</span>
+                  </button>
+
                   <button
                     onClick={() => handleCompleteTask(nextTask.id)}
-                    className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
+                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center space-x-2"
                   >
                     <CheckCircle2 className="h-5 w-5" />
                     <span>{t.complete}</span>
                   </button>
-                  
+
                   <button
                     onClick={() => handlePostponeTask(nextTask.id)}
                     className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center space-x-2"
@@ -1050,7 +1154,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                     <Pause className="h-5 w-5" />
                     <span>{t.postpone}</span>
                   </button>
-                  
+
                   <button
                     onClick={() => handleTransferTask(nextTask.id)}
                     className="px-6 py-3 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition-colors flex items-center space-x-2"
@@ -1058,7 +1162,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                     <ArrowRight className="h-5 w-5" />
                     <span>{t.transfer}</span>
                   </button>
-                  
+
                   <button
                     onClick={() => handleAbandonTask(nextTask.id)}
                     className="px-6 py-3 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition-colors flex items-center space-x-2"
@@ -1066,7 +1170,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                     <Skull className="h-5 w-5" />
                     <span>{t.abandon}</span>
                   </button>
-                </div>
+                </>
               )}
             </div>
           </div>
@@ -1157,66 +1261,31 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
         </div>
       )}
 
-      {/* Phone Call Dialog */}
-      {dialogState.showPhoneDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">📞</span>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.startCall}</h3>
-              <p className="text-gray-600 mb-4">{dialogState.showPhoneDialog.title}</p>
-              
-              {/* Phone Number Display */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <p className="text-sm text-gray-600 mb-2">{t.phoneNumber}</p>
-                <a 
-                  href={`tel:${taskActions.extractPhoneNumber(dialogState.showPhoneDialog).replace(/\s/g, '')}`}
-                  className="text-2xl font-bold text-blue-600 hover:text-blue-800 transition-colors block"
-                >
-                  {taskActions.extractPhoneNumber(dialogState.showPhoneDialog)}
-                </a>
-                <p className="text-xs text-gray-500 mt-2">{t.clickToCall}</p>
-              </div>
-            </div>
+      {/* Pre-arrival Dialog (for callbacks with type=pre_arrival) */}
+      {dialogState.showPreArrivalDialog && (
+        <PreArrivalDialog
+          task={dialogState.showPreArrivalDialog}
+          onConfirm={handlePreArrivalConfirm}
+          onBack={dialogState.closePreArrivalDialog}
+        />
+      )}
 
-            <div className="space-y-3">
-              <p className="text-center text-gray-700 font-medium">{t.wasPersonReachable}</p>
-              
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => handlePhoneCall(true)}
-                  className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
-                >
-                  <CheckCircle2 className="h-5 w-5" />
-                  <span>{t.yesReachable}</span>
-                </button>
-                
-                <button
-                  onClick={() => handlePhoneCall(false)}
-                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center space-x-2"
-                >
-                  <XCircle className="h-5 w-5" />
-                  <span>{t.notReachable}</span>
-                </button>
-              </div>
-              
-              <button
-                onClick={() => {
-                  const task = dialogState.showPhoneDialog;
-                  if (task) {
-                    onUpdateLocalTask(task.id, { status: 'pending' });
-                  }
-                  dialogState.closePhoneDialog();
-                }}
-                className="w-full px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                {t.cancel}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Post-arrival Dialog (for callbacks with type=post_arrival) */}
+      {dialogState.showPostArrivalDialog && (
+        <PostArrivalDialog
+          task={dialogState.showPostArrivalDialog}
+          onConfirm={handlePostArrivalConfirm}
+          onBack={dialogState.closePostArrivalDialog}
+        />
+      )}
+
+      {/* Pre-departure Dialog (for callbacks with type=pre_departure) */}
+      {dialogState.showPreDepartureDialog && (
+        <PreDepartureDialog
+          task={dialogState.showPreDepartureDialog}
+          onConfirm={handlePreDepartureConfirm}
+          onBack={dialogState.closePreDepartureDialog}
+        />
       )}
 
       {/* Abandon Contact Dialog */}
