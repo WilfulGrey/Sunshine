@@ -5,31 +5,35 @@ export const generateId = (): string => {
 };
 
 /**
- * Format a phone number for readable display, grouping 3 digits.
+ * Format a phone number for readable display.
+ * Treats the LAST 9 digits as the local Polish number (XXX XXX XXX)
+ * and the remaining leading digits as the country prefix.
  * Examples:
- *   "+48884756414"  → "+48 884 756 414"
- *   "+498887776666" → "+49 888 777 666 6"  (handles non-9-digit numbers gracefully)
- *   "884756414"     → "884 756 414"
- *   ""              → ""
+ *   "+48884756414"      → "+48 884 756 414"
+ *   "+48 884 756 414"   → "+48 884 756 414"
+ *   "48884756414"       → "+48 884 756 414"  (auto-add + on prefix)
+ *   "884756414"         → "884 756 414"      (no prefix)
+ *   ""                  → ""
  */
 export const formatPhoneNumber = (raw: string | undefined | null): string => {
   if (!raw) return '';
-  const trimmed = String(raw).replace(/\s+/g, '').trim();
-  if (!trimmed) return '';
+  const allDigits = String(raw).replace(/\D/g, '');
+  if (!allDigits) return '';
 
-  // Extract country prefix (e.g. "+48") if present
-  const m = trimmed.match(/^(\+\d{1,3})?(.*)$/);
-  const prefix = m?.[1] ?? '';
-  const digits = (m?.[2] ?? '').replace(/\D/g, '');
-  if (!digits) return prefix;
-
-  // Group remaining digits in chunks of 3 from the start
-  const groups: string[] = [];
-  for (let i = 0; i < digits.length; i += 3) {
-    groups.push(digits.slice(i, i + 3));
+  const LOCAL_LEN = 9;
+  if (allDigits.length >= LOCAL_LEN) {
+    const local = allDigits.slice(-LOCAL_LEN);
+    const prefixDigits = allDigits.slice(0, -LOCAL_LEN);
+    const localGroups = `${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6, 9)}`;
+    return prefixDigits ? `+${prefixDigits} ${localGroups}` : localGroups;
   }
-  const grouped = groups.join(' ');
-  return prefix ? `${prefix} ${grouped}` : grouped;
+
+  // Fewer than 9 digits — group what we have, 3 at a time
+  const groups: string[] = [];
+  for (let i = 0; i < allDigits.length; i += 3) {
+    groups.push(allDigits.slice(i, i + 3));
+  }
+  return groups.join(' ');
 };
 
 export const formatDate = (date: Date, t?: any, timezone: string = 'Europe/Warsaw'): string => {

@@ -1103,42 +1103,24 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                   <span>{t.assignmentFailed}</span>
                 </div>
               ) : !taskActions.isTaskAssignedToMe(nextTask) ? (
-                // Task is free (not assigned to anyone) — recruiter must claim it first
-                // so that only one recruiter works with a caregiver at a time.
-                <>
-                  <button
-                    disabled={taskActions.takingTask === nextTask.id}
-                    onClick={() => {
-                      if (reloadIfUpdateAvailable()) return;
-                      taskActions.handleTakeTask(nextTask.id);
-                      setRefreshDisabledAfterBoost(false);
-                    }}
-                    className="px-6 py-3 text-white rounded-lg font-medium transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: '#AB4D95' }}
-                    onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#9A3D85')}
-                    onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#AB4D95')}
-                    data-testid="action-take"
-                  >
-                    <User className="h-5 w-5" />
-                    <span>{taskActions.takingTask === nextTask.id ? t.taking : t.take}</span>
-                  </button>
-
-                  <button
-                    onClick={() => handlePostponeTask(nextTask.id)}
-                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center space-x-2"
-                  >
-                    <Pause className="h-5 w-5" />
-                    <span>{t.postpone}</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleTransferTask(nextTask.id)}
-                    className="px-6 py-3 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition-colors flex items-center space-x-2"
-                  >
-                    <ArrowRight className="h-5 w-5" />
-                    <span>{t.transfer}</span>
-                  </button>
-                </>
+                // Task is free (not assigned to anyone) — only "Biorę" makes sense.
+                // You can't postpone or transfer a caregiver you haven't claimed.
+                <button
+                  disabled={taskActions.takingTask === nextTask.id}
+                  onClick={() => {
+                    if (reloadIfUpdateAvailable()) return;
+                    taskActions.handleTakeTask(nextTask.id);
+                    setRefreshDisabledAfterBoost(false);
+                  }}
+                  className="px-6 py-3 text-white rounded-lg font-medium transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: '#AB4D95' }}
+                  onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#9A3D85')}
+                  onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#AB4D95')}
+                  data-testid="action-take"
+                >
+                  <User className="h-5 w-5" />
+                  <span>{taskActions.takingTask === nextTask.id ? t.taking : t.take}</span>
+                </button>
               ) : (
                 // Task is assigned to me — show full action set including Odebrała/Nie odebrała
                 <>
