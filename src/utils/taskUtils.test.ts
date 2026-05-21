@@ -328,7 +328,8 @@ describe('taskUtils', () => {
       ...overrides,
     });
 
-    it('reapply (due now) beats Manual (due in 3 min)', () => {
+    // TODO: re-enable when reapply TIER 3 priority is restored (after fixing takenTasks lifecycle bug)
+    it.skip('reapply (due now) beats Manual (due in 3 min)', () => {
       const now = Date.now();
       const reapply = makeTask('reapply', {
         dueDate: new Date(now - 1000),
@@ -343,7 +344,8 @@ describe('taskUtils', () => {
       expect(result[1].id).toBe('manual');
     });
 
-    it('reapply (due now) beats pre_arrival (due now)', () => {
+    // TODO: re-enable when reapply TIER 3 priority is restored (after fixing takenTasks lifecycle bug)
+    it.skip('reapply (due now) beats pre_arrival (due now)', () => {
       const now = Date.now();
       const reapply = makeTask('reapply', {
         dueDate: new Date(now - 1000),

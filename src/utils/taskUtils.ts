@@ -61,15 +61,21 @@ export const sortTasksByPriority = (tasks: Task[]) => {
     const now = new Date();
     const nowMs = now.getTime();
 
-    // TIER 3: Reapply callbacks come FIRST among due callbacks
-    // (highest priority — these are automated reapply workflow tasks)
-    const aIsReapplyDue = a.apiData?.callbackType === 'reapply' && a.dueDate && a.dueDate.getTime() <= nowMs;
-    const bIsReapplyDue = b.apiData?.callbackType === 'reapply' && b.dueDate && b.dueDate.getTime() <= nowMs;
-    if (aIsReapplyDue && !bIsReapplyDue) return -1;
-    if (!aIsReapplyDue && bIsReapplyDue) return 1;
-    if (aIsReapplyDue && bIsReapplyDue) {
-      return a.dueDate!.getTime() - b.dueDate!.getTime();
-    }
+    // TIER 3: Reapply priority — TEMPORARILY DISABLED.
+    // Reapply callbacks are leaking through the visibility gate to recruiters
+    // they aren't assigned to (root cause: takenTasks stale-state bug in
+    // useTaskActions.ts:373 + useCallbacks.ts silentRefresh not clearing it).
+    // Until that's fixed properly, treat reapply like a general callback in
+    // sorting so leaked tasks don't appear at the TOP of the wrong recruiter's
+    // list. Title and badge stay (just sort order is neutral).
+    // TODO: re-enable once takenTasks lifecycle is fixed.
+    // const aIsReapplyDue = a.apiData?.callbackType === 'reapply' && a.dueDate && a.dueDate.getTime() <= nowMs;
+    // const bIsReapplyDue = b.apiData?.callbackType === 'reapply' && b.dueDate && b.dueDate.getTime() <= nowMs;
+    // if (aIsReapplyDue && !bIsReapplyDue) return -1;
+    // if (!aIsReapplyDue && bIsReapplyDue) return 1;
+    // if (aIsReapplyDue && bIsReapplyDue) {
+    //   return a.dueDate!.getTime() - b.dueDate!.getTime();
+    // }
 
     // TIER 4: Manual callbacks (set by recruiter in MamaMia panel) - when due within 5 minutes
     // Recruiter-set commitments trump Interest and other sources when their time is near
