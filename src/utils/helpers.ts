@@ -6,20 +6,62 @@ export const generateId = (): string => {
 
 /**
  * Format a phone number for readable display.
- * Treats the LAST 9 digits as the local Polish number (XXX XXX XXX)
- * and the remaining leading digits as the country prefix.
- * Examples:
- *   "+48884756414"      → "+48 884 756 414"
- *   "+48 884 756 414"   → "+48 884 756 414"
- *   "48884756414"       → "+48 884 756 414"  (auto-add + on prefix)
- *   "884756414"         → "884 756 414"      (no prefix)
- *   ""                  → ""
+ *
+ * - With "+" prefix: extract country code (known: +48, +49, +44, +33, +1; or
+ *   first 1-3 digits as fallback), then group the local part 3+3+3+rest.
+ *   Examples:
+ *     "+48884756414"     → "+48 884 756 414"    (PL, 9 local digits)
+ *     "+491234567890"    → "+49 123 456 789 0"  (DE, 10 local digits)
+ *     "+4912345678901"   → "+49 123 456 789 01" (DE, 11 local digits)
+ *
+ * - Without "+" prefix: treat last 9 digits as local Polish number,
+ *   remaining leading digits as country prefix (auto-add "+").
+ *   Examples:
+ *     "48884756414"      → "+48 884 756 414"
+ *     "884756414"        → "884 756 414"
+ *
+ * - Empty input → "".
  */
 export const formatPhoneNumber = (raw: string | undefined | null): string => {
   if (!raw) return '';
-  const allDigits = String(raw).replace(/\D/g, '');
-  if (!allDigits) return '';
+  const trimmed = String(raw).replace(/\s+/g, '').trim();
+  if (!trimmed) return '';
 
+  const groupFromStart = (digits: string): string => {
+    const groups: string[] = [];
+    for (let i = 0; i < digits.length; i += 3) {
+      groups.push(digits.slice(i, i + 3));
+    }
+    return groups.join(' ');
+  };
+
+  // Path A: explicit "+" country prefix
+  if (trimmed.startsWith('+')) {
+    const KNOWN_PREFIXES = ['+48', '+49', '+44', '+33', '+1'];
+    let prefix = '';
+    let rest = trimmed;
+    for (const p of KNOWN_PREFIXES) {
+      if (trimmed.startsWith(p)) {
+        prefix = p;
+        rest = trimmed.slice(p.length);
+        break;
+      }
+    }
+    if (!prefix) {
+      // Fallback for unknown countries: take first 1-3 digits after "+"
+      const m = trimmed.match(/^(\+\d{1,3})(.*)$/);
+      if (m) {
+        prefix = m[1];
+        rest = m[2];
+      }
+    }
+    const digits = rest.replace(/\D/g, '');
+    return digits ? `${prefix} ${groupFromStart(digits)}` : prefix;
+  }
+
+  // Path B: no "+" prefix — use Polish convention (last 9 digits = local)
+  const allDigits = trimmed.replace(/\D/g, '');
+  if (!allDigits) return '';
   const LOCAL_LEN = 9;
   if (allDigits.length >= LOCAL_LEN) {
     const local = allDigits.slice(-LOCAL_LEN);
@@ -27,13 +69,7 @@ export const formatPhoneNumber = (raw: string | undefined | null): string => {
     const localGroups = `${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6, 9)}`;
     return prefixDigits ? `+${prefixDigits} ${localGroups}` : localGroups;
   }
-
-  // Fewer than 9 digits — group what we have, 3 at a time
-  const groups: string[] = [];
-  for (let i = 0; i < allDigits.length; i += 3) {
-    groups.push(allDigits.slice(i, i + 3));
-  }
-  return groups.join(' ');
+  return groupFromStart(allDigits);
 };
 
 export const formatDate = (date: Date, t?: any, timezone: string = 'Europe/Warsaw'): string => {
