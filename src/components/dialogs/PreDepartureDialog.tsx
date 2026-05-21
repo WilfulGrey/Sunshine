@@ -81,7 +81,7 @@ export const PreDepartureDialog: React.FC<PreDepartureDialogProps> = ({
             <PlaneTakeoff className="h-8 w-8 text-purple-600" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">{task.title}</h3>
-          <p className="text-sm text-gray-600">Potwierdzenie wyjazdu (7 dni przed)</p>
+          <p className="text-sm text-gray-600">Abreise bestätigen (potwierdzenie odjazdu) — 7 dni przed zjazdem</p>
         </div>
 
         <div className="mb-4 space-y-2">
@@ -191,7 +191,7 @@ export const PreDepartureDialog: React.FC<PreDepartureDialogProps> = ({
             data-testid="pre-departure-confirm"
             className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <span>Potwierdź wyjazd</span>}
+            {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <span>Abreise bestätigen</span>}
           </button>
         </div>
       </div>

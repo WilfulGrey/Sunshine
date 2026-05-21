@@ -529,7 +529,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       await sunshineService.recordContact(
         caregiverId,
         'note_only',
-        `${taskActions.currentUserName}: Potwierdzono przyjazd`,
+        `${taskActions.currentUserName}: Anreise absichern (potwierdzenie wyjazdu) - potwierdzono`,
       );
       onRemoveLocalTask(task.id);
       onSilentRefresh?.();
@@ -559,7 +559,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       await sunshineService.recordContact(
         caregiverId,
         'note_only',
-        `${taskActions.currentUserName}: Potwierdzono pobyt - status: ${statusLabel}${dlvLabel}`,
+        `${taskActions.currentUserName}: Anreise bestätigen (potwierdzenie dojazdu) - status: ${statusLabel}${dlvLabel}`,
       );
       onRemoveLocalTask(task.id);
       onSilentRefresh?.();
@@ -589,7 +589,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
     try {
       await sunshineService.confirmPreDeparture(callbackId, status, comebackDate, comebackDepartureDate, rejectionReasons);
-      let message = `${taskActions.currentUserName}: Potwierdzono wyjazd`;
+      let message = `${taskActions.currentUserName}: Abreise bestätigen (potwierdzenie odjazdu)`;
       if (status === '1' && comebackDate && comebackDepartureDate) {
         message += ` - wraca ${comebackDate}, jedzie na kolejne ${comebackDepartureDate}`;
       } else if (status === '2') {

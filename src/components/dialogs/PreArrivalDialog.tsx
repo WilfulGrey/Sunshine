@@ -34,7 +34,7 @@ export const PreArrivalDialog: React.FC<PreArrivalDialogProps> = ({
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">{task.title}</h3>
           <p className="text-sm text-gray-600">
-            Potwierdź przyjazd opiekunki (3 dni przed). System powiadomi HP na podstawie danych z assignment.
+            Anreise absichern (potwierdzenie wyjazdu) — 3 dni przed wyjazdem opiekunki. System powiadomi HP na podstawie danych z assignment.
           </p>
         </div>
 
@@ -59,7 +59,7 @@ export const PreArrivalDialog: React.FC<PreArrivalDialogProps> = ({
             ) : (
               <>
                 <CheckCircle2 className="h-5 w-5" />
-                <span>Potwierdź przyjazd</span>
+                <span>Anreise absichern</span>
               </>
             )}
           </button>

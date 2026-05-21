@@ -40,7 +40,7 @@ export const PostArrivalDialog: React.FC<PostArrivalDialogProps> = ({
             <Home className="h-8 w-8 text-amber-600" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">{task.title}</h3>
-          <p className="text-sm text-gray-600">Potwierdzenie pobytu (1 dzień po przyjeździe)</p>
+          <p className="text-sm text-gray-600">Anreise bestätigen (potwierdzenie dojazdu) — 1 dzień po dojeździe</p>
         </div>
 
         <div className="mb-4 space-y-2">
@@ -100,7 +100,7 @@ export const PostArrivalDialog: React.FC<PostArrivalDialogProps> = ({
             data-testid="post-arrival-confirm"
             className="flex-1 px-4 py-3 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <span>Potwierdź pobyt</span>}
+            {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <span>Anreise bestätigen</span>}
           </button>
         </div>
       </div>

@@ -9,11 +9,14 @@ const titleForType = (fullName: string, type: CallbackType): string => {
     case 'reapply':
       return `${fullName} - Reapply`;
     case 'pre_arrival':
-      return `${fullName} - Potwierdzenie przyjazdu`;
+      // 3 days before departure (to family) — secure the arrival
+      return `${fullName} - Anreise absichern (potwierdzenie wyjazdu)`;
     case 'post_arrival':
-      return `${fullName} - Potwierdzenie pobytu`;
+      // 1 day after arrival — confirm she got there OK
+      return `${fullName} - Anreise bestätigen (potwierdzenie dojazdu)`;
     case 'pre_departure':
-      return `${fullName} - Potwierdzenie wyjazdu`;
+      // 7 days before leaving the family — confirm departure
+      return `${fullName} - Abreise bestätigen (potwierdzenie odjazdu)`;
     case 'general':
     default:
       return `${fullName} - Kontakt telefoniczny`;
