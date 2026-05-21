@@ -28,18 +28,32 @@ export const isBlockedStatus = (status: string): boolean =>
 export const convertCallbackToTask = (callback: SunshineCallback): Task => {
   const fullName = `${callback.first_name} ${callback.last_name}`;
 
-  // Parse callback_at: "2026-02-20 10:00:00" (Warsaw time from API)
+  // Parse callback_at. Backend returns two formats:
+  //   Legacy: "2026-02-20 10:00:00"               (Warsaw local time, space separator)
+  //   New:    "2026-05-21T08:33:57.000000Z"       (ISO 8601 UTC)
   let dueDate: Date | undefined;
   if (callback.callback_at) {
-    // API returns Warsaw time — parse as UTC then subtract Warsaw offset to get correct UTC
-    const asUtc = new Date(callback.callback_at.replace(' ', 'T') + 'Z');
-    if (!isNaN(asUtc.getTime())) {
-      const utcStr = asUtc.toLocaleString('en-US', { timeZone: 'UTC' });
-      const warsawStr = asUtc.toLocaleString('en-US', { timeZone: 'Europe/Warsaw' });
-      const offset = new Date(warsawStr).getTime() - new Date(utcStr).getTime();
-      dueDate = new Date(asUtc.getTime() - offset);
+    const raw = callback.callback_at;
+    const isIso = raw.includes('T') && (raw.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(raw));
+    if (isIso) {
+      // ISO 8601 with explicit timezone — parse directly
+      const parsed = new Date(raw);
+      if (!isNaN(parsed.getTime())) {
+        dueDate = parsed;
+      } else {
+        console.warn(`Failed to parse ISO callback_at "${raw}" for ${fullName}`);
+      }
     } else {
-      console.warn(`Failed to parse callback_at "${callback.callback_at}" for ${fullName}`);
+      // Legacy "YYYY-MM-DD HH:mm:ss" — interpret as Warsaw time, convert to UTC
+      const asUtc = new Date(raw.replace(' ', 'T') + 'Z');
+      if (!isNaN(asUtc.getTime())) {
+        const utcStr = asUtc.toLocaleString('en-US', { timeZone: 'UTC' });
+        const warsawStr = asUtc.toLocaleString('en-US', { timeZone: 'Europe/Warsaw' });
+        const offset = new Date(warsawStr).getTime() - new Date(utcStr).getTime();
+        dueDate = new Date(asUtc.getTime() - offset);
+      } else {
+        console.warn(`Failed to parse legacy callback_at "${raw}" for ${fullName}`);
+      }
     }
   }
 
