@@ -526,6 +526,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
         `${taskActions.currentUserName}: Potwierdzono przyjazd`,
       );
       onRemoveLocalTask(task.id);
+      onSilentRefresh?.();
     } catch (err) {
       console.error('Pre-arrival confirm failed:', err);
       alert(`Błąd: ${err instanceof Error ? err.message : 'Nieznany błąd'}`);
@@ -555,6 +556,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
         `${taskActions.currentUserName}: Potwierdzono pobyt - status: ${statusLabel}${dlvLabel}`,
       );
       onRemoveLocalTask(task.id);
+      onSilentRefresh?.();
     } catch (err) {
       console.error('Post-arrival confirm failed:', err);
       alert(`Błąd: ${err instanceof Error ? err.message : 'Nieznany błąd'}`);
@@ -591,6 +593,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       }
       await sunshineService.recordContact(caregiverId, 'note_only', message);
       onRemoveLocalTask(task.id);
+      onSilentRefresh?.();
     } catch (err) {
       console.error('Pre-departure confirm failed:', err);
       alert(`Błąd: ${err instanceof Error ? err.message : 'Nieznany błąd'}`);
@@ -622,7 +625,10 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
           dialogState.postponeDate,
           dialogState.postponeTime,
           dialogState.postponeNotes
-        ).then(() => reloadIfUpdateAvailable());
+        ).then(() => {
+          if (reloadIfUpdateAvailable()) return;
+          onSilentRefresh?.();
+        });
       }
       dialogState.closePostponeDialog();
       setRefreshDisabledAfterBoost(false);
@@ -642,7 +648,10 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       dialogState.showCloseTaskDialog,
       reason,
       notes
-    ).then(() => reloadIfUpdateAvailable());
+    ).then(() => {
+      if (reloadIfUpdateAvailable()) return;
+      onSilentRefresh?.();
+    });
     dialogState.closeCloseTaskDialog();
     setRefreshDisabledAfterBoost(false);
   };
@@ -657,6 +666,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     ).then(() => {
       if (reloadIfUpdateAvailable()) return;
       if (caregiverId) refreshLatestNote(caregiverId);
+      onSilentRefresh?.();
     });
     dialogState.closeCompletionDialog();
     setRefreshDisabledAfterBoost(false);
@@ -677,7 +687,10 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     taskActions.handleAbandonTask(
       dialogState.showAbandonDialog,
       dialogState.abandonReason
-    ).then(() => reloadIfUpdateAvailable());
+    ).then(() => {
+      if (reloadIfUpdateAvailable()) return;
+      onSilentRefresh?.();
+    });
     dialogState.closeAbandonDialog();
     setRefreshDisabledAfterBoost(false);
     console.log('✅ REFRESH ENABLED po abandon - user porzucił zadanie');
@@ -700,7 +713,10 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       dialogState.showTransferDialog,
       dialogState.transferToUser,
       dialogState.transferReason
-    ).then(() => reloadIfUpdateAvailable());
+    ).then(() => {
+      if (reloadIfUpdateAvailable()) return;
+      onSilentRefresh?.();
+    });
     dialogState.closeTransferDialog();
     setRefreshDisabledAfterBoost(false);
     console.log('✅ REFRESH ENABLED po transfer - user przekazał zadanie');

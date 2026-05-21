@@ -270,7 +270,20 @@ export const useTaskActions = (
 
     try {
       const message = `${currentUserName}: ${completionSummary}`;
-      await sunshineService.recordContact(caregiverId, 'successfully', message);
+      // Resolve the callback at the same time as recording the contact, then
+      // remove from the local list so the next task surfaces immediately
+      // (without waiting for the next silent refresh).
+      await Promise.all([
+        sunshineService.recordContact(caregiverId, 'successfully', message),
+        sunshineService.setCallback(
+          caregiverId,
+          null,
+          task.apiData?.callbackSource,
+          task.apiData?.callbackId,
+          currentEmployeeId,
+        ),
+      ]);
+      onRemoveLocalTask(task.id);
     } catch (error) {
       console.error('Complete task failed:', error);
       alert(`Błąd: ${error instanceof Error ? error.message : 'Nieznany błąd'}`);
