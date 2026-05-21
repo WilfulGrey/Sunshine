@@ -400,11 +400,10 @@ export const useTaskActions = (
       await sunshineService.recordContact(caregiverId, 'note_only', message);
       await sunshineService.unassignEmployee(caregiverId);
 
-      onUpdateLocalTask(task.id, {
-        assignedTo: undefined,
-        status: 'pending',
-        apiData: { ...task.apiData!, employeeId: null },
-      });
+      // Remove from the local list immediately so the recruiter sees the
+      // next task right away. Silent refresh will bring it back if it
+      // re-appears in the API (now without an employee_id).
+      onRemoveLocalTask(task.id);
 
       setTakenTasks(prev => {
         if (!prev.has(task.id)) return prev;
@@ -430,9 +429,12 @@ export const useTaskActions = (
         timestamp: new Date().toISOString(),
       });
 
+      // Delay refresh to give the backend time to propagate the unassign.
+      // Too short (500ms) was returning the still-assigned-to-me record,
+      // bouncing the recruiter back to the Odebrała/Nie odebrała view.
       setTimeout(() => {
         onSilentRefresh?.();
-      }, 500);
+      }, 1500);
     } catch (error) {
       console.error('Unassign task failed:', error);
       alert(`Błąd: ${error instanceof Error ? error.message : 'Nieznany błąd'}`);

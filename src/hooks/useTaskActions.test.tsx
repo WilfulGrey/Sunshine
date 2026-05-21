@@ -641,10 +641,7 @@ describe('useTaskActions', () => {
       });
 
       expect(sunshineService.unassignEmployee).toHaveBeenCalledWith(123);
-      expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
-        assignedTo: undefined,
-        status: 'pending',
-      }));
+      expect(mockOnRemoveLocalTask).toHaveBeenCalledWith('1');
     });
   });
 
