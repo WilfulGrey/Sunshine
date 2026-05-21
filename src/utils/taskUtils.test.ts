@@ -117,8 +117,22 @@ describe('taskUtils', () => {
       expect(result).toHaveLength(1);
     });
 
-    it('should include taken tasks even if assigned to someone else', () => {
+    // Leak protection: API-confirmed assignment to someone else wins over takenTasks.
+    // Previously this returned the task (leak bug); now we hide it.
+    it('should HIDE tasks assigned to someone else even if id is in takenTasks (leak protection)', () => {
       const tasks = [makeTask('1', { apiData: { caregiverId: 1, employeeId: OTHER_ID } })];
+      const result = filterActiveTasks(tasks, new Set(['1']), MY_ID);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should include taken tasks when employeeId not yet set (optimistic claim before API ack)', () => {
+      const tasks = [makeTask('1', { apiData: { caregiverId: 1, employeeId: null } })];
+      const result = filterActiveTasks(tasks, new Set(['1']), MY_ID);
+      expect(result).toHaveLength(1);
+    });
+
+    it('should include taken tasks when employeeId already matches me', () => {
+      const tasks = [makeTask('1', { apiData: { caregiverId: 1, employeeId: MY_ID } })];
       const result = filterActiveTasks(tasks, new Set(['1']), MY_ID);
       expect(result).toHaveLength(1);
     });

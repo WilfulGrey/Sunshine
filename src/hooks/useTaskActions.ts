@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Task } from '../types/Task';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -46,6 +46,29 @@ export const useTaskActions = (
 
   const currentUserName = user?.user_metadata?.full_name || user?.email || 'Nieznany użytkownik';
   const currentEmployeeId = user?.email ? getEmployeeId(user.email) : null;
+
+  // Auto-cleanup stale takenTasks IDs after each tasks update (e.g. silentRefresh).
+  // Removes IDs that no longer exist OR whose task is now assigned to someone else.
+  // Without this the optimistic local marker could keep showing leaked tasks
+  // even after API confirmed they belong to another recruiter.
+  useEffect(() => {
+    setTakenTasks(prev => {
+      if (prev.size === 0) return prev;
+      const next = new Set<string>();
+      let changed = false;
+      prev.forEach(id => {
+        const task = tasks.find(t => t.id === id);
+        if (!task) { changed = true; return; }
+        const emp = task.apiData?.employeeId;
+        if (emp && currentEmployeeId && emp !== currentEmployeeId) {
+          changed = true;
+          return;
+        }
+        next.add(id);
+      });
+      return changed ? next : prev;
+    });
+  }, [tasks, currentEmployeeId]);
 
   // Real-time event sender
   const sendRealTimeEvent = (eventData: Record<string, unknown>) => {
@@ -370,7 +393,12 @@ export const useTaskActions = (
         apiData: { ...task.apiData!, employeeId: null },
       });
 
-      takenTasks.delete(task.id);
+      setTakenTasks(prev => {
+        if (!prev.has(task.id)) return prev;
+        const s = new Set(prev);
+        s.delete(task.id);
+        return s;
+      });
       setVerifyingTasks(prev => {
         const s = new Set(prev);
         s.delete(task.id);

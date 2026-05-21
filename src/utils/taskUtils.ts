@@ -33,9 +33,19 @@ export const getPriorityColor = (priority: string) => {
 export const filterActiveTasks = (tasks: Task[], takenTasks: Set<string>, currentEmployeeId: number | null) => {
   return tasks.filter(task => {
     if (task.status === 'completed' || task.status === 'cancelled') return false;
-    if (takenTasks.has(task.id)) return true;
 
     const taskEmployeeId = task.apiData?.employeeId;
+
+    // Hard rule: API-confirmed assignment to someone else wins over local takenTasks.
+    // This prevents leaks where a stale takenTasks entry would otherwise force a
+    // task to appear after it has been transferred away.
+    if (taskEmployeeId && currentEmployeeId && taskEmployeeId !== currentEmployeeId) {
+      return false;
+    }
+
+    // takenTasks: optimistic local marker for a task I just claimed (API may not
+    // reflect it yet). Only applies when the assignment check above hasn't excluded.
+    if (takenTasks.has(task.id)) return true;
 
     // Unassigned → visible to everyone
     if (!taskEmployeeId) return true;
@@ -43,7 +53,6 @@ export const filterActiveTasks = (tasks: Task[], takenTasks: Set<string>, curren
     // Assigned to me → visible
     if (currentEmployeeId && taskEmployeeId === currentEmployeeId) return true;
 
-    // Assigned to someone else → hidden
     return false;
   });
 };
