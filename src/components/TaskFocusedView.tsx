@@ -501,6 +501,12 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     await taskActions.handlePhoneCall(task, false);
     if (caregiverId) refreshLatestNote(caregiverId);
 
+    // Drop the task locally so the next one surfaces immediately. The silent
+    // refresh will re-fetch it from API with the new callback_at (+1h) so it
+    // shows up later in the queue, in its new slot.
+    onRemoveLocalTask(task.id);
+    onSilentRefresh?.();
+
     setRefreshDisabledAfterBoost(false);
     console.log('✅ REFRESH ENABLED po phone call (nie odebrała)');
   };
