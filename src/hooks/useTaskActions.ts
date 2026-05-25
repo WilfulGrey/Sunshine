@@ -461,9 +461,18 @@ export const useTaskActions = (
         currentEmployeeId,
       );
 
-      if (postponeNotes) {
-        await sunshineService.recordContact(caregiverId, 'note_only', postponeNotes);
-      }
+      // Always log postpone — without this an empty-note postpone changes the
+      // callback date silently, leaving no trail in sunshine logs (made CG 7011
+      // case impossible to diagnose for an hour).
+      const formattedDate = warsawDateTime.toLocaleString('pl-PL', {
+        timeZone: 'Europe/Warsaw',
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+      const auditMessage = postponeNotes
+        ? `${currentUserName} - przesunął callback na ${formattedDate}. ${postponeNotes}`
+        : `${currentUserName} - przesunął callback na ${formattedDate}`;
+      await sunshineService.recordContact(caregiverId, 'note_only', auditMessage);
 
       const updatedTask = addHistoryEntry(task, 'postponed', t.postponeDetails.replace('{date}', warsawDateTime.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })));
       const updates: Partial<Task> = {

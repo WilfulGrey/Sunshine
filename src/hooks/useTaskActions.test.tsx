@@ -573,7 +573,16 @@ describe('useTaskActions', () => {
       });
 
       expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String), undefined, undefined, expect.any(Number));
-      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'note_only', 'Need more time');
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(
+        123,
+        'note_only',
+        expect.stringContaining('przesunął callback na'),
+      );
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(
+        123,
+        'note_only',
+        expect.stringContaining('Need more time'),
+      );
       expect(mockOnUpdateLocalTask).toHaveBeenCalledWith('1', expect.objectContaining({
         status: 'pending',
       }));
@@ -582,7 +591,7 @@ describe('useTaskActions', () => {
       expect(updateCall.dueDate).toBeInstanceOf(Date);
     });
 
-    it('should not send note when postponeNotes is empty', async () => {
+    it('should always send audit note even when postponeNotes is empty', async () => {
       const { sunshineService } = await import('../services/sunshineService');
       vi.mocked(sunshineService.recordContact).mockClear();
 
@@ -601,7 +610,12 @@ describe('useTaskActions', () => {
       });
 
       expect(sunshineService.setCallback).toHaveBeenCalledWith(123, expect.any(String), undefined, undefined, expect.any(Number));
-      expect(sunshineService.recordContact).not.toHaveBeenCalled();
+      // Audit log MUST be left even without a user note (regression guard for CG 7011 case)
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(
+        123,
+        'note_only',
+        expect.stringContaining('przesunął callback na'),
+      );
     });
 
     it('should clear boosted priority when postponing task', async () => {
