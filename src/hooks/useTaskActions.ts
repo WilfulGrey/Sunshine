@@ -368,12 +368,15 @@ export const useTaskActions = (
     }
 
     try {
-      await sunshineService.unassignEmployee(caregiverId);
-      await sunshineService.assignEmployee(caregiverId, targetEmployee.employeeId);
-
       const transferMessage = transferReason
         ? `${currentUserName} - przekazano do ${transferToUser}, powód: ${transferReason}`
         : `${currentUserName} - przekazano do ${transferToUser}`;
+
+      // Atomic reassign — eliminates the race window where the CG was
+      // briefly unassigned and could be grabbed by another recruiter.
+      // The backend ignores `note` for the activity log, so we still
+      // recordContact() separately for the sunshine audit trail.
+      await sunshineService.reassignEmployee(caregiverId, targetEmployee.employeeId, transferMessage);
       await sunshineService.recordContact(caregiverId, 'note_only', transferMessage);
 
       onRemoveLocalTask(task.id);

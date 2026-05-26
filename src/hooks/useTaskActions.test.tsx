@@ -15,6 +15,7 @@ vi.mock('../services/sunshineService', () => ({
   sunshineService: {
     assignEmployee: vi.fn().mockResolvedValue({}),
     unassignEmployee: vi.fn().mockResolvedValue({}),
+    reassignEmployee: vi.fn().mockResolvedValue({}),
     recordContact: vi.fn().mockResolvedValue({}),
     setCallback: vi.fn().mockResolvedValue({}),
     setAvailability: vi.fn().mockResolvedValue({}),
@@ -526,12 +527,26 @@ describe('useTaskActions', () => {
         { wrapper: Wrapper }
       );
 
+      vi.mocked(sunshineService.reassignEmployee).mockClear();
+
       await act(async () => {
         await result.current.handleTransferTask(mockTasks[0], 'Another User', 'Expertise needed');
       });
 
-      expect(sunshineService.assignEmployee).toHaveBeenCalledWith(123, 980);
-      expect(sunshineService.recordContact).toHaveBeenCalledWith(123, 'note_only', expect.stringContaining('Another User'));
+      // Atomic reassign — no unassign+assign sequence anymore
+      expect(sunshineService.reassignEmployee).toHaveBeenCalledWith(
+        123,
+        980,
+        expect.stringContaining('Another User'),
+      );
+      expect(sunshineService.unassignEmployee).not.toHaveBeenCalledWith(123);
+      expect(sunshineService.assignEmployee).not.toHaveBeenCalledWith(123, 980);
+      // Audit log still goes to recordContact (backend ignores note in body)
+      expect(sunshineService.recordContact).toHaveBeenCalledWith(
+        123,
+        'note_only',
+        expect.stringContaining('Another User'),
+      );
       expect(mockOnRemoveLocalTask).toHaveBeenCalledWith('1');
     });
 

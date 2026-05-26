@@ -216,6 +216,27 @@ class SunshineService {
     });
   }
 
+  /**
+   * Atomically reassign a caregiver from current recruiter to a new one.
+   * Replaces the old unassign+assign sequence, which left a race window
+   * where the CG had no employee_id and another recruiter could grab it.
+   * Note: the `note` field is accepted by the backend but does NOT generate
+   * a Note Only log — callers should still call recordContact() for the
+   * sunshine audit trail.
+   */
+  async reassignEmployee(
+    caregiverId: number,
+    employeeId: number,
+    note?: string,
+  ): Promise<unknown> {
+    const body: Record<string, string | number> = { employee_id: employeeId };
+    if (note) body.note = note;
+    return this.request(`/api/sunshine/caregivers/${caregiverId}/reassign-employee`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
   async setAvailability(caregiverId: number, availableFrom: string, availableTo?: string): Promise<unknown> {
     const body: Record<string, string> = { available_from: availableFrom };
     if (availableTo) {
