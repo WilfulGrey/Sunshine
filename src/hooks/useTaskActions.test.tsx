@@ -243,7 +243,42 @@ describe('useTaskActions', () => {
         await result.current.handleTakeTask('2');
       });
 
+      // Within optimistic window — takenTasks marker keeps id alive
       expect(result.current.isTaskAssignedToMe(unassignedTask)).toBe(true);
+    });
+
+    it('should drop takenTasks entry after optimistic window when emp stays null (CG 34205 regression)', async () => {
+      // Magdalena scenario: takenTasks entry from 20.05, Cron unassigned 23.05,
+      // local marker must NOT keep showing Odebrała/Nie odebrała days later.
+      vi.useFakeTimers();
+      try {
+        const unassignedTask: Task = {
+          ...mockTasks[1],
+          assignedTo: undefined,
+          apiData: { caregiverId: 456 }, // employeeId stays null
+        };
+
+        const { result, rerender } = renderHook(
+          () => useTaskActions([mockTasks[0], unassignedTask], mockOnUpdateLocalTask, mockOnRemoveLocalTask),
+          { wrapper: Wrapper }
+        );
+
+        await act(async () => {
+          await result.current.handleTakeTask('2');
+        });
+        expect(result.current.isTaskAssignedToMe(unassignedTask)).toBe(true);
+
+        // Simulate hours / days passing without API ever confirming emp=mine
+        await act(async () => {
+          vi.advanceTimersByTime(60_000);
+        });
+        rerender();
+
+        // Stale entry must be dropped — UI should now show 'Biorę', not 'Odebrała'
+        expect(result.current.isTaskAssignedToMe(unassignedTask)).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 

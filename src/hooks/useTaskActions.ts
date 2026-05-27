@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Task } from '../types/Task';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -39,6 +39,9 @@ export const useTaskActions = (
   const { t } = useLanguage();
   const { user } = useAuth();
   const [takenTasks, setTakenTasks] = useState<Set<string>>(new Set());
+  // Tracks when each task was added to takenTasks — used to keep optimistic
+  // entries alive briefly after handleTakeTask while the API propagates.
+  const takenAtRef = useRef<Map<string, number>>(new Map());
   const [takingTask, setTakingTask] = useState<string | null>(null);
   const [verifyingTasks, setVerifyingTasks] = useState<Set<string>>(new Set());
   const [failedTasks, setFailedTasks] = useState<Set<string>>(new Set());
@@ -48,23 +51,44 @@ export const useTaskActions = (
   const currentEmployeeId = user?.email ? getEmployeeId(user.email) : null;
 
   // Auto-cleanup stale takenTasks IDs after each tasks update (e.g. silentRefresh).
-  // Removes IDs that no longer exist OR whose task is now assigned to someone else.
-  // Without this the optimistic local marker could keep showing leaked tasks
-  // even after API confirmed they belong to another recruiter.
+  // Drop the id when API no longer confirms it's mine — covers:
+  //   - task gone from list
+  //   - task transferred to another recruiter (emp !== mine)
+  //   - task unassigned by anyone AND stale (emp === null, age > optimistic window).
+  //     This was the CG 34205 bug: Magdalena had a takenTasks entry from 20.05,
+  //     Cron unassigned her 23.05, and our local marker kept her seeing
+  //     'Odebrała/Nie odebrała' on 27.05.
+  // Keep the id transiently when emp === null AND it was added <5s ago — that's
+  // the optimistic window right after handleTakeTask, before silentRefresh
+  // brings the new employee_id back from the API.
   useEffect(() => {
+    if (!currentEmployeeId) return;
+    const OPTIMISTIC_WINDOW_MS = 5_000;
+    const now = Date.now();
     setTakenTasks(prev => {
       if (prev.size === 0) return prev;
       const next = new Set<string>();
       let changed = false;
       prev.forEach(id => {
         const task = tasks.find(t => t.id === id);
-        if (!task) { changed = true; return; }
+        if (!task) { changed = true; takenAtRef.current.delete(id); return; }
         const emp = task.apiData?.employeeId;
-        if (emp && currentEmployeeId && emp !== currentEmployeeId) {
+        if (emp === currentEmployeeId) {
+          next.add(id);                    // API confirms it's mine
+        } else if (emp == null) {
+          // Unassigned — keep only if still within optimistic window
+          const takenAt = takenAtRef.current.get(id) ?? 0;
+          if (now - takenAt < OPTIMISTIC_WINDOW_MS) {
+            next.add(id);
+          } else {
+            changed = true;
+            takenAtRef.current.delete(id);
+          }
+        } else {
+          // emp is some other recruiter — drop
           changed = true;
-          return;
+          takenAtRef.current.delete(id);
         }
-        next.add(id);
       });
       return changed ? next : prev;
     });
@@ -158,6 +182,7 @@ export const useTaskActions = (
     setTakingTask(taskId);
     setVerifyingTasks(prev => new Set([...prev, taskId]));
     setTakenTasks(prev => new Set([...prev, taskId]));
+    takenAtRef.current.set(taskId, Date.now());
 
     try {
       await sunshineService.assignEmployee(caregiverId, currentEmployeeId);
@@ -197,6 +222,7 @@ export const useTaskActions = (
         s.delete(taskId);
         return s;
       });
+      takenAtRef.current.delete(taskId);
 
       if (error instanceof Error) {
         alert(`Nie udało się przypisać zadania: ${error.message}`);
@@ -414,6 +440,7 @@ export const useTaskActions = (
         s.delete(task.id);
         return s;
       });
+      takenAtRef.current.delete(task.id);
       setVerifyingTasks(prev => {
         const s = new Set(prev);
         s.delete(task.id);
