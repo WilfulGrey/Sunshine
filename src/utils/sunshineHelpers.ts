@@ -156,16 +156,16 @@ export const formatCallbackDate = (dateStr: string): string => {
 };
 
 /**
- * Format a Date object to the API expected format: "YYYY-MM-DD HH:mm:ss" in Warsaw time.
- * The API stores and returns times in Europe/Warsaw timezone.
+ * Format a Date object for sending to the Sunshine API.
+ *
+ * Backend stores callback_at in UTC and returns it as ISO 8601 with 'Z'
+ * (e.g. "2026-05-26T12:00:00.000000Z"). When we sent a Warsaw-local string
+ * like "2026-05-26 14:00:00" without a timezone marker, the backend treated
+ * it as UTC 14:00, which then displayed back as 16:00 Warsaw (+2h CEST).
+ *
+ * Sending ISO 8601 UTC with explicit 'Z' makes the timezone unambiguous on
+ * both sides — Date.toISOString() does exactly that.
  */
 export const formatDateForApi = (date: Date): string => {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/Warsaw',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hour12: false,
-  }).formatToParts(date);
-  const get = (type: string) => parts.find(p => p.type === type)?.value || '00';
-  return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
+  return date.toISOString();
 };
