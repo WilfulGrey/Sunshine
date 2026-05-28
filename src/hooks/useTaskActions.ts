@@ -50,6 +50,13 @@ export const useTaskActions = (
   const currentUserName = user?.user_metadata?.full_name || user?.email || 'Nieznany użytkownik';
   const currentEmployeeId = user?.email ? getEmployeeId(user.email) : null;
 
+  // TODO(refactor): the 5s timestamp window is a pragmatic hack — replace with
+  // optimistic local employeeId update in handleTakeTask (set emp=mine before
+  // the API call, revert on error) + add employeeId to the list of fields that
+  // useCallbacks.silentRefresh preserves for tasks with a pending write. Then
+  // this cleanup hook can simply check `emp === currentEmployeeId` with no
+  // timer math. Tracked separately so this hotfix is shippable on its own.
+  //
   // Auto-cleanup stale takenTasks IDs after each tasks update (e.g. silentRefresh).
   // Drop the id when API no longer confirms it's mine — covers:
   //   - task gone from list
