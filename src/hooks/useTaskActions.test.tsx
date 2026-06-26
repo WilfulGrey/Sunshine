@@ -46,6 +46,12 @@ vi.mock('../lib/supabase', () => ({
       send: vi.fn().mockResolvedValue({}),
     })),
     removeChannel: vi.fn(),
+    // chainable .from('profiles').update({...}).eq('id', x) → thenable (userActivity)
+    from: vi.fn(() => ({
+      update: vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({ error: null })),
+      })),
+    })),
   }
 }));
 

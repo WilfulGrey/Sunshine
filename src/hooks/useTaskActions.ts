@@ -7,6 +7,7 @@ import { sunshineService } from '../services/sunshineService';
 import { formatDateForApi } from '../utils/sunshineHelpers';
 import { getEmployeeId, findEmployeeByName } from '../config/employeeMapping';
 import { supabase } from '../lib/supabase';
+import { recordUserAction } from '../utils/userActivity';
 
 /**
  * Convert a Warsaw-local date/time to a UTC Date object.
@@ -163,6 +164,7 @@ export const useTaskActions = (
   };
 
   const handleTakeTask = async (taskId: string) => {
+    recordUserAction(user?.id);
     const task = tasks.find(t => t.id === taskId);
     if (!task || takingTask === taskId) return;
 
@@ -250,6 +252,7 @@ export const useTaskActions = (
   };
 
   const handlePhoneCall = async (task: Task, reachable: boolean) => {
+    recordUserAction(user?.id);
     const caregiverId = getCaregiverId(task);
     if (!caregiverId) return;
 
@@ -298,6 +301,7 @@ export const useTaskActions = (
   };
 
   const handleCompleteTask = async (task: Task, completionSummary: string) => {
+    recordUserAction(user?.id);
     const caregiverId = getCaregiverId(task);
     if (!caregiverId) return;
 
@@ -324,6 +328,7 @@ export const useTaskActions = (
   };
 
   const handleSaveNote = async (task: Task, note: string) => {
+    recordUserAction(user?.id);
     const caregiverId = getCaregiverId(task);
     if (!caregiverId) return;
 
@@ -337,6 +342,7 @@ export const useTaskActions = (
   };
 
   const handleCloseTask = async (task: Task, reason: string, notes: string) => {
+    recordUserAction(user?.id);
     const caregiverId = getCaregiverId(task);
     if (!caregiverId) return;
 
@@ -367,6 +373,7 @@ export const useTaskActions = (
   };
 
   const handleAbandonTask = async (task: Task, abandonReason: string) => {
+    recordUserAction(user?.id);
     const caregiverId = getCaregiverId(task);
     if (!caregiverId) return;
 
@@ -390,6 +397,7 @@ export const useTaskActions = (
   };
 
   const handleTransferTask = async (task: Task, transferToUser: string, transferReason: string) => {
+    recordUserAction(user?.id);
     const caregiverId = getCaregiverId(task);
     if (!caregiverId) return;
 
@@ -428,6 +436,7 @@ export const useTaskActions = (
   };
 
   const handleUnassignTask = async (task: Task) => {
+    recordUserAction(user?.id);
     const caregiverId = getCaregiverId(task);
     if (!caregiverId) return;
 
@@ -479,6 +488,7 @@ export const useTaskActions = (
   };
 
   const handlePostponeTask = async (task: Task, postponeDate: string, postponeTime: string, postponeNotes: string) => {
+    recordUserAction(user?.id);
     const caregiverId = getCaregiverId(task);
     if (!caregiverId) return;
 
@@ -530,6 +540,7 @@ export const useTaskActions = (
   };
 
   const handleBoostPriority = async (taskId: string) => {
+    recordUserAction(user?.id);
     const task = tasks.find(t => t.id === taskId);
     if (!task || boostingTask) return;
 
@@ -591,6 +602,7 @@ export const useTaskActions = (
   };
 
   const handleBoostUrgent = async (taskId: string) => {
+    recordUserAction(user?.id);
     const task = tasks.find(t => t.id === taskId);
     if (!task || boostingTask) return;
 

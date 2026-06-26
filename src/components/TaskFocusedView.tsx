@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Task } from '../types/Task';
 import { formatDate, isOverdue, formatPhoneNumber } from '../utils/helpers';
+import { recordUserAction } from '../utils/userActivity';
 import { useTaskActions } from '../hooks/useTaskActions';
 import { sunshineService } from '../services/sunshineService';
 import { useDialogState } from '../hooks/useDialogState';
@@ -80,7 +81,8 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   // Manual refresh handler (stable reference to avoid re-renders)
   const handleManualRefresh = useCallback(async () => {
     if (isManualRefreshing) return;
-    
+
+    recordUserAction(user?.id);
     setIsManualRefreshing(true);
     setRefreshError(null);
     
@@ -95,7 +97,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     } finally {
       setIsManualRefreshing(false);
     }
-  }, [isManualRefreshing, onLoadContacts, t.refreshError]);
+  }, [isManualRefreshing, onLoadContacts, t.refreshError, user?.id]);
 
   // Activity detection (stable callback)
   const handleActivityRefresh = useCallback(async () => {
@@ -513,6 +515,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
   // Pre/Post/PreDeparture confirmations
   const handlePreArrivalConfirm = async () => {
+    recordUserAction(user?.id);
     const task = dialogState.showPreArrivalDialog;
     if (!task) return;
     const callbackId = task.apiData?.callbackId;
@@ -542,6 +545,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   };
 
   const handlePostArrivalConfirm = async (status: ConfirmArrivalStatus, dlv?: number) => {
+    recordUserAction(user?.id);
     const task = dialogState.showPostArrivalDialog;
     if (!task) return;
     const callbackId = task.apiData?.callbackId;
@@ -577,6 +581,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     comebackDepartureDate?: string,
     rejectionReasons?: RejectionReason[],
   ) => {
+    recordUserAction(user?.id);
     const task = dialogState.showPreDepartureDialog;
     if (!task) return;
     const callbackId = task.apiData?.callbackId;

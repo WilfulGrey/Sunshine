@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
+import { recordUserOpened } from './utils/userActivity';
 import { AuthForm } from './components/Auth/AuthForm';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { ResetPasswordForm } from './components/Auth/ResetPasswordForm';
@@ -12,8 +13,23 @@ import { useCallbacks } from './hooks/useCallbacks';
 import { Task } from './types/Task';
 
 function App() {
-  useAuth();
+  const { user } = useAuth();
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>('signin');
+
+  // Record "user opened the app" — on mount (page load / new tab / refresh) and
+  // whenever the tab becomes visible again after being hidden.
+  useEffect(() => {
+    if (!user?.id) return;
+    recordUserOpened(user.id);
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        recordUserOpened(user.id);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [user?.id]);
   const [currentView, setCurrentView] = useState<'main' | 'settings'>('main');
   const {
     tasks,
