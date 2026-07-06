@@ -342,11 +342,10 @@ describe('taskUtils', () => {
       ...overrides,
     });
 
-    // TODO: re-enable when reapply TIER 3 priority is restored (after fixing takenTasks lifecycle bug)
-    it.skip('reapply (due now) beats Manual (due in 3 min)', () => {
+    it('overdue reapply beats Manual (due in 3 min)', () => {
       const now = Date.now();
       const reapply = makeTask('reapply', {
-        dueDate: new Date(now - 1000),
+        dueDate: new Date(now - 1000), // overdue
         apiData: { caregiverId: 1, callbackType: 'reapply' },
       });
       const manual = makeTask('manual', {
@@ -358,8 +357,7 @@ describe('taskUtils', () => {
       expect(result[1].id).toBe('manual');
     });
 
-    // TODO: re-enable when reapply TIER 3 priority is restored (after fixing takenTasks lifecycle bug)
-    it.skip('reapply (due now) beats pre_arrival (due now)', () => {
+    it('overdue reapply beats overdue pre_arrival', () => {
       const now = Date.now();
       const reapply = makeTask('reapply', {
         dueDate: new Date(now - 1000),
@@ -372,6 +370,20 @@ describe('taskUtils', () => {
       const result = sortTasksByPriority([preArrival, reapply]);
       expect(result[0].id).toBe('reapply');
       expect(result[1].id).toBe('pre_arrival');
+    });
+
+    it('NON-overdue reapply does NOT jump to tier 3 (sorts by dueDate)', () => {
+      const now = Date.now();
+      const futureReapply = makeTask('reapply', {
+        dueDate: new Date(now + 60 * 60 * 1000), // 1h in the future, not overdue
+        apiData: { caregiverId: 1, callbackType: 'reapply' },
+      });
+      const manualSoon = makeTask('manual', {
+        dueDate: new Date(now + 3 * 60 * 1000),
+        apiData: { caregiverId: 2, callbackSource: 'Manual' },
+      });
+      const result = sortTasksByPriority([futureReapply, manualSoon]);
+      expect(result[0].id).toBe('manual'); // manual-5min wins; reapply not overdue
     });
 
     it('Manual (due in 3 min) beats pre_arrival (due now)', () => {
