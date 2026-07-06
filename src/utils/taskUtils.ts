@@ -70,16 +70,6 @@ export const sortTasksByPriority = (tasks: Task[]) => {
     const now = new Date();
     const nowMs = now.getTime();
 
-    // Overdue callbacks (past their callback time) come next — you're already
-    // late calling this person, handle first. Applies to ALL types (incl. reapply).
-    // Ties between two overdue tasks fall through to the tiers below (which end
-    // up ordering by dueDate anyway). Non-overdue tasks keep the existing logic,
-    // so the manual "5 min early" behaviour is unaffected among not-yet-due tasks.
-    const aOverdue = !!a.dueDate && a.dueDate.getTime() < nowMs;
-    const bOverdue = !!b.dueDate && b.dueDate.getTime() < nowMs;
-    if (aOverdue && !bOverdue) return -1;
-    if (!aOverdue && bOverdue) return 1;
-
     // TIER 3: Reapply priority — TEMPORARILY DISABLED.
     // Reapply callbacks are leaking through the visibility gate to recruiters
     // they aren't assigned to (root cause: takenTasks stale-state bug in

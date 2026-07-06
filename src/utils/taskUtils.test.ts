@@ -238,34 +238,19 @@ describe('taskUtils', () => {
       ...overrides,
     });
 
-    it('overdue Interest beats a not-yet-due Manual (overdue-first wins)', () => {
+    it('should prioritize Manual task due in 3 min over Interest task due now', () => {
       const now = Date.now();
       const manualTask = makeTask('manual', {
-        dueDate: new Date(now + 3 * 60 * 1000), // due in 3 min, not overdue
+        dueDate: new Date(now + 3 * 60 * 1000), // due in 3 min
         apiData: { caregiverId: 1, callbackSource: 'Manual' },
       });
       const interestTask = makeTask('interest', {
-        dueDate: new Date(now - 1000), // overdue
+        dueDate: new Date(now - 1000), // due now/past
         apiData: { caregiverId: 2, callbackSource: 'Interest' },
       });
       const result = sortTasksByPriority([interestTask, manualTask]);
-      expect(result[0].id).toBe('interest');
-      expect(result[1].id).toBe('manual');
-    });
-
-    it('Manual due in 3 min beats a regular task due in 2h (both not overdue)', () => {
-      const now = Date.now();
-      const manualTask = makeTask('manual', {
-        dueDate: new Date(now + 3 * 60 * 1000), // within the 5-min window
-        apiData: { caregiverId: 1, callbackSource: 'Manual' },
-      });
-      const regular = makeTask('regular', {
-        dueDate: new Date(now + 2 * 60 * 60 * 1000), // due in 2h
-        apiData: { caregiverId: 2, callbackSource: 'System' },
-      });
-      const result = sortTasksByPriority([regular, manualTask]);
       expect(result[0].id).toBe('manual');
-      expect(result[1].id).toBe('regular');
+      expect(result[1].id).toBe('interest');
     });
 
     it('should NOT prioritize Manual task due in 2 hours over Interest task due now', () => {
@@ -357,38 +342,6 @@ describe('taskUtils', () => {
       ...overrides,
     });
 
-    it('overdue task jumps above a not-yet-due Manual (due in 3 min)', () => {
-      const now = Date.now();
-      const overdue = makeTask('overdue', {
-        dueDate: new Date(now - 60 * 60 * 1000), // 1h overdue
-        apiData: { caregiverId: 1, callbackType: 'reapply' },
-      });
-      const manualSoon = makeTask('manual', {
-        dueDate: new Date(now + 3 * 60 * 1000), // due in 3 min, not overdue
-        apiData: { caregiverId: 2, callbackSource: 'Manual' },
-      });
-      const result = sortTasksByPriority([manualSoon, overdue]);
-      expect(result[0].id).toBe('overdue');
-      expect(result[1].id).toBe('manual');
-    });
-
-    it('two overdue tasks: most overdue (earliest dueDate) first', () => {
-      const now = Date.now();
-      const a = makeTask('recent', { dueDate: new Date(now - 10 * 60 * 1000), apiData: { caregiverId: 1 } });
-      const b = makeTask('oldest', { dueDate: new Date(now - 5 * 60 * 60 * 1000), apiData: { caregiverId: 2 } });
-      const result = sortTasksByPriority([a, b]);
-      expect(result[0].id).toBe('oldest');
-      expect(result[1].id).toBe('recent');
-    });
-
-    it('boosted still beats an overdue task', () => {
-      const now = Date.now();
-      const overdue = makeTask('overdue', { dueDate: new Date(now - 60 * 60 * 1000), apiData: { caregiverId: 1 } });
-      const boosted = makeTask('boosted', { priority: 'boosted', dueDate: new Date(now + 60 * 60 * 1000) });
-      const result = sortTasksByPriority([overdue, boosted]);
-      expect(result[0].id).toBe('boosted');
-    });
-
     // TODO: re-enable when reapply TIER 3 priority is restored (after fixing takenTasks lifecycle bug)
     it.skip('reapply (due now) beats Manual (due in 3 min)', () => {
       const now = Date.now();
@@ -421,19 +374,19 @@ describe('taskUtils', () => {
       expect(result[1].id).toBe('pre_arrival');
     });
 
-    it('overdue pre_arrival beats a not-yet-due Manual (overdue-first wins)', () => {
+    it('Manual (due in 3 min) beats pre_arrival (due now)', () => {
       const now = Date.now();
       const manual = makeTask('manual', {
-        dueDate: new Date(now + 3 * 60 * 1000), // not overdue
+        dueDate: new Date(now + 3 * 60 * 1000),
         apiData: { caregiverId: 1, callbackSource: 'Manual' },
       });
       const preArrival = makeTask('pre_arrival', {
-        dueDate: new Date(now - 1000), // overdue
+        dueDate: new Date(now - 1000),
         apiData: { caregiverId: 2, callbackType: 'pre_arrival' },
       });
       const result = sortTasksByPriority([preArrival, manual]);
-      expect(result[0].id).toBe('pre_arrival');
-      expect(result[1].id).toBe('manual');
+      expect(result[0].id).toBe('manual');
+      expect(result[1].id).toBe('pre_arrival');
     });
 
     it('pre_departure (due now) beats Interest (due now)', () => {
