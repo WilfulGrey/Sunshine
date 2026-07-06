@@ -6,6 +6,9 @@ import { Task } from '../types/Task';
 import { useDialogState } from '../hooks/useDialogState';
 import { useTaskActions } from '../hooks/useTaskActions';
 
+// Stable mock so tests can assert on it across renders
+const mockHandleBoostPriority = vi.hoisted(() => vi.fn());
+
 // Mock all the contexts and hooks
 vi.mock('../contexts/LanguageContext', () => ({
   useLanguage: () => ({
@@ -87,7 +90,7 @@ vi.mock('../hooks/useTaskActions', () => ({
     handleTransferTask: vi.fn(),
     handlePostponeTask: vi.fn(),
     handleUnassignTask: vi.fn(),
-    handleBoostPriority: vi.fn(),
+    handleBoostPriority: mockHandleBoostPriority,
     handleBoostUrgent: vi.fn(),
     handleRemoveUrgent: vi.fn()
   })
@@ -306,6 +309,15 @@ describe('TaskFocusedView', () => {
       render(<TaskFocusedView tasks={singleTask} onUpdateLocalTask={mockOnUpdateLocalTask} onRemoveLocalTask={mockOnRemoveLocalTask} />);
 
       expect(screen.queryByText('Upcoming tasks')).not.toBeInTheDocument();
+    });
+
+    it('phone button on upcoming card boosts that task to the top', () => {
+      render(<TaskFocusedView {...defaultProps} />);
+
+      const boostBtn = screen.getByTestId('boost-phone-2');
+      fireEvent.click(boostBtn);
+
+      expect(mockHandleBoostPriority).toHaveBeenCalledWith('2');
     });
   });
 

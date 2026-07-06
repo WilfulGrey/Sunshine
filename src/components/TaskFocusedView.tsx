@@ -1281,7 +1281,20 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                          task.priority === 'high' ? t.high.replace('🟠 ', '') : t.urgent.replace('🔴 ', '')}
                       </span>
                       
-                      {/* Boost buttons hidden for now */}
+                      <button
+                        onClick={() => {
+                          taskActions.handleBoostPriority(task.id);
+                          setRefreshDisabledAfterBoost(true);
+                        }}
+                        disabled={taskActions.boostingTask === task.id}
+                        className="p-1 text-gray-400 hover:text-purple-600 transition-colors disabled:opacity-50"
+                        title="Osoba dzwoni - przenieś na pierwszą pozycję"
+                        data-testid={`boost-phone-${task.id}`}
+                      >
+                        {taskActions.boostingTask === task.id
+                          ? <Loader2 className="h-4 w-4 animate-spin" />
+                          : <Phone className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
                 </div>
