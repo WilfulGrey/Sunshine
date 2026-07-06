@@ -1285,7 +1285,11 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                         onClick={() => {
                           taskActions.handleBoostPriority(task.id);
                           setRefreshDisabledAfterBoost(true);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          // Instant, not smooth: the async boost re-sorts the list and
+                          // changes page height mid-animation, so a smooth scroll gets
+                          // interrupted / undone by browser scroll-anchoring.
+                          window.scrollTo(0, 0);
+                          document.documentElement.scrollTop = 0;
                         }}
                         disabled={taskActions.boostingTask === task.id}
                         className="p-1 text-gray-400 hover:text-purple-600 transition-colors disabled:opacity-50"
