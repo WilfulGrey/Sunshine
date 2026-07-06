@@ -99,6 +99,19 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     }
   }, [isManualRefreshing, onLoadContacts, t.refreshError, user?.id]);
 
+  // Debounced reconcile after a user action. The UI already updated locally
+  // (onRemoveLocalTask etc.), so the full getAllCallbacks reconcile (~2s over
+  // 1700+ callbacks) can wait and coalesce — a burst of actions triggers ONE
+  // fetch instead of one per click. Periodic refreshers call onSilentRefresh
+  // directly and are unaffected.
+  const silentRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedSilentRefresh = useCallback(() => {
+    if (silentRefreshTimer.current) clearTimeout(silentRefreshTimer.current);
+    silentRefreshTimer.current = setTimeout(() => {
+      onSilentRefresh?.();
+    }, 3000);
+  }, [onSilentRefresh]);
+
   // Activity detection (stable callback)
   const handleActivityRefresh = useCallback(async () => {
     // 🛡️ WYŁĄCZ REFRESH gdy dialog otwarty lub po boost
@@ -507,7 +520,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     // refresh will re-fetch it from API with the new callback_at (+1h) so it
     // shows up later in the queue, in its new slot.
     onRemoveLocalTask(task.id);
-    onSilentRefresh?.();
+    debouncedSilentRefresh();
 
     setRefreshDisabledAfterBoost(false);
     console.log('✅ REFRESH ENABLED po phone call (nie odebrała)');
@@ -535,7 +548,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
         `${taskActions.currentUserName}: Anreise absichern (potwierdzenie wyjazdu) - potwierdzono`,
       );
       onRemoveLocalTask(task.id);
-      onSilentRefresh?.();
+      debouncedSilentRefresh();
     } catch (err) {
       console.error('Pre-arrival confirm failed:', err);
       alert(`Błąd: ${err instanceof Error ? err.message : 'Nieznany błąd'}`);
@@ -566,7 +579,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
         `${taskActions.currentUserName}: Anreise bestätigen (potwierdzenie dojazdu) - status: ${statusLabel}${dlvLabel}`,
       );
       onRemoveLocalTask(task.id);
-      onSilentRefresh?.();
+      debouncedSilentRefresh();
     } catch (err) {
       console.error('Post-arrival confirm failed:', err);
       alert(`Błąd: ${err instanceof Error ? err.message : 'Nieznany błąd'}`);
@@ -604,7 +617,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       }
       await sunshineService.recordContact(caregiverId, 'note_only', message);
       onRemoveLocalTask(task.id);
-      onSilentRefresh?.();
+      debouncedSilentRefresh();
     } catch (err) {
       console.error('Pre-departure confirm failed:', err);
       alert(`Błąd: ${err instanceof Error ? err.message : 'Nieznany błąd'}`);
@@ -638,7 +651,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
           dialogState.postponeNotes
         ).then(() => {
           if (reloadIfUpdateAvailable()) return;
-          onSilentRefresh?.();
+          debouncedSilentRefresh();
         });
       }
       dialogState.closePostponeDialog();
@@ -661,7 +674,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       notes
     ).then(() => {
       if (reloadIfUpdateAvailable()) return;
-      onSilentRefresh?.();
+      debouncedSilentRefresh();
     });
     dialogState.closeCloseTaskDialog();
     setRefreshDisabledAfterBoost(false);
@@ -677,7 +690,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     ).then(() => {
       if (reloadIfUpdateAvailable()) return;
       if (caregiverId) refreshLatestNote(caregiverId);
-      onSilentRefresh?.();
+      debouncedSilentRefresh();
     });
     dialogState.closeCompletionDialog();
     setRefreshDisabledAfterBoost(false);
@@ -700,7 +713,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       dialogState.abandonReason
     ).then(() => {
       if (reloadIfUpdateAvailable()) return;
-      onSilentRefresh?.();
+      debouncedSilentRefresh();
     });
     dialogState.closeAbandonDialog();
     setRefreshDisabledAfterBoost(false);
@@ -726,7 +739,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       dialogState.transferReason
     ).then(() => {
       if (reloadIfUpdateAvailable()) return;
-      onSilentRefresh?.();
+      debouncedSilentRefresh();
     });
     dialogState.closeTransferDialog();
     setRefreshDisabledAfterBoost(false);

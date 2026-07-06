@@ -573,6 +573,17 @@ export const useTaskActions = (
 
       const now = new Date();
       const alreadyMine = task.apiData?.employeeId === currentEmployeeId;
+
+      // Optimistic: move to top FIRST so the UI reacts instantly, then hit the API.
+      const updatedTask = addHistoryEntry(task, 'started', `Zadanie przeniesione na pierwszą pozycję`);
+      onUpdateLocalTask(taskId, {
+        priority: 'boosted' as const,
+        dueDate: now,
+        status: 'in_progress' as const,
+        apiData: { ...task.apiData!, employeeId: currentEmployeeId },
+        history: updatedTask.history,
+      });
+
       if (!alreadyMine) {
         await sunshineService.assignEmployee(caregiverId, currentEmployeeId);
       }
@@ -584,15 +595,6 @@ export const useTaskActions = (
         task.apiData?.callbackId,
         currentEmployeeId,
       );
-
-      const updatedTask = addHistoryEntry(task, 'started', `Zadanie przeniesione na pierwszą pozycję`);
-      onUpdateLocalTask(taskId, {
-        priority: 'boosted' as const,
-        dueDate: now,
-        status: 'in_progress' as const,
-        apiData: { ...task.apiData!, employeeId: currentEmployeeId },
-        history: updatedTask.history,
-      });
     } catch (error) {
       console.error('Boost priority failed:', error);
       alert(`Błąd: ${error instanceof Error ? error.message : 'Nieznany błąd'}`);
@@ -633,6 +635,17 @@ export const useTaskActions = (
 
       const now = new Date();
       const alreadyMine = task.apiData?.employeeId === currentEmployeeId;
+
+      // Optimistic: move to top FIRST so the UI reacts instantly, then hit the API.
+      const updatedTask = addHistoryEntry(task, 'started', `Zadanie przeniesione na pierwszą pozycję`);
+      onUpdateLocalTask(taskId, {
+        priority: 'boosted' as const,
+        dueDate: now,
+        status: 'pending' as const,
+        apiData: { ...task.apiData!, employeeId: currentEmployeeId },
+        history: updatedTask.history,
+      });
+
       if (!alreadyMine) {
         await sunshineService.assignEmployee(caregiverId, currentEmployeeId);
       }
@@ -644,15 +657,6 @@ export const useTaskActions = (
         task.apiData?.callbackId,
         currentEmployeeId,
       );
-
-      const updatedTask = addHistoryEntry(task, 'started', `Zadanie przeniesione na pierwszą pozycję`);
-      onUpdateLocalTask(taskId, {
-        priority: 'boosted' as const,
-        dueDate: now,
-        status: 'pending' as const,
-        apiData: { ...task.apiData!, employeeId: currentEmployeeId },
-        history: updatedTask.history,
-      });
     } catch (error) {
       console.error('Boost urgent failed:', error);
       alert(`Błąd: ${error instanceof Error ? error.message : 'Nieznany błąd'}`);
