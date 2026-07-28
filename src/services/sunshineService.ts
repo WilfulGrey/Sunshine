@@ -32,6 +32,7 @@ export interface SunshineCallback {
   status: string;
   type?: CallbackType;
   dlv?: number;
+  service_agency_id?: number | null; // SA of the job/offer. 1 = SA Vitanas. null → treated as Vitanas.
 }
 
 export interface SunshineCallbacksResponse {

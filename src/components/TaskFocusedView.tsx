@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { Task } from '../types/Task';
 import { formatDate, isOverdue, formatPhoneNumber } from '../utils/helpers';
 import { recordUserAction } from '../utils/userActivity';
+import { isSaRecruiter } from '../config/employeeMapping';
 import { useTaskActions } from '../hooks/useTaskActions';
 import { sunshineService } from '../services/sunshineService';
 import { useDialogState } from '../hooks/useDialogState';
@@ -305,7 +306,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   const [logsPage, setLogsPage] = useState(1);
   const [logsHasMore, setLogsHasMore] = useState(false);
 
-  const { nextTask, upcomingTasks, hiddenFutureTasksCount } = getProcessedTasks(tasks, taskActions.takenTasks, taskActions.currentEmployeeId, showFutureTasks);
+  const { nextTask, upcomingTasks, hiddenFutureTasksCount } = getProcessedTasks(tasks, taskActions.takenTasks, taskActions.currentEmployeeId, showFutureTasks, isSaRecruiter(user?.email));
 
   useEffect(() => {
     const caregiverId = nextTask?.apiData?.caregiverId ?? null;

@@ -29,7 +29,7 @@ const EMPLOYEES: Employee[] = [
   { name: 'Alex Nowek', email: 'a.nowek@mamamia.app', employeeId: 31145, role: 'Administrator', team: 'Nieprzypisany' },
   { name: 'Marek Styn', email: 'marek.styn@vitanas.pl', employeeId: 31719, role: 'Rekruter', team: 'Rekiny' },
   { name: 'Kinga Chorągwicka', email: 'kinga.choragwicka@vitanas.pl', employeeId: 32458, role: 'Rekruter', team: 'Nieprzypisany' },
-  { name: 'Adriana Lekawska', email: 'adriana.lekawska@vitanas.pl', employeeId: 32459, role: 'Rekruter', team: 'Nieprzypisany' },
+  { name: 'Adriana Lekawska', email: 'adriana.lekawska@vitanas.pl', employeeId: 32459, role: 'Rekruter SA', team: 'Nieprzypisany' },
   { name: 'Michał Zaniewski', email: 'michal.zaniewski@vitanas.pl', employeeId: 32688, role: 'Rekruter', team: 'Nieprzypisany' },
   { name: 'Marcin Wysocki', email: 'martin@mamamia.app', employeeId: 32715, role: 'Rekruter', team: 'Nieprzypisany' },
   { name: 'Mateusz Wysocki', email: 'info@vitanas24.pl', employeeId: 32390, role: 'Rekruter', team: 'Nieprzypisany' },
@@ -69,4 +69,9 @@ export function getAllEmployees(): Employee[] {
 export function findEmployeeByName(name: string): Employee | null {
   const lower = name.toLowerCase();
   return EMPLOYEES.find(e => e.name.toLowerCase() === lower) ?? null;
+}
+
+// SA recruiters see only foreign-SA applications + their own assigned caregivers.
+export function isSaRecruiter(email: string | undefined | null): boolean {
+  return !!email && getEmployeeByEmail(email)?.role === 'Rekruter SA';
 }

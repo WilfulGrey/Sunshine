@@ -115,6 +115,7 @@ export const convertCallbackToTask = (callback: SunshineCallback): Task => {
       callbackId: callback.callback_id,
       callbackType,
       dlv: callback.dlv,
+      serviceAgencyId: callback.service_agency_id,
       employeeId: callback.employee_id,
       phoneNumber: callback.phone_number,
       callbackSource: callback.callback_source,

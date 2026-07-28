@@ -144,6 +144,56 @@ describe('taskUtils', () => {
     });
   });
 
+  describe('filterActiveTasks — SA role (foreign applications)', () => {
+    const MY_ID = 42;      // zwykły rekruter
+    const OTHER_ID = 999;
+    const ADRIANA_ID = 32459;
+
+    const foreignInterest = (id: string, extra: Partial<Task['apiData']> = {}): Task => ({
+      id, title: `T${id}`, description: '', status: 'pending', priority: 'medium',
+      type: 'manual', createdAt: new Date(), history: [],
+      apiData: { caregiverId: Number(id), serviceAgencyId: 3, callbackType: 'interest', employeeId: null, ...extra },
+    });
+
+    it('non-Vitanas interest unassigned → HIDDEN for a regular recruiter', () => {
+      const result = filterActiveTasks([foreignInterest('1')], new Set(), MY_ID, false);
+      expect(result).toHaveLength(0);
+    });
+
+    it('non-Vitanas interest unassigned → VISIBLE for the SA recruiter (Adriana)', () => {
+      const result = filterActiveTasks([foreignInterest('1')], new Set(), ADRIANA_ID, true);
+      expect(result).toHaveLength(1);
+    });
+
+    it('non-Vitanas interest assigned to X → visible for X, hidden for Adriana', () => {
+      const t = foreignInterest('1', { employeeId: OTHER_ID });
+      expect(filterActiveTasks([t], new Set(), OTHER_ID, false)).toHaveLength(1); // X sees it
+      expect(filterActiveTasks([t], new Set(), ADRIANA_ID, true)).toHaveLength(0); // not Adriana's
+    });
+
+    it('Vitanas (sa=1) interest unassigned → visible for regular (unchanged)', () => {
+      const t = foreignInterest('1', { serviceAgencyId: 1 });
+      expect(filterActiveTasks([t], new Set(), MY_ID, false)).toHaveLength(1);
+    });
+
+    it('non-Vitanas GENERAL (not interest) unassigned → visible for regular, hidden for Adriana', () => {
+      const t = foreignInterest('1', { callbackType: 'general' });
+      expect(filterActiveTasks([t], new Set(), MY_ID, false)).toHaveLength(1);
+      expect(filterActiveTasks([t], new Set(), ADRIANA_ID, true)).toHaveLength(0);
+    });
+
+    it('caregiver assigned to Adriana (any SA/type) → visible for her', () => {
+      const mine = foreignInterest('1', { serviceAgencyId: 1, callbackType: 'general', employeeId: ADRIANA_ID });
+      expect(filterActiveTasks([mine], new Set(), ADRIANA_ID, true)).toHaveLength(1);
+    });
+
+    it('serviceAgencyId null → treated as Vitanas (visible for regular, not routed to Adriana)', () => {
+      const t = foreignInterest('1', { serviceAgencyId: null });
+      expect(filterActiveTasks([t], new Set(), MY_ID, false)).toHaveLength(1);
+      expect(filterActiveTasks([t], new Set(), ADRIANA_ID, true)).toHaveLength(0);
+    });
+  });
+
   describe('sortTasksByPriority', () => {
     const mockTasks: Task[] = [
       {

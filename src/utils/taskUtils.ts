@@ -30,11 +30,43 @@ export const getPriorityColor = (priority: string) => {
   }
 };
 
-export const filterActiveTasks = (tasks: Task[], takenTasks: Set<string>, currentEmployeeId: number | null) => {
+const VITANAS_SA_ID = 1;
+
+// A "foreign application" = an unassigned interest callback whose job offer
+// belongs to a service agency other than Vitanas. null/missing SA → Vitanas.
+const isForeignApplication = (task: Task): boolean => {
+  const saId = task.apiData?.serviceAgencyId ?? VITANAS_SA_ID;
+  return saId !== VITANAS_SA_ID
+    && task.apiData?.callbackType === 'interest'
+    && !task.apiData?.employeeId;
+};
+
+export const filterActiveTasks = (
+  tasks: Task[],
+  takenTasks: Set<string>,
+  currentEmployeeId: number | null,
+  isSaRecruiter = false,
+) => {
   return tasks.filter(task => {
     if (task.status === 'completed' || task.status === 'cancelled') return false;
 
     const taskEmployeeId = task.apiData?.employeeId;
+    const isMine =
+      takenTasks.has(task.id) ||
+      (!!currentEmployeeId && taskEmployeeId === currentEmployeeId);
+
+    // SA recruiter (Adriana): sees ONLY her own assigned caregivers + the
+    // foreign-application pool. Nothing else.
+    if (isSaRecruiter) {
+      if (taskEmployeeId && currentEmployeeId && taskEmployeeId !== currentEmployeeId && !takenTasks.has(task.id)) {
+        return false;
+      }
+      return isMine || isForeignApplication(task);
+    }
+
+    // Everyone else: foreign applications are routed exclusively to the SA
+    // recruiter, so hide them here.
+    if (isForeignApplication(task)) return false;
 
     // Hard rule: API-confirmed assignment to someone else wins over local takenTasks.
     // This prevents leaks where a stale takenTasks entry would otherwise force a
@@ -160,8 +192,8 @@ export const isTaskDueToday = (task: Task, timezone: string = 'Europe/Warsaw'): 
   return taskDateOnly.getTime() === today.getTime();
 };
 
-export const getProcessedTasks = (tasks: Task[], takenTasks: Set<string>, currentEmployeeId: number | null, showFutureTasks: boolean = false) => {
-  const activeTasks = filterActiveTasks(tasks, takenTasks, currentEmployeeId);
+export const getProcessedTasks = (tasks: Task[], takenTasks: Set<string>, currentEmployeeId: number | null, showFutureTasks: boolean = false, isSaRecruiter = false) => {
+  const activeTasks = filterActiveTasks(tasks, takenTasks, currentEmployeeId, isSaRecruiter);
   const sortedTasks = sortTasksByPriority(activeTasks);
   
   const upcomingTasks = sortedTasks.slice(1);
