@@ -266,6 +266,19 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     return logs.find(log => CONTACT_TITLES.includes(log.title)) || null;
   };
 
+  // The callback's own reason lives in the `callback_updated` log as
+  // `(powód: „…")`. It explains why THIS callback fires — far more relevant
+  // than the caregiver's stale latest_contact_content summary.
+  const [callbackReason, setCallbackReason] = useState<string | null>(null);
+  const extractCallbackReason = (logs: SunshineLog[]): string | null => {
+    const log = logs.find(l => l.title === 'callback_updated' && /powód:/i.test(l.content || ''));
+    if (!log) return null;
+    const idx = (log.content || '').toLowerCase().indexOf('powód:');
+    let reason = (log.content || '').slice(idx + 'powód:'.length).trim();
+    reason = reason.replace(/^[„"'"\s]+/, '').replace(/[”"'".)\s]+$/, '').trim();
+    return reason || null;
+  };
+
   const logToNote = (log: SunshineLog) => ({
     content: log.content,
     author: log.custom_author_name || (log.author ? `${log.author.first_name} ${log.author.last_name}`.trim() : ''),
@@ -314,6 +327,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
     if (!caregiverId) {
       setLatestNote(null);
+      setCallbackReason(null);
       setLogsData([]);
       return;
     }
@@ -323,16 +337,13 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
     (async () => {
       try {
-        const response = await sunshineService.getLogs(caregiverId, 1, 10);
+        const response = await sunshineService.getLogs(caregiverId, 1, 25);
         if (!cancelled) {
           const contactNote = response.data.find(
             (log: SunshineLog) => CONTACT_TITLES.includes(log.title)
           );
-          if (contactNote) {
-            setLatestNote(logToNote(contactNote));
-          } else {
-            setLatestNote(null);
-          }
+          setLatestNote(contactNote ? logToNote(contactNote) : null);
+          setCallbackReason(extractCallbackReason(response.data));
         }
       } catch (err) {
         console.error('Failed to fetch latest note:', err);
@@ -1035,7 +1046,20 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                 </div>
               </div>
               );
-            })() : nextTask.description ? (() => {
+            })() : callbackReason ? (
+              // Callback's own reason — why THIS callback fires (more relevant than a stale summary)
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6" data-testid="callback-reason">
+                <div className="flex items-start space-x-2">
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-blue-600 text-sm">💬</span>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-blue-900 mb-2">Powód kontaktu:</h4>
+                    <p className="text-blue-800 text-sm leading-relaxed whitespace-pre-wrap">{callbackReason}</p>
+                  </div>
+                </div>
+              </div>
+            ) : nextTask.description ? (() => {
               // Try to extract date from description text like "Podsumowanie (01.12.2025 09:55 - 01.12.2025 12:42):"
               const dateMatch = nextTask.description!.match(/(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/);
               let descAgeDays: number | null = null;
