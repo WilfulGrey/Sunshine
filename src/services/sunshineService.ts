@@ -44,6 +44,36 @@ export interface SunshineCallbacksResponse {
   };
 }
 
+// Rich per-callback object from GET /callbacks/{id}. `reason` = why this
+// callback was scheduled (e.g. "CG prosi o telefon"); `note` = auto-generated
+// description for system callbacks. Both may be null.
+export interface SunshineCallbackDetail {
+  callback_id: number;
+  callback_at: string;
+  type: CallbackType;
+  source: string;
+  priority: string;
+  reason: string | null;
+  note: string | null;
+  caregiver_id: number;
+  first_name: string;
+  last_name: string;
+  status: string;
+  phone_number: string;
+  job_offer_id: number | null;
+  service_agency_id: number | null;
+  employee_id: number | null;
+  employee_name: string | null;
+  author_id: number | null;
+  author_name: string | null;
+  custom_author_name: string | null;
+  resolved_by: number | null;
+  resolver_name: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SunshineLog {
   id: number;
   created_at: string;
@@ -118,6 +148,12 @@ class SunshineService {
     }
 
     return response.json();
+  }
+
+  async getCallbackById(callbackId: number): Promise<SunshineCallbackDetail> {
+    return this.request<SunshineCallbackDetail>(
+      `/api/sunshine/callbacks/${callbackId}`
+    );
   }
 
   async getCallbacks(page = 1, perPage = 1000): Promise<SunshineCallbacksResponse> {

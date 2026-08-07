@@ -267,18 +267,11 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     return logs.find(log => CONTACT_TITLES.includes(log.title)) || null;
   };
 
-  // The callback's own reason lives in the `callback_updated` log as
-  // `(powód: „…")`. It explains why THIS callback fires — far more relevant
-  // than the caregiver's stale latest_contact_content summary.
+  // The callback's own reason/note comes straight from GET /callbacks/{id}
+  // (bound to the exact callback_id), so no log parsing and no wrong-callback
+  // ambiguity when a caregiver has multiple callbacks.
   const [callbackReason, setCallbackReason] = useState<string | null>(null);
-  const extractCallbackReason = (logs: SunshineLog[]): string | null => {
-    const log = logs.find(l => l.title === 'callback_updated' && /powód:/i.test(l.content || ''));
-    if (!log) return null;
-    const idx = (log.content || '').toLowerCase().indexOf('powód:');
-    let reason = (log.content || '').slice(idx + 'powód:'.length).trim();
-    reason = reason.replace(/^[„"'"\s]+/, '').replace(/[”"'".)\s]+$/, '').trim();
-    return reason || null;
-  };
+  const [callbackNote, setCallbackNote] = useState<string | null>(null);
 
   const logToNote = (log: SunshineLog) => ({
     content: log.content,
@@ -326,9 +319,12 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     const caregiverId = nextTask?.apiData?.caregiverId ?? null;
     activeCaregiverIdRef.current = caregiverId;
 
+    const callbackId = nextTask?.apiData?.callbackId ?? null;
+
     if (!caregiverId) {
       setLatestNote(null);
       setCallbackReason(null);
+      setCallbackNote(null);
       setLogsData([]);
       return;
     }
@@ -338,21 +334,43 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
     (async () => {
       try {
-        const response = await sunshineService.getLogs(caregiverId, 1, 25);
+        const response = await sunshineService.getLogs(caregiverId, 1, 10);
         if (!cancelled) {
           const contactNote = response.data.find(
             (log: SunshineLog) => CONTACT_TITLES.includes(log.title)
           );
           setLatestNote(contactNote ? logToNote(contactNote) : null);
-          setCallbackReason(extractCallbackReason(response.data));
         }
       } catch (err) {
         console.error('Failed to fetch latest note:', err);
       }
     })();
 
+    // The callback's own reason/note — fetched directly by callback_id.
+    (async () => {
+      if (!callbackId) {
+        setCallbackReason(null);
+        setCallbackNote(null);
+        return;
+      }
+      try {
+        const detail = await sunshineService.getCallbackById(callbackId);
+        if (!cancelled) {
+          setCallbackReason(detail.reason || null);
+          setCallbackNote(detail.note || null);
+        }
+      } catch (err) {
+        // 404 = callback resolved between list and detail fetch; degrade gracefully
+        if (!cancelled) {
+          setCallbackReason(null);
+          setCallbackNote(null);
+        }
+        console.error('Failed to fetch callback detail:', err);
+      }
+    })();
+
     return () => { cancelled = true; };
-  }, [nextTask?.id, nextTask?.apiData?.caregiverId]);
+  }, [nextTask?.id, nextTask?.apiData?.caregiverId, nextTask?.apiData?.callbackId]);
 
 
   // Fetch job_offer_id from logs when callback source is Interest
@@ -1016,8 +1034,21 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
               )}
             </div>
 
-            {/* Latest contact note - prefer rich display from logs, fall back to task.description */}
-            {latestNote ? (() => {
+            {/* Note priority: callback reason → recruiter note → callback auto-note → stale summary */}
+            {callbackReason ? (
+              // The callback's own reason — exactly why THIS callback fires
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6" data-testid="callback-reason">
+                <div className="flex items-start space-x-2">
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-blue-600 text-sm">💬</span>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-blue-900 mb-2">Powód kontaktu:</h4>
+                    <p className="text-blue-800 text-sm leading-relaxed whitespace-pre-wrap">{callbackReason}</p>
+                  </div>
+                </div>
+              </div>
+            ) : latestNote ? (() => {
               const noteDate = new Date(latestNote.date && !latestNote.date.endsWith('Z') && latestNote.date.includes('T') ? latestNote.date + 'Z' : latestNote.date);
               const ageDays = Math.floor((Date.now() - noteDate.getTime()) / 86400000);
               const formattedDate = noteDate.toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -1051,16 +1082,16 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                 </div>
               </div>
               );
-            })() : callbackReason ? (
-              // Callback's own reason — why THIS callback fires (more relevant than a stale summary)
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6" data-testid="callback-reason">
+            })() : callbackNote ? (
+              // System auto-description for the callback (e.g. "Przed przyjazdem (3 dni przed)…")
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6" data-testid="callback-note">
                 <div className="flex items-start space-x-2">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-blue-600 text-sm">💬</span>
+                  <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-gray-500 text-sm">ℹ️</span>
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-medium text-blue-900 mb-2">Powód kontaktu:</h4>
-                    <p className="text-blue-800 text-sm leading-relaxed whitespace-pre-wrap">{callbackReason}</p>
+                    <h4 className="font-medium text-gray-700 mb-2">Info o callbacku:</h4>
+                    <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">{callbackNote}</p>
                   </div>
                 </div>
               </div>

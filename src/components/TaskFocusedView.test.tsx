@@ -148,6 +148,7 @@ vi.mock('../services/sunshineService', () => ({
   sunshineService: {
     getLatestLog: vi.fn().mockResolvedValue({ data: null }),
     getLogs: vi.fn().mockResolvedValue({ data: [], meta: { current_page: 1, last_page: 1, total: 0 } }),
+    getCallbackById: vi.fn().mockResolvedValue({ reason: null, note: null }),
   }
 }));
 
