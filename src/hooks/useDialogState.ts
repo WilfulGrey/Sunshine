@@ -19,9 +19,9 @@ export const useDialogState = () => {
   const [showPostArrivalDialog, setShowPostArrivalDialog] = useState<Task | null>(null);
   const [showPreDepartureDialog, setShowPreDepartureDialog] = useState<Task | null>(null);
 
-  const openCompletionDialog = (task: Task) => {
+  const openCompletionDialog = (task: Task, prefill = '') => {
     setShowCompletionDialog(task);
-    setCompletionSummary('');
+    setCompletionSummary(prefill);
   };
 
   const closeCompletionDialog = () => {

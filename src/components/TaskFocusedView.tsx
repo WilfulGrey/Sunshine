@@ -8,6 +8,7 @@ import { Task } from '../types/Task';
 import { formatDate, isOverdue, formatPhoneNumber } from '../utils/helpers';
 import { recordUserAction } from '../utils/userActivity';
 import { isSaRecruiter } from '../config/employeeMapping';
+import { HELDENPLANNER_ENABLED, isHpProcessType, hpPrefillNote } from '../config/features';
 import { useTaskActions } from '../hooks/useTaskActions';
 import { sunshineService } from '../services/sunshineService';
 import { useDialogState } from '../hooks/useDialogState';
@@ -506,12 +507,16 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
     onUpdateLocalTask(task.id, { status: 'in_progress' });
 
     const type = task.apiData?.callbackType;
-    if (type === 'pre_arrival') {
+    if (HELDENPLANNER_ENABLED && type === 'pre_arrival') {
       dialogState.openPreArrivalDialog(task);
-    } else if (type === 'post_arrival') {
+    } else if (HELDENPLANNER_ENABLED && type === 'post_arrival') {
       dialogState.openPostArrivalDialog(task);
-    } else if (type === 'pre_departure') {
+    } else if (HELDENPLANNER_ENABLED && type === 'pre_departure') {
       dialogState.openPreDepartureDialog(task);
+    } else if (!HELDENPLANNER_ENABLED && isHpProcessType(type)) {
+      // HP off: skip the HP dialog/API. Standard CompletionDialog with an
+      // editable prefill so the recruiter only has to click Zapisz.
+      dialogState.openCompletionDialog(task, hpPrefillNote(type));
     } else {
       dialogState.openCompletionDialog(task);
     }
@@ -1151,6 +1156,15 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
               </div>
             )}
 
+            {!HELDENPLANNER_ENABLED && isHpProcessType(nextTask.apiData?.callbackType) && (
+              <div className="mb-6 flex items-start space-x-2 bg-amber-50 border border-amber-200 rounded-lg p-4" data-testid="hp-manual-banner">
+                <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-800">
+                  <span className="font-semibold">HeldenPlanner czasowo niedostępny</span> — potwierdź ręcznie w systemie HP, a tu tylko domknij przypomnienie.
+                </p>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-3">
               {taskActions.isTaskAssignedToSomeoneElse(nextTask) ? (
                 <div className="px-6 py-3 bg-gray-100 text-gray-600 rounded-lg font-medium flex items-center space-x-2">
@@ -1309,6 +1323,12 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                             </div>
                           )}
                         </div>
+                        {!HELDENPLANNER_ENABLED && isHpProcessType(task.apiData?.callbackType) && (
+                          <div className="flex items-center space-x-1 text-xs text-amber-700 mt-1" data-testid="hp-manual-badge">
+                            <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+                            <span>Potwierdź ręcznie w HP</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     
