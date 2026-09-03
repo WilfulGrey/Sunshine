@@ -63,3 +63,6 @@ supabase/.temp/
 # Internal Claude Code documentation (private)
 CLAUDE.md
 CLAUDE.md.backup
+
+# Postman collection with live API tokens (never commit)
+Robocza kolekcja Baba - REST.postman_collection.json
