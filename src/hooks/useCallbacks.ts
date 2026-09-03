@@ -2,9 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { Task } from '../types/Task';
 import { sunshineService } from '../services/sunshineService';
 import { convertCallbackToTask, isBlockedStatus } from '../utils/sunshineHelpers';
-import { getAllEmployees } from '../config/employeeMapping';
+import { getAllEmployees, loadEmployees } from '../config/employeeMapping';
+import { useAuth } from '../contexts/AuthContext';
 
 export const useCallbacks = () => {
+  const { user } = useAuth();
+  const userId = user?.id;
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -13,9 +16,15 @@ export const useCallbacks = () => {
   const availableUsers = getAllEmployees().map(e => e.name);
 
   const loadCallbacks = useCallback(async () => {
+    if (!userId) return;
     try {
       setLoading(true);
       setError(null);
+
+      // Mapowanie musi być gotowe zanim taski trafią do UI (currentEmployeeId,
+      // transfer, filtr SA); po pierwszym sukcesie to cache — kolejne wywołania
+      // (manual/realtime refresh) nie robią fetcha. Błąd = widoczny error state.
+      await loadEmployees(userId);
 
       const response = await sunshineService.getAllCallbacks();
 
@@ -63,7 +72,7 @@ export const useCallbacks = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   const silentRefresh = useCallback(async () => {
     try {
@@ -110,8 +119,12 @@ export const useCallbacks = () => {
   }, []);
 
   useEffect(() => {
+    if (!userId) return;
+    // Reset PRZED loadem: merge w setTasks zachowuje lokalne in_progress/boosted —
+    // bez resetu logout A → login B przeniósłby stan usera A do widoku usera B.
+    setTasks([]);
     loadCallbacks();
-  }, [loadCallbacks]);
+  }, [loadCallbacks, userId]);
 
   return {
     tasks,

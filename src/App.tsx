@@ -4,6 +4,7 @@ import { recordUserOpened } from './utils/userActivity';
 import { AuthForm } from './components/Auth/AuthForm';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { ResetPasswordForm } from './components/Auth/ResetPasswordForm';
+import { AdminPanel } from './components/AdminPanel';
 import { AccountSettings } from './components/Auth/AccountSettings';
 import { Header } from './components/Header';
 import { TaskFocusedView } from './components/TaskFocusedView';
@@ -14,7 +15,7 @@ import { Task } from './types/Task';
 
 function App() {
   const { user } = useAuth();
-  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>('signin');
+  const [authMode, setAuthMode] = useState<'signin' | 'reset'>('signin');
 
   // Record "user opened the app" — on mount (page load / new tab / refresh) and
   // whenever the tab becomes visible again after being hidden.
@@ -69,9 +70,15 @@ function App() {
 
   // Routing logic
   const isResetPassword = window.location.pathname === '/reset-password';
-  
+
   if (isResetPassword) {
     return <ResetPasswordForm />;
+  }
+
+  // Poza ProtectedRoute — dostępu broni hasło admina, weryfikowane server-side
+  // w Edge Function admin-users przy każdej operacji.
+  if (window.location.pathname === '/admin') {
+    return <AdminPanel />;
   }
 
   return (

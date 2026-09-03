@@ -1,0 +1,7 @@
+# Konfiguracja Supabase CLI dla tego repo.
+# verify_jwt DEKLARATYWNIE (nie flagą CLI) — flaga --no-verify-jwt zapomniana
+# przy kolejnym deployu przywróciłaby weryfikację JWT i panel /admin dostawałby
+# 401 zanim funkcja zobaczy hasło.
+
+[functions.admin-users]
+verify_jwt = false

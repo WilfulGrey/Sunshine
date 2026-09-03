@@ -1,4 +1,6 @@
-interface Employee {
+import { supabase } from '../lib/supabase';
+
+export interface Employee {
   name: string;
   email: string;
   employeeId: number | null;
@@ -6,47 +8,61 @@ interface Employee {
   team: string;
 }
 
-const EMPLOYEES: Employee[] = [
-  { name: 'Michał Kępiński', email: 'm.kepinski@mamamia.app', employeeId: 2915, role: 'Administrator', team: 'Nieprzypisany' },
-  { name: 'Admin MM', email: 'mm@vitanas.pl', employeeId: 1, role: 'Rekruter', team: 'Nieprzypisany' },
-  { name: 'Paulina Janiszewska', email: 'paulina.janiszewska@vitanas.pl', employeeId: 980, role: 'Rekruter', team: 'Rekiny' },
-  { name: 'Dominika Michalska', email: 'dominika.michalska@vitanas.pl', employeeId: 1683, role: 'Team Leader', team: 'Rekiny' },
-  { name: 'Aneta Górzna', email: 'aneta.gorzna@vitanas.pl', employeeId: 3566, role: 'Team Leader', team: 'Orły' },
-  { name: 'Karolina Wilk', email: 'karolina.wilk@vitanas.pl', employeeId: 3567, role: 'Rekruter', team: 'Orły' },
-  { name: 'Joanna Trefler', email: 'joanna.trefler@vitanas.pl', employeeId: 3568, role: 'Rekruter', team: 'Orły' },
-  { name: 'Patrycja Strzeżek', email: 'patrycja.strzezek@vitanas.pl', employeeId: 3569, role: 'Rekruter', team: 'Orły' },
-  { name: 'Sara Hajda-Kowalska', email: 'sara.hajda-kowalska@vitanas.pl', employeeId: 3571, role: 'Team Leader', team: 'Pantery' },
-  { name: 'Karolina Wojcieszak', email: 'karolina.wojcieszak@vitanas.pl', employeeId: 3572, role: 'Rekruter', team: 'Pantery' },
-  { name: 'Monika Jakubowska', email: 'monika.jakubowska@vitanas.pl', employeeId: 3575, role: 'Rekruter', team: 'Rekiny' },
-  { name: 'Patrycja Jędrychowska', email: 'patrycja.jedrychowska@vitanas.pl', employeeId: 27465, role: 'Rekruter', team: 'Pantery' },
-  { name: 'Monika Bandyk', email: 'monika.bandyk@vitanas.pl', employeeId: 27533, role: 'Rekruter', team: 'Rekiny' },
-  { name: 'Magdalena Sobolewska', email: 'magdalena.sobolewska@vitanas.pl', employeeId: 27890, role: 'Rekruter', team: 'Pantery' },
-  { name: 'Małgorzata Luksin', email: 'malgorzata.luksin@vitanas.pl', employeeId: 28004, role: 'Rekruter', team: 'Orły' },
-  { name: 'Marta Kapcio', email: 'marta.kapcio@vitanas.pl', employeeId: 28033, role: 'Team Leader', team: 'Sowy' },
-  { name: 'Michał Babczyński', email: 'm.babczynski+rekruterProd@mamamia.app', employeeId: 28442, role: 'Administrator', team: 'Nieprzypisany' },
-  { name: 'Katarzyna Sadowska', email: 'katarzyna.sadowska@vitanas.pl', employeeId: 30994, role: 'Rekruter', team: 'Rekiny' },
-  { name: 'Dominika Grabowska', email: 'd.grabowska@mamamia.app', employeeId: 31140, role: 'Administrator', team: 'Nieprzypisany' },
-  { name: 'Alex Nowek', email: 'a.nowek@mamamia.app', employeeId: 31145, role: 'Administrator', team: 'Nieprzypisany' },
-  { name: 'Marek Styn', email: 'marek.styn@vitanas.pl', employeeId: 31719, role: 'Rekruter', team: 'Rekiny' },
-  { name: 'Kinga Chorągwicka', email: 'kinga.choragwicka@vitanas.pl', employeeId: 32458, role: 'Rekruter', team: 'Nieprzypisany' },
-  { name: 'Adriana Lekawska', email: 'adriana.lekawska@vitanas.pl', employeeId: 32459, role: 'Rekruter SA', team: 'Nieprzypisany' },
-  { name: 'Michał Zaniewski', email: 'michal.zaniewski@vitanas.pl', employeeId: 32688, role: 'Rekruter', team: 'Nieprzypisany' },
-  { name: 'Marcin Wysocki', email: 'martin@mamamia.app', employeeId: 32715, role: 'Rekruter', team: 'Nieprzypisany' },
-  { name: 'Mateusz Wysocki', email: 'info@vitanas24.pl', employeeId: 32390, role: 'Rekruter', team: 'Nieprzypisany' },
-  { name: 'Dominika Kloc', email: 'dominika.kloc@vitanas.pl', employeeId: 33579, role: 'Rekruter', team: 'Nieprzypisany' },
-  { name: 'Magdalena Górska-Wypych', email: 'magdalena.gorska-wypych@mamamia.app', employeeId: 35292, role: 'Rekruter', team: 'Nieprzypisany' },
-  { name: 'Joanna Brynda', email: 'joanna.brynda@vitanas.pl', employeeId: 35264, role: 'Rekruter', team: 'Nieprzypisany' },
-  { name: 'Jakub Woźniak', email: 'jakub.wozniak@vitanas.pl', employeeId: 36340, role: 'Rekruter', team: 'Nieprzypisany' },
-];
+// Cache z tabeli employees (Supabase). Zapełniany przez loadEmployees() po
+// zalogowaniu (RLS: SELECT tylko dla authenticated). Gettery niżej pozostają
+// synchroniczne — call sites bez zmian względem czasów zahardkodowanej tablicy.
+let EMPLOYEES: Employee[] = [];
+let loadedForUserId: string | null = null;
 
 const emailToIdMap = new Map<string, number>();
 const idToEmployeeMap = new Map<number, Employee>();
+const nameToEmployeeMap = new Map<string, Employee>();
 
-for (const emp of EMPLOYEES) {
-  if (emp.employeeId !== null) {
-    emailToIdMap.set(emp.email.toLowerCase(), emp.employeeId);
-    idToEmployeeMap.set(emp.employeeId, emp);
+function rebuildMaps(): void {
+  emailToIdMap.clear();
+  idToEmployeeMap.clear();
+  nameToEmployeeMap.clear();
+  for (const emp of EMPLOYEES) {
+    nameToEmployeeMap.set(emp.name.toLowerCase(), emp);
+    if (emp.employeeId !== null) {
+      emailToIdMap.set(emp.email.toLowerCase(), emp.employeeId);
+      idToEmployeeMap.set(emp.employeeId, emp);
+    }
   }
+}
+
+/**
+ * Ładuje aktywnych pracowników z Supabase do cache'a modułu.
+ * Cache per zalogowany user — ponowne wywołanie dla tego samego usera jest no-opem,
+ * zmiana usera wymusza świeży fetch (bez przecieku stanu między kontami).
+ * Pusty wynik = twardy błąd: RLS dla niezalogowanych zwraca 0 wierszy BEZ błędu
+ * i nie wolno tego uznać za sukces (cichy fallback do pustego mapowania).
+ */
+export async function loadEmployees(userId: string): Promise<void> {
+  if (loadedForUserId === userId && EMPLOYEES.length > 0) return;
+
+  const { data, error } = await supabase
+    .from('employees')
+    .select('name, email, employee_id, role, team')
+    .eq('active', true)
+    .order('name');
+
+  if (error) {
+    throw new Error(`Nie udało się załadować listy pracowników: ${error.message}`);
+  }
+  if (!data || data.length === 0) {
+    throw new Error('Lista pracowników jest pusta — brak dostępu do tabeli employees albo brak aktywnych pracowników.');
+  }
+
+  EMPLOYEES = data.map(row => ({
+    name: row.name,
+    email: row.email,
+    employeeId: row.employee_id,
+    role: row.role,
+    team: row.team,
+  }));
+  loadedForUserId = userId;
+  rebuildMaps();
 }
 
 export function getEmployeeId(email: string): number | null {
@@ -68,8 +84,7 @@ export function getAllEmployees(): Employee[] {
 }
 
 export function findEmployeeByName(name: string): Employee | null {
-  const lower = name.toLowerCase();
-  return EMPLOYEES.find(e => e.name.toLowerCase() === lower) ?? null;
+  return nameToEmployeeMap.get(name.toLowerCase()) ?? null;
 }
 
 // SA recruiters see only foreign-SA applications + their own assigned caregivers.

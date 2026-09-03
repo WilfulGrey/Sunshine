@@ -1,17 +1,18 @@
 import React, { useState } from 'react'
-import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 
+// Publiczna rejestracja celowo usunięta — konta tworzy wyłącznie panel /admin.
+
 interface AuthFormProps {
-  mode: 'signin' | 'signup' | 'reset'
-  onModeChange: (mode: 'signin' | 'signup' | 'reset') => void
+  mode: 'signin' | 'reset'
+  onModeChange: (mode: 'signin' | 'reset') => void
 }
 
 export const AuthForm: React.FC<AuthFormProps> = ({ mode, onModeChange }) => {
-  const { signIn, signUp, resetPassword } = useAuth()
+  const { signIn, resetPassword } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,13 +29,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode, onModeChange }) => {
         const { error } = await signIn(email, password)
         if (error) {
           setError(error.message)
-        }
-      } else if (mode === 'signup') {
-        const { error } = await signUp(email, password, fullName)
-        if (error) {
-          setError(error.message)
-        } else {
-          setSuccess('Sprawdź swoją skrzynkę e-mail, aby potwierdzić konto!')
         }
       } else if (mode === 'reset') {
         const { error } = await resetPassword(email)
@@ -54,7 +48,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode, onModeChange }) => {
   const getTitle = () => {
     switch (mode) {
       case 'signin': return 'Zaloguj się'
-      case 'signup': return 'Utwórz konto'
       case 'reset': return 'Resetuj hasło'
     }
   }
@@ -63,7 +56,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode, onModeChange }) => {
     if (loading) return 'Ładowanie...'
     switch (mode) {
       case 'signin': return 'Zaloguj się'
-      case 'signup': return 'Utwórz konto'
       case 'reset': return 'Wyślij link'
     }
   }
@@ -81,26 +73,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode, onModeChange }) => {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
-            {mode === 'signup' && (
-              <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Imię i nazwisko
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    id="fullName"
-                    name="fullName"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                    placeholder="Jan Kowalski"
-                  />
-                </div>
-              </div>
-            )}
-
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Adres e-mail
@@ -176,38 +148,13 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode, onModeChange }) => {
 
           <div className="text-center space-y-2">
             {mode === 'signin' && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onModeChange('reset')}
-                  className="text-sm text-purple-600 hover:text-purple-800 transition-colors"
-                >
-                  Zapomniałeś hasła?
-                </button>
-                <div className="text-sm text-gray-600">
-                  Nie masz konta?{' '}
-                  <button
-                    type="button"
-                    onClick={() => onModeChange('signup')}
-                    className="text-purple-600 hover:text-purple-800 font-medium transition-colors"
-                  >
-                    Zarejestruj się
-                  </button>
-                </div>
-              </>
-            )}
-
-            {mode === 'signup' && (
-              <div className="text-sm text-gray-600">
-                Masz już konto?{' '}
-                <button
-                  type="button"
-                  onClick={() => onModeChange('signin')}
-                  className="text-purple-600 hover:text-purple-800 font-medium transition-colors"
-                >
-                  Zaloguj się
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => onModeChange('reset')}
+                className="text-sm text-purple-600 hover:text-purple-800 transition-colors"
+              >
+                Zapomniałeś hasła?
+              </button>
             )}
 
             {mode === 'reset' && (

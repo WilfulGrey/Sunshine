@@ -22,15 +22,14 @@ const mockSupabase = supabase as any
 
 // Test component that uses useAuth
 const TestComponent = () => {
-  const { 
-    user, 
-    loading, 
-    signIn, 
-    signUp, 
-    signOut, 
-    resetPassword, 
-    updatePassword, 
-    updateProfile 
+  const {
+    user,
+    loading,
+    signIn,
+    signOut,
+    resetPassword,
+    updatePassword,
+    updateProfile
   } = useAuth()
 
   return (
@@ -38,7 +37,6 @@ const TestComponent = () => {
       <div data-testid="loading">{loading ? 'loading' : 'not-loading'}</div>
       <div data-testid="user">{user?.email || 'no-user'}</div>
       <button onClick={() => signIn('test@example.com', 'password')}>Sign In</button>
-      <button onClick={() => signUp('test@example.com', 'password', 'Test User')}>Sign Up</button>
       <button onClick={() => signOut()}>Sign Out</button>
       <button onClick={() => resetPassword('test@example.com')}>Reset Password</button>
       <button onClick={() => updatePassword('newpassword')}>Update Password</button>
@@ -120,32 +118,7 @@ describe('AuthContext', () => {
     })
   })
 
-  it('handles sign up with full name', async () => {
-    mockSupabase.auth.signUp.mockResolvedValue({
-      data: { user: null, session: null },
-      error: null,
-    })
-
-    render(
-      <AuthProvider>
-        <TestComponent />
-      </AuthProvider>
-    )
-
-    await act(async () => {
-      screen.getByText('Sign Up').click()
-    })
-
-    expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
-      email: 'test@example.com',
-      password: 'password',
-      options: {
-        data: {
-          full_name: 'Test User',
-        },
-      },
-    })
-  })
+  // Test signUp usunięty razem z publiczną rejestracją — konta tworzy panel /admin
 
   it('handles sign out', async () => {
     mockSupabase.auth.signOut.mockResolvedValue({
