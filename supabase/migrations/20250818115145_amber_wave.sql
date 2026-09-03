@@ -1,22 +1,14 @@
 /*
-  # Add user profiles data
+  # [ZNEUTRALIZOWANA] Add user profiles data
 
-  1. Insert user profiles
-    - Michał Kępiński
-    - Dominika Grabowska  
-    - Małgorzata Łuksin
-    - Administrator Mamamia
+  Oryginalna treść insertowała 4 profile z gen_random_uuid() — na świeżym
+  projekcie to natychmiastowy FK violation (profiles.id REFERENCES auth.users),
+  a wiersze były duchami z błędną domeną @mamamia.com. Na prodzie migracja
+  została już dawno zaaplikowana; treść zastąpiona no-opem, żeby żaden przyszły
+  replay migracji na świeżym środowisku się na niej nie wywalił.
 
-  2. Notes
-    - Uses generated UUIDs for user IDs
-    - Creates profiles that can be used for task assignment
-    - Email addresses follow company domain pattern
+  Środowiska stawiamy ze zrzutu schematu prod (pg_dump --schema-only), nie
+  z replayu migracji — patrz CLAUDE.md, sekcja workflow.
 */
 
--- Insert user profiles
-INSERT INTO profiles (id, full_name, email, created_at) VALUES
-  (gen_random_uuid(), 'Michał Kępiński', 'michal.kepinski@mamamia.com', now()),
-  (gen_random_uuid(), 'Dominika Grabowska', 'dominika.grabowska@mamamia.com', now()),
-  (gen_random_uuid(), 'Małgorzata Łuksin', 'malgorzata.luksin@mamamia.com', now()),
-  (gen_random_uuid(), 'Administrator Mamamia', 'admin@mamamia.com', now())
-ON CONFLICT (email) DO NOTHING;
+SELECT 1; -- no-op
