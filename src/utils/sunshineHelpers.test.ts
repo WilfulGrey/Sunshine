@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { convertCallbackToTask } from './sunshineHelpers';
+import { convertCallbackToTask, reasonForType } from './sunshineHelpers';
 import { SunshineCallback } from '../services/sunshineService';
 
 // titleForType is private on purpose — exercise it through the public converter
@@ -52,5 +52,18 @@ describe('convertCallbackToTask — survey callbacks', () => {
 
     expect(task.title).toBe('Anna Nowak - Kontakt telefoniczny');
     expect(task.apiData?.callbackType).toBe('general');
+  });
+});
+
+describe('reasonForType', () => {
+  it('explains a survey callback without waiting for the backend', () => {
+    expect(reasonForType('survey')).toBe('Ankieta po 14 dniach na zleceniu');
+  });
+
+  it('stays silent for types whose reason is not determined by the type', () => {
+    expect(reasonForType('general')).toBeNull();
+    expect(reasonForType('reapply')).toBeNull();
+    expect(reasonForType('pre_arrival')).toBeNull();
+    expect(reasonForType(undefined)).toBeNull();
   });
 });

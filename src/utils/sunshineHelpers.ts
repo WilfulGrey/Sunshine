@@ -26,6 +26,25 @@ const titleForType = (fullName: string, type: CallbackType): string => {
   }
 };
 
+/**
+ * Why this callback fires, derived from its type.
+ *
+ * The backend leaves `reason` null on generated callbacks, which pushed the card
+ * to fall back on the newest agent note — often weeks old and about something
+ * else entirely. The type already carries the answer, so we say it ourselves
+ * rather than waiting for the backend to fill the field. Only types whose reason
+ * is fully determined by the type belong here; everything else keeps showing the
+ * API's own `reason` (or nothing).
+ */
+export const reasonForType = (type?: CallbackType): string | null => {
+  switch (type) {
+    case 'survey':
+      return 'Ankieta po 14 dniach na zleceniu';
+    default:
+      return null;
+  }
+};
+
 const BLOCKED_STATUSES = ['Black List', 'Niewłaściwy'];
 
 export const isBlockedStatus = (status: string): boolean =>

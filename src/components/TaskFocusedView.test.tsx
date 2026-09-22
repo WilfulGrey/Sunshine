@@ -648,6 +648,34 @@ describe('TaskFocusedView', () => {
       openSpy.mockRestore();
     });
 
+    it('shows why the survey fires in the top box, even though the API sends no reason', async () => {
+      vi.mocked(sunshineService.getCallbackById).mockResolvedValue({
+        type: 'survey', reason: null, note: null
+      } as any);
+
+      renderWith(surveyTask);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('callback-reason')).toHaveTextContent(
+          'Ankieta po 14 dniach na zleceniu'
+        );
+      });
+      // the stale agent note must not take the top slot for surveys
+      expect(screen.queryByTestId('agent-note')).not.toBeInTheDocument();
+    });
+
+    it('lets a real API reason win over the derived one', async () => {
+      vi.mocked(sunshineService.getCallbackById).mockResolvedValue({
+        type: 'survey', reason: 'CG prosi o telefon po 18', note: null
+      } as any);
+
+      renderWith(surveyTask);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('callback-reason')).toHaveTextContent('CG prosi o telefon po 18');
+      });
+    });
+
     it('renders the survey CTA as its own block, not a link in the Profil/Chat row', () => {
       renderWith(surveyTask);
 

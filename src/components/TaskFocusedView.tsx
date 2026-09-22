@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Task } from '../types/Task';
 import { formatDate, isOverdue, formatPhoneNumber } from '../utils/helpers';
+import { reasonForType } from '../utils/sunshineHelpers';
 import { recordUserAction } from '../utils/userActivity';
 import { isSaRecruiter } from '../config/employeeMapping';
 import { HELDENPLANNER_ENABLED, isHpProcessType, hpPrefillNote } from '../config/features';
@@ -314,6 +315,10 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   const [logsHasMore, setLogsHasMore] = useState(false);
 
   const { nextTask, upcomingTasks, hiddenFutureTasksCount } = getProcessedTasks(tasks, taskActions.takenTasks, taskActions.currentEmployeeId, showFutureTasks, isSaRecruiter(user?.email));
+
+  // The API's own reason wins; for generated types we derive it from the type so
+  // the top box is not left to a stale agent note.
+  const callbackReasonText = callbackReason ?? reasonForType(nextTask?.apiData?.callbackType);
 
   // Survey CTA target. The backend sends an absolute URL; when it is missing or
   // not http(s) we fall back to the caregiver profile (the survey URL cannot be
@@ -1062,7 +1067,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
             </div>
 
             {/* Note priority: callback reason → recruiter note → callback auto-note → stale summary */}
-            {callbackReason ? (
+            {callbackReasonText ? (
               // The callback's own reason — exactly why THIS callback fires
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6" data-testid="callback-reason">
                 <div className="flex items-start space-x-2">
@@ -1071,7 +1076,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                   </div>
                   <div className="flex-1">
                     <h4 className="font-medium text-blue-900 mb-2">Powód kontaktu:</h4>
-                    <p className="text-blue-800 text-sm leading-relaxed whitespace-pre-wrap">{callbackReason}</p>
+                    <p className="text-blue-800 text-sm leading-relaxed whitespace-pre-wrap">{callbackReasonText}</p>
                   </div>
                 </div>
               </div>
@@ -1223,8 +1228,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
               <div className="mb-6 flex items-start space-x-2 bg-violet-50 border border-violet-200 rounded-lg p-4" data-testid="survey-block">
                 <ClipboardList className="h-5 w-5 text-violet-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="font-medium text-violet-900">Ankieta po 14 dniach na zleceniu</p>
-                  <p className="text-sm text-violet-800 mt-0.5">
+                  <p className="text-sm text-violet-900">
                     Wypełnij ankietę w portalu, a potem domknij to zadanie — samo wprowadzenie ankiety go nie zamyka.
                   </p>
                   <a
