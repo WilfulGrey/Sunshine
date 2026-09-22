@@ -25,6 +25,7 @@ export interface Task {
     caregiverId: number;
     callbackId?: number;
     callbackType?: import('../services/sunshineService').CallbackType;
+    link?: string;
     dlv?: number;
     serviceAgencyId?: number | null;
     employeeId?: number | null;

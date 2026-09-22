@@ -6,6 +6,7 @@ export type CallbackType =
   | 'post_arrival'
   | 'pre_departure'
   | 'reapply'
+  | 'survey'
   | 'general';
 
 export type ConfirmArrivalStatus = '0' | '1';
@@ -31,6 +32,9 @@ export interface SunshineCallback {
   recruiter_name: string | null;
   status: string;
   type?: CallbackType;
+  // Survey URL. The backend only serializes this key on survey rows, so it is
+  // absent — not null — on every other callback.
+  link?: string | null;
   dlv?: number;
   service_agency_id?: number | null; // SA of the job/offer. 1 = SA Vitanas. null → treated as Vitanas.
 }
@@ -46,7 +50,8 @@ export interface SunshineCallbacksResponse {
 
 // Rich per-callback object from GET /callbacks/{id}. `reason` = why this
 // callback was scheduled (e.g. "CG prosi o telefon"); `note` = auto-generated
-// description for system callbacks. Both may be null.
+// description for system callbacks. Both may be null. Note: this endpoint does
+// NOT return `link` — the survey URL comes from the list endpoint instead.
 export interface SunshineCallbackDetail {
   callback_id: number;
   callback_at: string;

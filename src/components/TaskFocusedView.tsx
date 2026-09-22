@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, Phone, X, Skull, XCircle, Eye, Loader2, RefreshCw, ExternalLink, MessageSquare, ScrollText, Heart } from 'lucide-react';
+import { Clock, User, CheckCircle2, Pause, AlertTriangle, ArrowRight, Phone, X, Skull, XCircle, Eye, Loader2, RefreshCw, ExternalLink, MessageSquare, ScrollText, Heart, ClipboardList } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useUsers } from '../hooks/useUsers';
 import { useAuth } from '../contexts/AuthContext';
@@ -315,6 +315,24 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
 
   const { nextTask, upcomingTasks, hiddenFutureTasksCount } = getProcessedTasks(tasks, taskActions.takenTasks, taskActions.currentEmployeeId, showFutureTasks, isSaRecruiter(user?.email));
 
+  // Survey CTA target. The backend sends an absolute URL; when it is missing or
+  // not http(s) we fall back to the caregiver profile (the survey URL cannot be
+  // rebuilt here — the id in it is the assignment, not the caregiver).
+  const surveyUrl = nextTask?.apiData?.link && /^https?:\/\//.test(nextTask.apiData.link)
+    ? nextTask.apiData.link
+    : `https://portal.mamamia.app/caregiver-agency/caregivers/${nextTask?.apiData?.caregiverId}`;
+
+  // target="_blank" opens a tab but does not guarantee it comes to the front, and
+  // rel="noopener" makes window.open return null so there is nothing to focus.
+  // Open it ourselves, then sever opener so the portal cannot reach back in.
+  const openSurvey = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const win = window.open(surveyUrl, '_blank');
+    if (!win) return; // popup blocked — the anchor href is the fallback
+    try { win.opener = null; } catch { /* cross-origin: nothing to sever */ }
+    win.focus();
+  };
+
   useEffect(() => {
     const caregiverId = nextTask?.apiData?.caregiverId ?? null;
     activeCaregiverIdRef.current = caregiverId;
@@ -357,7 +375,10 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
         const detail = await sunshineService.getCallbackById(callbackId);
         if (!cancelled) {
           setCallbackReason(detail.reason || null);
-          setCallbackNote(detail.note || null);
+          // For survey callbacks `note` is nothing but the survey URL, which the
+          // 'Wypełnij ankietę' link already carries — showing it again as plain
+          // unclickable text in the grey box is noise.
+          setCallbackNote(detail.type === 'survey' ? null : detail.note || null);
         }
       } catch (err) {
         // 404 = callback resolved between list and detail fetch; degrade gracefully
@@ -518,6 +539,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
   // The assignment lock ensures only one recruiter works with a caregiver at a time.
   // Routes by callbackType:
   //   pre_arrival/post_arrival/pre_departure → dedicated dialog
+  //   survey → standard CompletionDialog, prefilled
   //   everything else → standard CompletionDialog
   const handleReachable = (task: Task) => {
     if (reloadIfUpdateAvailable()) return;
@@ -535,6 +557,11 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
       // HP off: skip the HP dialog/API. Standard CompletionDialog with an
       // editable prefill so the recruiter only has to click Zapisz.
       dialogState.openCompletionDialog(task, hpPrefillNote(type));
+    } else if (type === 'survey') {
+      // Filling the survey in the portal does not resolve the callback — the
+      // recruiter still closes it here. Prefill so the mandatory summary field
+      // (CompletionDialog blocks an empty one) isn't busywork.
+      dialogState.openCompletionDialog(task, 'Ankieta zebrana');
     } else {
       dialogState.openCompletionDialog(task);
     }
@@ -1184,6 +1211,34 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                 <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">
                   {nextTask.category}
                 </span>
+              </div>
+            )}
+
+            {nextTask.apiData?.callbackType === 'survey' && (
+              // Own block above the action buttons, like interest-block / hp-manual-banner.
+              // A link in the Profil/Chat/Notatki row is too quiet for the one thing this
+              // callback exists for. Always rendered for surveys; without a usable link we
+              // fall back to the caregiver profile (the survey URL cannot be rebuilt here —
+              // its id is the assignment, not the caregiver).
+              <div className="mb-6 flex items-start space-x-2 bg-violet-50 border border-violet-200 rounded-lg p-4" data-testid="survey-block">
+                <ClipboardList className="h-5 w-5 text-violet-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-violet-900">Ankieta po 14 dniach na zleceniu</p>
+                  <p className="text-sm text-violet-800 mt-0.5">
+                    Wypełnij ankietę w portalu, a potem domknij to zadanie — samo wprowadzenie ankiety go nie zamyka.
+                  </p>
+                  <a
+                    href={surveyUrl}
+                    onClick={openSurvey}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center space-x-2 px-4 py-2 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition-colors"
+                    data-testid="survey-link"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    <span>Wypełnij ankietę</span>
+                  </a>
+                </div>
               </div>
             )}
 

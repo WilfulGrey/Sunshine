@@ -379,6 +379,98 @@ describe('taskUtils', () => {
     });
   });
 
+  describe('sortTasksByPriority - survey tier (between overdue reapply and Manual)', () => {
+    const makeTask = (id: string, overrides: Partial<Task> = {}): Task => ({
+      id,
+      title: `Task ${id}`,
+      description: '',
+      status: 'pending',
+      priority: 'medium',
+      type: 'manual',
+      createdAt: new Date(),
+      history: [],
+      ...overrides,
+    });
+
+    it('due survey beats Manual due soon', () => {
+      const now = Date.now();
+      const survey = makeTask('survey', {
+        dueDate: new Date(now - 1000),
+        apiData: { caregiverId: 1, callbackType: 'survey' },
+      });
+      const manual = makeTask('manual', {
+        dueDate: new Date(now + 3 * 60 * 1000),
+        apiData: { caregiverId: 2, callbackSource: 'Manual' },
+      });
+      expect(sortTasksByPriority([manual, survey])[0].id).toBe('survey');
+    });
+
+    it('due survey beats a due process callback', () => {
+      const now = Date.now();
+      const survey = makeTask('survey', {
+        dueDate: new Date(now - 1000),
+        apiData: { caregiverId: 1, callbackType: 'survey' },
+      });
+      const preArrival = makeTask('pre_arrival', {
+        dueDate: new Date(now - 60 * 60 * 1000),
+        apiData: { caregiverId: 2, callbackType: 'pre_arrival' },
+      });
+      expect(sortTasksByPriority([preArrival, survey])[0].id).toBe('survey');
+    });
+
+    it('overdue reapply still beats a due survey', () => {
+      const now = Date.now();
+      const survey = makeTask('survey', {
+        dueDate: new Date(now - 60 * 60 * 1000),
+        apiData: { caregiverId: 1, callbackType: 'survey' },
+      });
+      const reapply = makeTask('reapply', {
+        dueDate: new Date(now - 1000),
+        apiData: { caregiverId: 2, callbackType: 'reapply' },
+      });
+      expect(sortTasksByPriority([survey, reapply])[0].id).toBe('reapply');
+    });
+
+    it('in_progress still beats a due survey', () => {
+      const now = Date.now();
+      const survey = makeTask('survey', {
+        dueDate: new Date(now - 60 * 60 * 1000),
+        apiData: { caregiverId: 1, callbackType: 'survey' },
+      });
+      const inProgress = makeTask('busy', {
+        status: 'in_progress',
+        dueDate: new Date(now + 60 * 60 * 1000),
+      });
+      expect(sortTasksByPriority([survey, inProgress])[0].id).toBe('busy');
+    });
+
+    it('a survey scheduled in the future does NOT jump the queue', () => {
+      const now = Date.now();
+      const futureSurvey = makeTask('survey', {
+        dueDate: new Date(now + 14 * 24 * 60 * 60 * 1000),
+        apiData: { caregiverId: 1, callbackType: 'survey' },
+      });
+      const manual = makeTask('manual', {
+        dueDate: new Date(now + 3 * 60 * 1000),
+        apiData: { caregiverId: 2, callbackSource: 'Manual' },
+      });
+      expect(sortTasksByPriority([futureSurvey, manual])[0].id).toBe('manual');
+    });
+
+    it('two due surveys sort oldest first', () => {
+      const now = Date.now();
+      const older = makeTask('older', {
+        dueDate: new Date(now - 60 * 60 * 1000),
+        apiData: { caregiverId: 1, callbackType: 'survey' },
+      });
+      const newer = makeTask('newer', {
+        dueDate: new Date(now - 1000),
+        apiData: { caregiverId: 2, callbackType: 'survey' },
+      });
+      expect(sortTasksByPriority([newer, older])[0].id).toBe('older');
+    });
+  });
+
   describe('sortTasksByPriority - new callback types (reapply, pre_*)', () => {
     const makeTask = (id: string, overrides: Partial<Task> = {}): Task => ({
       id,

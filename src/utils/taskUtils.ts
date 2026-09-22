@@ -114,7 +114,20 @@ export const sortTasksByPriority = (tasks: Task[]) => {
       return a.dueDate!.getTime() - b.dueDate!.getTime();
     }
 
-    // TIER 4: Manual callbacks (set by recruiter in MamaMia panel) - when due within 5 minutes
+    // TIER 4: survey callbacks - when due. Set 14 days into an assignment to
+    // collect the client check-in survey; they sit above the recruiter's own
+    // Manual commitments so they don't drown behind the overdue backlog.
+    // Same "only when due" guard as the tiers around it — a survey scheduled
+    // weeks out must not jump the queue today.
+    const aIsSurveyDue = a.apiData?.callbackType === 'survey' && !!a.dueDate && a.dueDate.getTime() <= nowMs;
+    const bIsSurveyDue = b.apiData?.callbackType === 'survey' && !!b.dueDate && b.dueDate.getTime() <= nowMs;
+    if (aIsSurveyDue && !bIsSurveyDue) return -1;
+    if (!aIsSurveyDue && bIsSurveyDue) return 1;
+    if (aIsSurveyDue && bIsSurveyDue) {
+      return a.dueDate!.getTime() - b.dueDate!.getTime();
+    }
+
+    // TIER 5: Manual callbacks (set by recruiter in MamaMia panel) - when due within 5 minutes
     // Recruiter-set commitments trump Interest and other sources when their time is near
     const fiveMinFromNow = nowMs + 5 * 60 * 1000;
     const aIsManualDueSoon = a.apiData?.callbackSource === 'Manual' && a.dueDate && a.dueDate.getTime() <= fiveMinFromNow;
@@ -125,7 +138,7 @@ export const sortTasksByPriority = (tasks: Task[]) => {
       return a.dueDate!.getTime() - b.dueDate!.getTime();
     }
 
-    // TIER 5: pre_arrival / post_arrival / pre_departure - when callback is due
+    // TIER 6: pre_arrival / post_arrival / pre_departure - when callback is due
     // Time-sensitive process-related callbacks (3 days before arrival / 1 day after / 7 days before departure)
     const PROCESS_TYPES = new Set(['pre_arrival', 'post_arrival', 'pre_departure']);
     const aIsProcessDue = a.apiData?.callbackType
@@ -140,7 +153,7 @@ export const sortTasksByPriority = (tasks: Task[]) => {
       return a.dueDate!.getTime() - b.dueDate!.getTime();
     }
 
-    // TIER 6: Interest (Like) tasks - but only when their callback is due (not in the future)
+    // TIER 7: Interest (Like) tasks - but only when their callback is due (not in the future)
     const aIsInterestDue = a.apiData?.callbackSource === 'Interest' && a.dueDate && a.dueDate.getTime() <= nowMs;
     const bIsInterestDue = b.apiData?.callbackSource === 'Interest' && b.dueDate && b.dueDate.getTime() <= nowMs;
     if (aIsInterestDue && !bIsInterestDue) return -1;

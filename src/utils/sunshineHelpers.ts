@@ -17,6 +17,9 @@ const titleForType = (fullName: string, type: CallbackType): string => {
     case 'pre_departure':
       // 7 days before leaving the family — confirm departure
       return `${fullName} - Abreise bestätigen (potwierdzenie odjazdu)`;
+    case 'survey':
+      // 14 days into an assignment — collect the check-in survey for the client
+      return `${fullName} - Ankieta`;
     case 'general':
     default:
       return `${fullName} - Kontakt telefoniczny`;
@@ -114,6 +117,7 @@ export const convertCallbackToTask = (callback: SunshineCallback): Task => {
       caregiverId: callback.caregiver_id,
       callbackId: callback.callback_id,
       callbackType,
+      link: callback.link || undefined,
       dlv: callback.dlv,
       serviceAgencyId: callback.service_agency_id,
       employeeId: callback.employee_id,

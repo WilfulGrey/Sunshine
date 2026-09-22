@@ -12,6 +12,8 @@ describe('features — HP process helpers', () => {
     expect(isHpProcessType('general')).toBe(false);
     expect(isHpProcessType('interest')).toBe(false);
     expect(isHpProcessType('reapply')).toBe(false);
+    // survey is NOT an HP process — it must not inherit HP dialogs/sorting
+    expect(isHpProcessType('survey')).toBe(false);
     expect(isHpProcessType(undefined)).toBe(false);
     expect(isHpProcessType('')).toBe(false);
   });

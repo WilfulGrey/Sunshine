@@ -5,6 +5,7 @@ import { TaskFocusedView } from './TaskFocusedView';
 import { Task } from '../types/Task';
 import { useDialogState } from '../hooks/useDialogState';
 import { useTaskActions } from '../hooks/useTaskActions';
+import { sunshineService } from '../services/sunshineService';
 
 // Stable mock so tests can assert on it across renders
 const mockHandleBoostPriority = vi.hoisted(() => vi.fn());
@@ -532,6 +533,161 @@ describe('TaskFocusedView', () => {
       render(<TaskFocusedView {...defaultProps} availableUsers={['User One', 'User Two']} />);
 
       expect(true).toBe(true); // Component renders without errors
+    });
+  });
+  describe('Survey callbacks', () => {
+    // The survey URL rides on the LIST payload (apiData.link), not the detail —
+    // the detail endpoint does not serialize it.
+    const surveyTask: Task = {
+      id: '2678',
+      title: 'Anna Nowak - Ankieta',
+      status: 'pending',
+      priority: 'medium',
+      type: 'manual',
+      assignedTo: 'Test User',
+      createdAt: new Date(),
+      dueDate: new Date('2026-10-02T08:00:00Z'),
+      history: [],
+      apiData: {
+        caregiverId: 10589,
+        callbackId: 2678,
+        callbackType: 'survey',
+        link: 'https://beta.mamamia.app/caregiver-agency/add-survey/33387',
+        phoneNumber: '+48123456789'
+      }
+    };
+
+    const renderWith = (task: Task) =>
+      render(
+        <TaskFocusedView
+          tasks={[task]}
+          onUpdateLocalTask={mockOnUpdateLocalTask}
+          onRemoveLocalTask={mockOnRemoveLocalTask}
+        />
+      );
+
+    it('links "Wypelnij ankiete" to the survey URL from the callback list', () => {
+      renderWith(surveyTask);
+
+      expect(screen.getByTestId('survey-link')).toHaveAttribute(
+        'href',
+        'https://beta.mamamia.app/caregiver-agency/add-survey/33387'
+      );
+    });
+
+    it('falls back to the caregiver profile when the backend sent no link', () => {
+      // The button must never disappear for a survey — without a link the
+      // recruiter still needs a way into the caregiver.
+      renderWith({ ...surveyTask, apiData: { ...surveyTask.apiData!, link: undefined } });
+
+      expect(screen.getByTestId('survey-link')).toHaveAttribute(
+        'href',
+        'https://portal.mamamia.app/caregiver-agency/caregivers/10589'
+      );
+    });
+
+    it('ignores a non-http link and falls back to the profile', () => {
+      renderWith({
+        ...surveyTask,
+        apiData: { ...surveyTask.apiData!, link: 'javascript:alert(1)' }
+      });
+
+      expect(screen.getByTestId('survey-link')).toHaveAttribute(
+        'href',
+        'https://portal.mamamia.app/caregiver-agency/caregivers/10589'
+      );
+    });
+
+    it('shows no survey block for a non-survey callback, even if a link is present', () => {
+      renderWith({
+        ...surveyTask,
+        apiData: { ...surveyTask.apiData!, callbackType: 'general' }
+      });
+
+      expect(screen.getByTestId('caregiver-links')).toBeInTheDocument();
+      expect(screen.queryByTestId('survey-block')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('survey-link')).not.toBeInTheDocument();
+    });
+
+    it('opens the survey in a new tab and brings it to the front', () => {
+      const focus = vi.fn();
+      const fakeWin = { focus, opener: {} } as unknown as Window;
+      const openSpy = vi.spyOn(window, 'open').mockReturnValue(fakeWin);
+
+      renderWith(surveyTask);
+      fireEvent.click(screen.getByTestId('survey-link'));
+
+      expect(openSpy).toHaveBeenCalledWith(
+        'https://beta.mamamia.app/caregiver-agency/add-survey/33387',
+        '_blank'
+      );
+      expect(focus).toHaveBeenCalled();
+      // opener severed so the portal tab cannot navigate Sunshine away
+      expect((fakeWin as unknown as { opener: unknown }).opener).toBeNull();
+      openSpy.mockRestore();
+    });
+
+    it('survives a blocked popup without an uncaught error', () => {
+      // fireEvent swallows handler exceptions, so watch the window error channel
+      // that jsdom reports them on — otherwise this test proves nothing.
+      const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+      const errors: unknown[] = [];
+      const onError = (e: ErrorEvent) => { errors.push(e.error ?? e.message); };
+      window.addEventListener('error', onError);
+
+      renderWith(surveyTask);
+      fireEvent.click(screen.getByTestId('survey-link'));
+
+      window.removeEventListener('error', onError);
+      expect(errors).toEqual([]);
+      // href stays as the fallback path for the browser to handle
+      expect(screen.getByTestId('survey-link')).toHaveAttribute(
+        'href',
+        'https://beta.mamamia.app/caregiver-agency/add-survey/33387'
+      );
+      openSpy.mockRestore();
+    });
+
+    it('renders the survey CTA as its own block, not a link in the Profil/Chat row', () => {
+      renderWith(surveyTask);
+
+      const block = screen.getByTestId('survey-block');
+      expect(block).toBeInTheDocument();
+      // the CTA must live inside that block, not in the quiet links row
+      expect(block).toContainElement(screen.getByTestId('survey-link'));
+      expect(screen.getByTestId('caregiver-links')).not.toContainElement(
+        screen.getByTestId('survey-link')
+      );
+    });
+
+    it('hides the grey callback-note box for surveys (the note is just the link)', async () => {
+      vi.mocked(sunshineService.getCallbackById).mockResolvedValue({
+        type: 'survey',
+        reason: null,
+        note: 'https://beta.mamamia.app/caregiver-agency/add-survey/33387'
+      } as any);
+
+      renderWith(surveyTask);
+
+      await waitFor(() => expect(sunshineService.getCallbackById).toHaveBeenCalledWith(2678));
+      expect(screen.queryByTestId('callback-note')).not.toBeInTheDocument();
+    });
+
+    it('still shows the callback-note box for non-survey callbacks', async () => {
+      vi.mocked(sunshineService.getCallbackById).mockResolvedValue({
+        type: 'general',
+        reason: null,
+        note: 'Oddzwonic po 16'
+      } as any);
+
+      renderWith({
+        ...surveyTask,
+        apiData: { ...surveyTask.apiData!, callbackType: 'general', link: undefined }
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('callback-note')).toHaveTextContent('Oddzwonic po 16');
+      });
     });
   });
 });
