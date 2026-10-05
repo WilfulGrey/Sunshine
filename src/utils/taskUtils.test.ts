@@ -6,7 +6,8 @@ import {
   filterActiveTasks, 
   sortTasksByPriority, 
   getProcessedTasks,
-  isTaskDueToday
+  isTaskDueToday,
+  getCallbackLabel
 } from './taskUtils';
 import { Task } from '../types/Task';
 import { User, Bot, Zap } from 'lucide-react';
@@ -755,5 +756,15 @@ describe('taskUtils', () => {
 
       expect(isTaskDueToday(taskWithoutDueDate)).toBe(false);
     });
+  });
+});
+describe('getCallbackLabel', () => {
+  const withApi = (apiData: Partial<NonNullable<Task['apiData']>>) => ({ apiData: { caregiverId: 1, ...apiData } }) as Task;
+
+  it('labels by tier: recruiter source wins, process types share a colour, backlog gets none', () => {
+    expect(getCallbackLabel(withApi({ callbackSource: 'Manual', callbackType: 'manual' }))?.text).toBe('Rekruter');
+    expect(getCallbackLabel(withApi({ callbackType: 'post_arrival' }))?.text).toBe('Anreise');
+    expect(getCallbackLabel(withApi({ callbackType: 'pre_departure' }))?.text).toBe('Abreise');
+    expect(getCallbackLabel(withApi({ callbackType: 'general', callbackSource: 'System' }))).toBeNull();
   });
 });

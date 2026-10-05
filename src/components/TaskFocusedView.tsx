@@ -17,7 +17,7 @@ import { useActivityRefresh } from '../hooks/useActivityRefresh';
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh';
 import { useSmartPolling } from '../hooks/useSmartPolling';
 import { useVersionCheck } from '../hooks/useVersionCheck';
-import { getTypeIcon, getTypeColor, getPriorityColor, getProcessedTasks, isTaskDueToday } from '../utils/taskUtils';
+import { getTypeIcon, getTypeColor, getPriorityColor, getProcessedTasks, isTaskDueToday, getCallbackLabel } from '../utils/taskUtils';
 import { CompletionDialog } from './dialogs/CompletionDialog';
 import { AbandonDialog } from './dialogs/AbandonDialog';
 import { TransferDialog } from './dialogs/TransferDialog';
@@ -1383,6 +1383,7 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
             {upcomingTasks.map((task, index) => {
               const TaskTypeIcon = getTypeIcon(task.type);
               const taskOverdue = task.dueDate && isOverdue(task.dueDate);
+              const label = getCallbackLabel(task);
               
               return (
                 <div
@@ -1401,6 +1402,11 @@ export const TaskFocusedView: React.FC<TaskFocusedViewProps> = ({ tasks, onUpdat
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
+                          {label && (
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium flex-shrink-0 ${label.className}`} data-testid="callback-label">
+                              {label.text}
+                            </span>
+                          )}
                           <h4 className="font-medium text-gray-900 truncate">{task.title}</h4>
                           {taskOverdue && <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />}
                         </div>

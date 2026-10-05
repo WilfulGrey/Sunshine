@@ -30,6 +30,21 @@ export const getPriorityColor = (priority: string) => {
   }
 };
 
+// Coloured pill per callback kind on the upcoming list, so the sort tiers are
+// visible at a glance. Plain system callbacks (the backlog) get none.
+export const getCallbackLabel = (task: Task): { text: string; className: string } | null => {
+  if (task.apiData?.callbackSource === 'Manual') return { text: 'Rekruter', className: 'bg-indigo-50 text-indigo-700' };
+  switch (task.apiData?.callbackType) {
+    case 'reapply': return { text: 'Reapply', className: 'bg-purple-50 text-purple-700' };
+    case 'survey': return { text: 'Ankieta', className: 'bg-teal-50 text-teal-700' };
+    case 'pre_arrival':
+    case 'post_arrival': return { text: 'Anreise', className: 'bg-amber-50 text-amber-700' };
+    case 'pre_departure': return { text: 'Abreise', className: 'bg-amber-50 text-amber-700' };
+    case 'interest': return { text: 'Aplikacja', className: 'bg-pink-50 text-pink-700' };
+    default: return null;
+  }
+};
+
 const VITANAS_SA_ID = 1;
 
 // A "foreign application" = an unassigned interest callback whose job offer

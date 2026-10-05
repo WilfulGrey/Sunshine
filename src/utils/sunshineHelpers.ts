@@ -112,7 +112,12 @@ export const convertCallbackToTask = (callback: SunshineCallback): Task => {
   if (callback.callback_source === 'Reapply Agent' && callbackType === 'general') {
     callbackType = 'reapply';
   }
-  const title = titleForType(fullName, callbackType);
+  // Recruiter-scheduled callbacks (MamaMia panel) get their own sort tier, so they
+  // get their own title too — under the generic "Kontakt telefoniczny" they look
+  // identical to the system backlog and the list order reads as random.
+  const title = callback.callback_source === 'Manual'
+    ? `${fullName} - Callback ustawiony przez rekrutera`
+    : titleForType(fullName, callbackType);
 
   // Task ID prefers callback_id (unique per callback) over caregiver_id
   // (a single caregiver may have multiple callbacks in different process stages)

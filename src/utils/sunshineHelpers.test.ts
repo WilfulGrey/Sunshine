@@ -55,6 +55,16 @@ describe('convertCallbackToTask — survey callbacks', () => {
   });
 });
 
+describe('convertCallbackToTask — recruiter-scheduled callbacks', () => {
+  it('titles a Manual-source callback apart from the system backlog', () => {
+    const manual = convertCallbackToTask(makeCallback({ type: 'manual', callback_source: 'Manual' }));
+    const system = convertCallbackToTask(makeCallback({ type: 'general', callback_source: 'System' }));
+
+    expect(manual.title).toBe('Anna Nowak - Callback ustawiony przez rekrutera');
+    expect(system.title).toBe('Anna Nowak - Kontakt telefoniczny');
+  });
+});
+
 describe('reasonForType', () => {
   it('explains a survey callback without waiting for the backend', () => {
     expect(reasonForType('survey')).toBe('Ankieta po 14 dniach na zleceniu');

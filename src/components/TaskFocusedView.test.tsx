@@ -142,7 +142,8 @@ vi.mock('../utils/taskUtils', () => ({
     nextTask: tasks[0] || null,
     upcomingTasks: tasks.slice(1)
   })),
-  isTaskDueToday: vi.fn(() => false)
+  isTaskDueToday: vi.fn(() => false),
+  getCallbackLabel: vi.fn(() => null)
 }));
 
 vi.mock('../services/sunshineService', () => ({

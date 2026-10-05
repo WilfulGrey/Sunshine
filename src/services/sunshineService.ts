@@ -7,6 +7,7 @@ export type CallbackType =
   | 'pre_departure'
   | 'reapply'
   | 'survey'
+  | 'manual'
   | 'general';
 
 export type ConfirmArrivalStatus = '0' | '1';
